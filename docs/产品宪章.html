@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar 产品宪章</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --warning: #9a5b00;
+      --warning-soft: #fff2d6;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+
+    .doc {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 32px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(34px, 4.6vw, 58px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    section {
+      margin-top: 22px;
+      padding: 28px 32px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    p:last-child,
+    ul:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      margin: 0 0 16px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    blockquote {
+      margin: 18px 0 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #174642;
+      font-weight: 650;
+    }
+
+    .note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--code);
+      color: #3c4043;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .footer {
+      margin: 28px auto 0;
+      max-width: 920px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: sticky;
+        z-index: 20;
+        height: auto;
+        max-height: 46vh;
+        padding: 18px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand {
+        margin-bottom: 14px;
+        padding-bottom: 14px;
+      }
+
+      .nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .content {
+        padding: 28px 16px 56px;
+      }
+
+      .hero,
+      section {
+        padding: 24px 20px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .nav {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 34px;
+      }
+
+      .lead {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-label="文档导航">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">产品宪章阅读版</p>
+      </div>
+      <p class="nav-title">导航</p>
+      <ol class="nav">
+        <li><a href="#name">1. 产品名称</a></li>
+        <li><a href="#positioning">2. 一句话定位</a></li>
+        <li><a href="#users">3. 核心用户</a></li>
+        <li><a href="#problem">4. 核心问题</a></li>
+        <li><a href="#promise">5. 核心承诺</a></li>
+        <li><a href="#event-card">6. 事件卡</a></li>
+        <li><a href="#info-strategy">7. 信息策略</a></li>
+        <li><a href="#ranking">8. 排序策略</a></li>
+        <li><a href="#homepage">9. 首页形态</a></li>
+        <li><a href="#p1-scope">10. P1 范围</a></li>
+        <li><a href="#event-scope">11. 事件范围</a></li>
+        <li><a href="#tools">12. 工具策略</a></li>
+        <li><a href="#sources">13. 数据源策略</a></li>
+        <li><a href="#content-principles">14. 内容原则</a></li>
+        <li><a href="#trust">15. 可信状态</a></li>
+        <li><a href="#publishing">16. 发布模式</a></li>
+        <li><a href="#success">17. 成功标准</a></li>
+        <li><a href="#conclusion">18. 当前结论</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Product Charter</p>
+          <h1>AI World Radar 产品宪章</h1>
+          <p class="lead">面向中文 AI 学习型用户的全球 AI 圈事件情报雷达，把碎片化信号整理成可理解、可追溯、可分层的 AI 事件。</p>
+        </header>
+
+        <section id="name">
+          <h2>1. 产品名称</h2>
+          <p>AI World Radar</p>
+        </section>
+
+        <section id="positioning">
+          <h2>2. 一句话定位</h2>
+          <p>AI World Radar 是一个面向中文 AI 学习型用户的全球 AI 圈事件情报雷达。</p>
+          <p>它不以新闻链接、文章摘要或日报为核心，而是把全球 AI 圈的碎片化信号整理成可理解、可追溯、可分层的 AI 事件。</p>
+        </section>
+
+        <section id="users">
+          <h2>3. 核心用户</h2>
+          <p>AI World Radar 主要服务中文 AI 学习型用户。</p>
+          <p>这类用户可以是 AI 初学者、初级开发者、学生、产品新人、独立开发者或 AI 爱好者。他们的共同点不是身份，而是需求：他们想持续理解全球 AI 圈正在发生什么，用这些信息建立认知、拓宽视野，但不想每天刷大量外网信息源。</p>
+          <p>AI World Radar 不优先服务专业投研人员、资深研究员、机构分析师，也不以娱乐化 AI 新闻消费为主要方向。</p>
+        </section>
+
+        <section id="problem">
+          <h2>4. 核心问题</h2>
+          <p>中文用户并不是完全找不到 AI 信息，而是面对的信息太碎、太散、太英文、太噪声化。</p>
+          <p>他们真正需要的是：</p>
+          <ul>
+            <li>今天全球 AI 圈发生了什么重要事件。</li>
+            <li>哪些事件更值得关注。</li>
+            <li>这些信息来自哪里。</li>
+            <li>可信程度如何。</li>
+            <li>哪些内容仍处于观察、争议或未确认状态。</li>
+          </ul>
+        </section>
+
+        <section id="promise">
+          <h2>5. 核心承诺</h2>
+          <p>AI World Radar 不是让用户看更多 AI 新闻，而是帮助用户更快理解全球 AI 圈。</p>
+          <p>产品的核心承诺是：</p>
+          <ul>
+            <li>发现全球 AI 圈的重要信号。</li>
+            <li>聚合同一事件的多源信息。</li>
+            <li>用中文解释事件的基本背景和关注价值。</li>
+            <li>标明来源、可信状态和不确定性。</li>
+            <li>通过分层展示减少信息过载。</li>
+          </ul>
+        </section>
+
+        <section id="event-card">
+          <h2>6. 核心内容单位：事件卡</h2>
+          <p>AI World Radar 以事件卡作为核心内容单位。</p>
+          <p>事件卡不是最终 UI 样式，而是一种内容组织策略：把多个来源中的碎片信息聚合成一个 AI 事件，并附带来源、状态、热度、分层、摘要和必要说明。</p>
+          <p>普通聚合站通常是一条新闻对应一张卡。AI World Radar 的目标是一个事件对应一张卡。</p>
+          <p>例如，同一个模型发布事件可能同时出现在官方博客、X、YouTube、Hacker News、GitHub 和中文资讯站中。AI World Radar 不应把它们展示成多条重复新闻，而应该聚合为同一个事件。</p>
+          <p>首页事件卡可以保持轻量，只展示必要信息。完整来源链、背景说明、不确定性和详细内容应放到事件详情页。卡片视觉密度、封面图、布局、展开方式等问题留到 UI 设计阶段讨论。</p>
+        </section>
+
+        <section id="info-strategy">
+          <h2>7. 信息策略</h2>
+          <p>AI World Radar 采用“广覆盖 + 分层处理”的信息策略。</p>
+          <p>系统先尽量广泛收集全球 AI 圈信号，再根据热度、影响范围、可信度、来源权威性和新鲜度进行分层。</p>
+          <p>P1 阶段事件分为三档：</p>
+          <ul>
+            <li>必看：当天或近期最值得中文 AI 用户关注的事件。</li>
+            <li>可看：有一定热度或价值，但重要性低于必看事件。</li>
+            <li>观察：热度存在，但可信度、影响范围或信息完整度仍需继续观察。</li>
+          </ul>
+        </section>
+
+        <section id="ranking">
+          <h2>8. 排序策略</h2>
+          <p>AI World Radar 采用“热度优先的综合判断”。</p>
+          <p>热度是主要排序信号，但不是唯一信号。系统需要结合以下因素进行综合判断：</p>
+          <ul>
+            <li>多平台讨论热度。</li>
+            <li>来源权威性。</li>
+            <li>事件影响范围。</li>
+            <li>信息可信度。</li>
+            <li>事件新鲜度。</li>
+          </ul>
+          <p>高热度事件应优先进入用户视野；同时，权威来源发布、重大模型更新、关键政策、核心论文等“热度未必最高但影响较大”的事件也需要被兜底。</p>
+        </section>
+
+        <section id="homepage">
+          <h2>9. 首页形态</h2>
+          <p>AI World Radar 的首页采用“混合雷达流 + 轻分区入口”。</p>
+          <p>首页优先展示混合事件流，让用户先看到今天或近期全球 AI 圈最值得关注的事件。分类不是首页主体，而是辅助浏览入口，用于帮助用户按模型发布、开源项目、公司动态、研究论文、政策争议等方向继续浏览。</p>
+          <p>产品的主体验不是每日简报，也不是分类信息站，而是 AI 事件雷达首页。</p>
+        </section>
+
+        <section id="p1-scope">
+          <h2>10. P1 产品范围</h2>
+          <p>P1 阶段做匿名公开站。</p>
+          <p>用户不需要注册或登录，打开网站即可浏览 AI 事件雷达。</p>
+          <p>P1 包含：</p>
+          <ul>
+            <li>首页事件雷达。</li>
+            <li>事件卡。</li>
+            <li>事件详情页。</li>
+            <li>派生简报。</li>
+          </ul>
+          <p>P1 不包含：</p>
+          <ul>
+            <li>用户登录。</li>
+            <li>收藏。</li>
+            <li>订阅。</li>
+            <li>提醒。</li>
+            <li>个性化推荐。</li>
+            <li>AI 追问助手。</li>
+            <li>社区评论。</li>
+            <li>复杂知识图谱。</li>
+          </ul>
+          <p>AI 追问助手作为 P2 能力预留。P1 先把“事件发现 + 事件理解”主链路做稳。</p>
+        </section>
+
+        <section id="event-scope">
+          <h2>11. 事件范围</h2>
+          <p>P1 覆盖宽 AI 圈事件，包括：</p>
+          <ul>
+            <li>模型发布。</li>
+            <li>产品更新。</li>
+            <li>公司动态。</li>
+            <li>人物动态。</li>
+            <li>开源项目。</li>
+            <li>论文研究。</li>
+            <li>政策版权。</li>
+            <li>安全争议。</li>
+            <li>热门观点。</li>
+            <li>YouTube / X 热议。</li>
+          </ul>
+          <p>AI World Radar 不把自己限制成技术学习站，也不只做行业新闻站，而是帮助中文 AI 学习型用户理解全球 AI 圈正在发生的关键事件。</p>
+        </section>
+
+        <section id="tools">
+          <h2>12. 工具与产品发布策略</h2>
+          <p>AI World Radar 不是 AI 工具导航。</p>
+          <p>工具和产品只有在构成“AI 圈事件”时才进入雷达。例如，来自重要公司、重要开源社区、重要开发者工具，或在多个平台形成明显讨论热度的发布，可以被纳入事件范围。</p>
+          <p>普通小工具、营销软文、工具合集不进入 P1 主线。</p>
+        </section>
+
+        <section id="sources">
+          <h2>13. 数据源策略</h2>
+          <p>AI World Radar 采用“原始源为主，竞品源为辅”的数据源策略。</p>
+          <p>优先来源包括：</p>
+          <ul>
+            <li>官方博客。</li>
+            <li>官方公告。</li>
+            <li>GitHub。</li>
+            <li>Hugging Face。</li>
+            <li>论文与研究机构页面。</li>
+            <li>YouTube。</li>
+            <li>X。</li>
+            <li>Hacker News 等社区讨论。</li>
+            <li>可信媒体报道。</li>
+          </ul>
+          <p>竞品网站可以作为：</p>
+          <ul>
+            <li>冷启动线索源。</li>
+            <li>热点补漏源。</li>
+            <li>热度参考源。</li>
+            <li>分类参考源。</li>
+          </ul>
+          <p>但竞品网站不作为正文稿源。</p>
+          <p>产品不直接搬运竞品正文，也不把竞品摘要交给 AI 改写后发布。</p>
+          <blockquote>竞品可以是雷达，但不能是稿源。</blockquote>
+        </section>
+
+        <section id="content-principles">
+          <h2>14. 内容原则</h2>
+          <p>AI World Radar 采用“事实为主体，解读为辅助”的内容原则。</p>
+          <p>系统可以解释事件为什么值得关注，但解释不能盖过事实本身。内容必须尽量区分：</p>
+          <ul>
+            <li>已确认事实。</li>
+            <li>合理推断。</li>
+            <li>社区讨论。</li>
+            <li>待确认信息。</li>
+            <li>存在争议的信息。</li>
+          </ul>
+          <p>产品不直接替用户制定学习路径，不输出强主观的学习建议，不把 AI 的判断包装成确定结论。</p>
+        </section>
+
+        <section id="trust">
+          <h2>15. 可信状态</h2>
+          <p>AI World Radar 统一使用事件卡结构，但通过状态标签区分可信程度和信息状态。</p>
+          <p>P1 阶段至少包含以下状态：</p>
+          <div class="tag-list">
+            <span class="tag">已确认</span>
+            <span class="tag">观察中</span>
+            <span class="tag">存在争议</span>
+            <span class="tag">未获官方确认</span>
+          </div>
+          <p style="margin-top: 16px;">对于高热度但未完全确认的内容，系统应先进行溯源，查找官方通告、原始发布、正式文件、可信媒体报道和多平台讨论。</p>
+          <p>如果暂时没有权威确认，但热度足够高，系统可以将其作为观察中事件展示，并明确标注“未获官方确认”“社区热议”或“存在争议”。</p>
+          <p>AI World Radar 既追踪已确认事件，也追踪高热度舆情信号，但必须区分“已确认事实”和“待确认讨论”。</p>
+        </section>
+
+        <section id="publishing">
+          <h2>16. 发布模式</h2>
+          <p>AI World Radar P1 采用 Agent-first 内容生产模式。</p>
+          <p>系统默认由 Agent 自动发现、聚合、分层并发布 AI 事件卡。人工审核不是发布前的强制步骤，而是可选的质量校正机制。</p>
+          <p>当维护者有时间时，可以进入后台对事件进行确认、修正、降级、隐藏或补充来源；当维护者没有时间时，系统仍能自动运行，保证产品持续更新。</p>
+        </section>
+
+        <section id="success">
+          <h2>17. P1 成功标准</h2>
+          <p>P1 的主成功标准是：</p>
+          <blockquote>用户打开网站后，能在 5 分钟内知道今天全球 AI 圈最值得关注的事情。</blockquote>
+          <p style="margin-top: 16px;">辅助成功标准包括：</p>
+          <ul>
+            <li>重要 AI 事件尽量不漏。</li>
+            <li>信息来源可追溯。</li>
+            <li>事件分层合理。</li>
+            <li>AI 解读克制，不误导用户。</li>
+            <li>高热未确认内容能被标明状态。</li>
+            <li>Agent 能自动完成发现、聚合、分层、生成和更新。</li>
+          </ul>
+        </section>
+
+        <section id="conclusion">
+          <h2>18. 当前阶段结论</h2>
+          <p>AI World Radar 不是 AI 新闻聚合站，不是 AI 工具导航，也不是 GitHub Trending 中文版。</p>
+          <p>它的核心形态是：</p>
+          <blockquote>面向中文 AI 学习型用户的全球 AI 圈事件情报雷达。</blockquote>
+          <p>P1 阶段优先验证“全球 AI 事件发现与中文理解”这条主链路。</p>
+        </section>
+      </article>
+
+      <p class="footer">AI World Radar 产品宪章 HTML 阅读版</p>
+    </main>
+  </div>
+</body>
+</html>
