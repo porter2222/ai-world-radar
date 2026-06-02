@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar 产品需求文档</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --amber: #9a5b00;
+      --amber-soft: #fff2d6;
+      --blue: #315f86;
+      --blue-soft: #e6f0f8;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+
+    .doc {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 32px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(30px, 5vw, 50px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 780px;
+      color: #3c4043;
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #3c4043;
+      background: #fbfbf8;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    section {
+      margin: 0 0 28px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 10px 32px rgba(30, 35, 40, 0.045);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 16px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    blockquote {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #24413d;
+      font-weight: 650;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.94em;
+    }
+
+    .note {
+      margin: 16px 0;
+      padding: 14px 16px;
+      border: 1px solid #d7e7e4;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: #24413d;
+    }
+
+    .warning {
+      margin: 16px 0;
+      padding: 14px 16px;
+      border: 1px solid #f1d59b;
+      border-radius: 10px;
+      background: var(--amber-soft);
+      color: #5f3a00;
+    }
+
+    .roadmap {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 18px 0;
+    }
+
+    .roadmap-card {
+      min-height: 140px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfbf8;
+    }
+
+    .roadmap-card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 15px;
+    }
+
+    .roadmap-card p {
+      margin: 0;
+      color: #3c4043;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 18px 0 6px;
+    }
+
+    .mini {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfbf8;
+    }
+
+    .mini h3 {
+      margin-top: 0;
+    }
+
+    .footer {
+      margin-top: 34px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .content {
+        padding: 28px 18px 52px;
+      }
+
+      .hero,
+      section {
+        padding: 24px 20px;
+      }
+
+      .roadmap,
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">产品需求文档 v0.1<br>P1 MVP 产品需求确认版</p>
+      </div>
+
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">文档目的</a></li>
+        <li><a href="#position">产品定位</a></li>
+        <li><a href="#users">目标用户</a></li>
+        <li><a href="#stories">用户故事</a></li>
+        <li><a href="#paths">用户路径</a></li>
+        <li><a href="#scope">P1 范围</a></li>
+        <li><a href="#pages">核心页面</a></li>
+        <li><a href="#agent">Agent 链路</a></li>
+        <li><a href="#admin">管理页</a></li>
+        <li><a href="#quality">内容质量</a></li>
+        <li><a href="#fallback">失败保护</a></li>
+        <li><a href="#acceptance">验收标准</a></li>
+        <li><a href="#risks">风险约束</a></li>
+        <li><a href="#roadmap">迭代路线</a></li>
+        <li><a href="#conclusion">阶段结论</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Product Requirements Document</p>
+          <h1>AI World Radar 产品需求文档</h1>
+          <p class="lead">P1 MVP 的目标是把全球 AI 圈碎片化信息整理成中文用户能快速理解、可以追溯来源、方便继续了解的 AI 事件情报。</p>
+          <div class="meta">
+            <span class="pill">版本：v0.1</span>
+            <span class="pill">更新时间：2026-06-02</span>
+            <span class="pill">阶段：P1 MVP</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 文档目的</h2>
+          <p>本文档用于定义 AI World Radar P1 MVP 的产品需求边界、核心用户故事、页面形态、内容形态、Agent 自动生产链路、管理页能力、验收标准与后续迭代路线。</p>
+          <p>本文档只描述产品层面的需求，不进入具体 UI 视觉设计、技术架构、数据模型、Agent 编排方案和部署方案。后续阶段将基于本 PRD 继续拆解信息源策略、Agent 系统设计、技术架构和实现计划。</p>
+        </section>
+
+        <section id="position">
+          <h2>2. 产品定位</h2>
+          <p>AI World Radar 是一个面向中文 AI 学习型用户的全球 AI 圈事件情报雷达。</p>
+          <p>P1 MVP 的目标不是做“最全 AI 新闻聚合站”，也不是做 AI 工具导航、GitHub Trending 中文版或通用 AI 搜索助手，而是把全球 AI 圈的碎片化信息整理成中文用户能快速理解、可以追溯来源、方便继续了解的 AI 事件情报。</p>
+          <blockquote>用户每天打开 AI World Radar 后，能够在 5 分钟内了解最近全球 AI 圈最值得关注的事件，并知道这些事件为什么值得看、信息来自哪里、哪些内容仍然存在不确定性。</blockquote>
+        </section>
+
+        <section id="users">
+          <h2>3. 目标用户</h2>
+          <p>P1 主要服务中文 AI 学习型用户，包括 AI 初学者、初级 Agent / LLM 应用开发者、学生、产品新人、独立开发者、AI 爱好者，以及想了解外网 AI 圈动态但不想长期刷外网信息源的人。</p>
+          <p>这类用户的共同特点不是身份，而是需求：想了解全球 AI 圈正在发生什么，想拓宽视野，但没有能力、时间或意愿长期刷 X、YouTube、GitHub、Hacker News、英文 Newsletter 和海外媒体。</p>
+          <p>P1 不优先服务专业投研人员、资深研究员、机构分析师，也不以娱乐化 AI 新闻消费为主要方向。</p>
+        </section>
+
+        <section id="stories">
+          <h2>4. 用户故事</h2>
+          <h3>核心用户故事</h3>
+          <p>作为一个中文 AI 学习型用户，我希望每天打开 AI World Radar 后，能在 5 分钟内看到全球 AI 圈最值得关注的事件，并知道这些事件的来源、基本背景、讨论焦点和为什么值得关注，从而不用自己长期刷外网信息源，也能保持对 AI 圈的基本认知。</p>
+
+          <div class="split">
+            <div class="mini">
+              <h3>快速浏览首页</h3>
+              <p>用户通过封面式事件卡快速扫过最近 AI 圈的重要事件，判断哪些值得点进去看。</p>
+            </div>
+            <div class="mini">
+              <h3>阅读今日简报</h3>
+              <p>用户只阅读今日简报，也能基本理解当天全球 AI 圈的重点事件。</p>
+            </div>
+            <div class="mini">
+              <h3>理解单个事件</h3>
+              <p>用户点击某个事件后，可以看到更完整的背景、发展脉络、讨论焦点、来源和后续关注点。</p>
+            </div>
+            <div class="mini">
+              <h3>维护者人工兜底</h3>
+              <p>维护者可以在 Agent 自动发布后修改、隐藏、恢复、补来源、换图或重新生成某条事件。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="paths">
+          <h2>5. 用户路径</h2>
+          <ul>
+            <li>首页雷达主路径：打开首页 -> 浏览首页事件雷达 -> 查看事件卡 -> 点击事件详情 -> 阅读事件上下文与信息来源。</li>
+            <li>今日简报路径：打开首页 -> 进入今日简报 -> 阅读当天重点事件 -> 对感兴趣事件点击详情。</li>
+            <li>轻量分类路径：打开首页 -> 点击分类入口 -> 浏览该分类下的事件 -> 点击详情。</li>
+            <li>维护者路径：Agent 自动发布 -> 维护者进入管理页 -> 修改 / 隐藏 / 恢复 / 调整优先级 / 补来源 / 换图 / 重新生成 -> 前台同步更新。</li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>6. P1 产品范围</h2>
+          <div class="split">
+            <div class="mini">
+              <h3>P1 包含</h3>
+              <ul>
+                <li>匿名公开首页。</li>
+                <li>最近 24 小时滚动事件雷达。</li>
+                <li>封面式首页事件卡。</li>
+                <li>今日简报与事件详情页。</li>
+                <li>图文混排与信息来源展示。</li>
+                <li>Agent 自动内容生产与自动发布。</li>
+                <li>维护者管理页。</li>
+              </ul>
+            </div>
+            <div class="mini">
+              <h3>P1 不包含</h3>
+              <ul>
+                <li>普通用户登录、收藏、订阅、提醒。</li>
+                <li>评论区、社区互动、个性化推荐。</li>
+                <li>AI 追问助手、复杂知识图谱。</li>
+                <li>完整新闻搜索引擎、分钟级实时热榜。</li>
+                <li>多角色审核流、复杂事实核查系统。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="pages">
+          <h2>7. 核心页面需求</h2>
+          <h3>首页事件雷达</h3>
+          <p>首页默认展示最近 24 小时滚动窗口内的重点 AI 事件。首页不按“必看 / 可看 / 观察”做硬分区，而是采用混合事件流。系统内部可以保留优先级判断，但前台不把页面切成多个强分区。</p>
+          <p>首页默认展示 Top 12 事件，并支持加载更多。Top 12 不是固定凑满数量；当有效内容不足时，允许展示更少事件，不强行生成低质量内容。</p>
+          <p>首页提供轻量分类入口。分类入口不是固定频道承诺，而是动态浏览辅助；当前窗口内有对应内容时才展示，不展示空分类。</p>
+
+          <h3>首页事件卡</h3>
+          <p>首页事件卡是封面式视觉入口，不承担完整解释任务。事件卡应帮助用户快速判断这是什么事件、大概属于什么方向、是否值得点进去。</p>
+          <ul>
+            <li>标题：14-28 字。</li>
+            <li>辅助说明：0-35 字。</li>
+            <li>建议内容：封面图、标题、可选辅助说明、分类标签、热度或优先级提示、弱化展示的来源或时间提示。</li>
+          </ul>
+
+          <h3>今日简报</h3>
+          <p>今日简报是由事件卡派生出的完整阅读版日报。它不是独立内容源，但需要具备独立阅读价值。用户只阅读今日简报，也应能理解当天全球 AI 圈的主要事件。</p>
+          <p>今日简报使用中国自然日维度，而首页雷达使用最近 24 小时滚动窗口。单事件建议长度为 180-320 字。</p>
+
+          <h3>事件详情页</h3>
+          <p>事件详情页不是简报的加长版，也不是深度文章，而是事件上下文档案。它用于承载简报没有提供的背景、来源、讨论分歧、事件发酵过程和后续关注点。</p>
+          <div class="note">详情页采用“结构化生成，非结构化阅读”的原则：Agent 可以按结构化字段组织素材，但前台不把字段模板、元信息块或表格式结构直接展示给用户。</div>
+          <p>详情页固定包含标题、事件正文和信息来源。详情页可按事件情况条件性包含外网讨论分歧、事件时间线和后续关注。详情页正文建议长度为 500-800 字。</p>
+
+          <h3>图文混排</h3>
+          <p>P1 支持简报和详情页图文混排，但图片是理解增强项，不是装饰封面。优先使用官方发布图、产品截图、GitHub 仓库预览、论文图、YouTube 缩略图、X / 社区热帖截图、公司或项目公开图。没有合适图片时可以纯文本展示。</p>
+
+          <h3>信息来源</h3>
+          <p>P1 的来源展示原则是：轻量可见，详情可追溯，不做显眼来源状态块。首页事件卡不放完整来源列表；今日简报中关键事实可以自然内嵌来源链接；事件详情页底部固定展示“信息来源”，列出 2-5 个可点击来源。</p>
+          <p>竞品网站可以作为线索来源、热度参考源、分类参考源和冷启动补充源，但不能作为正文事实的唯一依据，也不能直接搬运或洗稿竞品正文。</p>
+        </section>
+
+        <section id="agent">
+          <h2>8. Agent 自动生产链路</h2>
+          <p>P1 系统以 Agent 自动生产为主。Agent 需要完成从碎片信息到中文事件情报的完整生产链路，而不是只做摘要生成。</p>
+          <ol>
+            <li>从多个来源发现候选信息。</li>
+            <li>合并重复信息为同一个事件。</li>
+            <li>判断事件热度、时效性、来源质量和重要性。</li>
+            <li>生成首页事件卡内容。</li>
+            <li>生成今日简报内容。</li>
+            <li>生成事件详情正文。</li>
+            <li>选择或补充相关图片。</li>
+            <li>整理信息来源。</li>
+            <li>自动发布到前台。</li>
+            <li>暴露异常、失败或低置信提示给管理页。</li>
+          </ol>
+          <div class="warning">P1 允许 Agent 自动发布内容，不设置人工前置审核。人工维护不是默认审核流程，而是事后校正机制。</div>
+        </section>
+
+        <section id="admin">
+          <h2>9. 管理页需求</h2>
+          <p>P1 提供面向维护者的管理页，不面向普通用户。管理页目标不是成为完整 CMS，而是为 Agent 自动发布提供最小纠错能力。管理页需要有基础访问保护。</p>
+          <ul>
+            <li>查看今日已发布事件。</li>
+            <li>查看 Agent 生成失败、低置信或异常提示。</li>
+            <li>修改事件标题、首页卡片辅助说明、今日简报内容和事件详情正文。</li>
+            <li>修改或替换图片，修改信息来源链接。</li>
+            <li>隐藏事件、恢复事件、手动调整优先级。</li>
+            <li>触发单条事件重新生成。</li>
+          </ul>
+        </section>
+
+        <section id="quality">
+          <h2>10. 内容质量标准</h2>
+          <p>P1 内容应以高信息密度、低阅读负担、谨慎表达为原则。</p>
+          <ul>
+            <li>标题不做震惊体，不使用“炸裂”“彻底变天”“史诗级”“全网沸腾”等夸张词。</li>
+            <li>摘要不只复述标题，必须交代一个新增信息点。</li>
+            <li>今日简报必须说明“发生了什么”和“为什么值得看”。</li>
+            <li>详情正文必须补充背景、讨论焦点或不确定性，不能只是把简报扩写。</li>
+            <li>对未确认消息，不能写成确定事实。</li>
+            <li>不把竞品网站正文洗稿成自己的正文。</li>
+            <li>不生成不存在的来源链接、数据、截图或人物言论。</li>
+            <li>不把每件事都拔高成行业趋势。</li>
+            <li>中文表达要像人工编辑整理，不要像模板化 AI 总结。</li>
+          </ul>
+        </section>
+
+        <section id="fallback">
+          <h2>11. 最小失败保护</h2>
+          <p>P1 不展开完整工程化候选池与兜底发布机制，但必须具备最小失败保护。</p>
+          <ul>
+            <li>Agent 没有产出有效候选时，不硬生成假内容。</li>
+            <li>生成失败时记录失败原因。</li>
+            <li>管理页能看到失败或低质量提示。</li>
+            <li>维护者可以手动触发重新生成。</li>
+            <li>当天内容不足时，允许首页展示更少事件，而不是强凑 12 条。</li>
+          </ul>
+          <p>工程化候选池、规则爬虫、热度评分、失败重试、发布前异常拦截等能力进入 P1.5。</p>
+        </section>
+
+        <section id="acceptance">
+          <h2>12. P1 验收标准</h2>
+          <h3>用户侧验收</h3>
+          <ul>
+            <li>用户打开首页后，可以看到最近 24 小时内的 AI 圈重点事件。</li>
+            <li>首页默认展示 12 条以内的封面式事件卡。</li>
+            <li>用户可以点击事件卡进入详情页。</li>
+            <li>用户可以阅读今日简报，并在不点详情的情况下理解当天重点事件。</li>
+            <li>普通用户无需登录即可浏览。</li>
+          </ul>
+          <h3>内容侧验收</h3>
+          <ul>
+            <li>每条事件至少包含标题、分类、时间、详情正文和信息来源。</li>
+            <li>今日简报由事件内容派生，不是独立随笔。</li>
+            <li>详情页正文不是字段堆叠，而是自然语言事件上下文。</li>
+            <li>信息来源必须可点击。</li>
+            <li>对来源不足或未确认内容，不写成确定事实。</li>
+          </ul>
+          <h3>Agent 与管理侧验收</h3>
+          <ul>
+            <li>Agent 可以自动发现候选信息、合并重复信息、排序、生成内容并自动发布。</li>
+            <li>Agent 失败时应保留错误信息或低置信提示，供后台查看。</li>
+            <li>维护者可以编辑标题、摘要、简报、详情、图片和来源。</li>
+            <li>维护者可以隐藏或恢复事件，调整事件优先级，触发单条内容重新生成。</li>
+          </ul>
+        </section>
+
+        <section id="risks">
+          <h2>13. 风险与约束</h2>
+          <ul>
+            <li>内容真实性风险：P1 不承诺事实核查，只要求来源可追溯、未确认内容谨慎表达。</li>
+            <li>信息源覆盖风险：P1 不能保证覆盖全球 AI 圈所有重要事件。</li>
+            <li>版权与转载风险：不直接搬运竞品网站正文，不把竞品文章洗稿成自己的正文。</li>
+            <li>Agent 稳定性风险：P1 只做最小失败保护，工程化候选池放到 P1.5。</li>
+            <li>阅读体验风险：卡片轻、简报中等、详情补上下文，不把结构化字段直接展示给用户。</li>
+            <li>成本风险：P1 以每日和滚动更新为主，不做分钟级实时热榜。</li>
+            <li>定位漂移风险：避免滑向普通 AI 新闻聚合站、工具导航站或 AI 搜索助手。</li>
+          </ul>
+        </section>
+
+        <section id="roadmap">
+          <h2>14. 迭代路线</h2>
+          <div class="roadmap">
+            <div class="roadmap-card">
+              <strong>P1</strong>
+              <p>AI 情报雷达 MVP，完成生产和消费闭环。</p>
+            </div>
+            <div class="roadmap-card">
+              <strong>P1.5</strong>
+              <p>工程化候选池与兜底机制，让产品从能跑变得更稳定。</p>
+            </div>
+            <div class="roadmap-card">
+              <strong>P2</strong>
+              <p>事件 AI 追问助手，形成差异化，不只是新闻聚合。</p>
+            </div>
+            <div class="roadmap-card">
+              <strong>P3</strong>
+              <p>个人化与持续关注，包括收藏、订阅、后续提醒。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="conclusion">
+          <h2>15. 当前阶段结论</h2>
+          <p>P1 的核心不是“生成一份 AI 日报”，而是完成一个 Agent 驱动的信息生产与发布闭环。</p>
+          <blockquote>多源信息发现 -> 事件聚合 -> 中文理解生成 -> 图文内容展示 -> 来源可追溯 -> 自动发布 -> 管理页人工兜底。</blockquote>
+          <p>P1 做到这一步后，AI World Radar 就不再只是一个爬虫或新闻列表，而是一个具备真实业务价值、工程闭环和后续差异化空间的 Agent 产品。</p>
+        </section>
+
+        <p class="footer">AI World Radar PRD v0.1 · 2026-06-02</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
