@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar 信息源策略</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --amber: #9a5b00;
+      --amber-soft: #fff2d6;
+      --blue: #315f86;
+      --blue-soft: #e6f0f8;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+
+    .doc {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 32px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(30px, 5vw, 50px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 790px;
+      color: #3c4043;
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #3c4043;
+      background: #fbfbf8;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    section {
+      margin: 0 0 28px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 10px 32px rgba(30, 35, 40, 0.045);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 16px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    blockquote {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #24413d;
+      font-weight: 650;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.94em;
+    }
+
+    .note {
+      margin: 16px 0;
+      padding: 14px 16px;
+      border: 1px solid #d7e7e4;
+      border-radius: 10px;
+      background: var(--accent-soft);
+      color: #24413d;
+    }
+
+    .warning {
+      margin: 16px 0;
+      padding: 14px 16px;
+      border: 1px solid #f1d59b;
+      border-radius: 10px;
+      background: var(--amber-soft);
+      color: #5f3a00;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .card {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfbf8;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--accent);
+      font-size: 15px;
+    }
+
+    .footer {
+      margin-top: 34px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .content {
+        padding: 28px 18px 52px;
+      }
+
+      .hero,
+      section {
+        padding: 24px 20px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">信息源策略 v0.1<br>P1 冷启动确认版</p>
+      </div>
+
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">文档目的</a></li>
+        <li><a href="#principle">核心原则</a></li>
+        <li><a href="#layers">信息源分层</a></li>
+        <li><a href="#p1-sources">P1 信息源</a></li>
+        <li><a href="#p15-sources">P1.5 来源</a></li>
+        <li><a href="#social">社交热度源</a></li>
+        <li><a href="#candidate">候选事件</a></li>
+        <li><a href="#routing">四档分流</a></li>
+        <li><a href="#heat">热度判断</a></li>
+        <li><a href="#merge">事件合并</a></li>
+        <li><a href="#ranking">排序策略</a></li>
+        <li><a href="#verify">待核验线索</a></li>
+        <li><a href="#discard">丢弃规则</a></li>
+        <li><a href="#cadence">更新节奏</a></li>
+        <li><a href="#conclusion">阶段结论</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Source Strategy</p>
+          <h1>AI World Radar 信息源策略</h1>
+          <p class="lead">P1 冷启动阶段先用稳定可回源的信息源跑通 AI 情报生产闭环，再在 P1.5 接入更复杂的社交热度源。</p>
+          <div class="meta">
+            <span class="pill">版本：v0.1</span>
+            <span class="pill">更新时间：2026-06-03</span>
+            <span class="pill">阶段：P1 冷启动</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 文档目的</h2>
+          <p>本文档用于定义 AI World Radar P1 冷启动阶段的信息源选择、信息源分层、候选事件入池规则、热度判断、事件合并、排序、待核验线索处理、丢弃规则与更新节奏。</p>
+          <p>本文档不进入具体爬虫实现、API 调用方式、数据库字段、Agent 提示词和技术架构设计。后续 Agent 系统设计与技术架构设计将基于本文档继续展开。</p>
+        </section>
+
+        <section id="principle">
+          <h2>2. 核心原则</h2>
+          <p>P1 冷启动阶段不追求全网覆盖，而追求稳定、可回源、可验证、可跑通闭环。</p>
+          <blockquote>先用简单、稳定、可回源的信息源跑通 AI 情报生产闭环；X、Reddit、YouTube 等复杂高热度平台作为重要热度源保留到 P1.5 增强。</blockquote>
+          <p>P1 的目标不是一开始就抓到所有外网热点，而是先完成：信息采集 -> 候选事件 -> 去重聚合 -> Agent 生成 -> 自动发布 -> 管理页校正。</p>
+        </section>
+
+        <section id="layers">
+          <h2>3. 信息源分层</h2>
+          <div class="grid">
+            <div class="card">
+              <strong>事实源</strong>
+              <p>用于判断事情是否真实发生，通常来自官方、一手页面或可验证原始资产。</p>
+            </div>
+            <div class="card">
+              <strong>热度源</strong>
+              <p>用于判断外网是否正在关注这件事，反映舆论、社区关注度和趋势变化。</p>
+            </div>
+            <div class="card">
+              <strong>线索源</strong>
+              <p>用于帮助发现可能被漏掉的事件。线索源不能直接作为正文事实依据。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="p1-sources">
+          <h2>4. P1 冷启动信息源</h2>
+          <h3>官方与一手事实源</h3>
+          <ol>
+            <li>OpenAI News：模型发布、ChatGPT、API、Codex、安全、政策和合作事件。</li>
+            <li>Anthropic News：Claude、Claude Code、企业合作、安全政策和研究报告。</li>
+            <li>Google DeepMind Blog：Gemini、Veo、Imagen、Alpha 系列、科学 AI 和研究突破。</li>
+            <li>NVIDIA RSS：AI 基础设施、GPU、CUDA、机器人、产业合作和算力生态。</li>
+            <li>GitHub Changelog：GitHub Copilot、开发者工具、平台能力和供应链安全更新。</li>
+          </ol>
+          <h3>社区与开源热度源</h3>
+          <ol start="6">
+            <li>Hugging Face Papers / Models：论文热度、新模型、新 demo 和模型社区关注。</li>
+            <li>Hacker News API：工程师圈正在讨论的 AI 基建、开源、开发者工具和争议。</li>
+            <li>GitHub Trending：AI 开源项目爆发。它是弱信号源，不直接作为权威事实源。</li>
+          </ol>
+          <h3>线索源</h3>
+          <ol start="9">
+            <li>TLDR AI：英文技术圈和工程圈高信噪比线索。</li>
+            <li>AIBase：中文 AI 产品、国内公司、工具和中文圈动态。</li>
+          </ol>
+        </section>
+
+        <section id="p15-sources">
+          <h2>5. P1.5 增强信息源</h2>
+          <p>以下来源具有价值，但 P1 冷启动阶段不作为硬依赖：X、Reddit、YouTube、arXiv 全量、Metacurate、The 500 Feed、smol.ai AINews、NewClaw、Ben’s Bites、大规模竞品线索源、Microsoft / Meta AI 官方源。</p>
+          <p>这些来源进入 P1.5 的原因不是价值不足，而是接入成本、噪声、权限、合规、去重或维护成本更高。</p>
+        </section>
+
+        <section id="social">
+          <h2>6. 社交热度源定位</h2>
+          <p>X、Reddit 和 YouTube 是外网 AI 圈热度判断的重要平台。它们非常适合反映 AI 圈正在讨论什么、哪些事件正在发酵、哪些观点形成争议、哪些工具或模型正在被传播。</p>
+          <p>P1 阶段应在产品设计上承认它们是热度层核心来源，并为后续接入预留能力；工程实现上先用简单源跑通闭环。</p>
+        </section>
+
+        <section id="candidate">
+          <h2>7. 候选事件定义</h2>
+          <p>候选事件是最近一段时间内，AI 圈发生或正在形成讨论的、具备明确主体、明确变化、可追溯来源，并且对中文 AI 学习型用户有认知价值的信息单元。</p>
+          <blockquote>候选事件必须能说成一句：谁或什么东西，发生了什么变化。</blockquote>
+          <p>候选事件应满足：有明确主体、有明确变化或讨论触发点、有时间性、有来源、对目标用户有价值。</p>
+        </section>
+
+        <section id="routing">
+          <h2>8. 四档分流</h2>
+          <ul>
+            <li>事实型候选事件：已经有明确事实发生，可以进入事件生成链路。</li>
+            <li>热议型候选事件：外网讨论热度很高、能反映趋势、争议或舆论变化的信息。</li>
+            <li>待核验线索：暂时不适合公开发布，但值得继续观察的信息。</li>
+            <li>丢弃内容：不具备事件价值、来源价值或用户认知价值的信息。</li>
+          </ul>
+          <div class="note">热议型事件必须区分“事实已经发生”和“讨论正在发生”。已确认的是讨论，未确认的是讨论中的具体说法。</div>
+        </section>
+
+        <section id="heat">
+          <h2>9. 热度判断</h2>
+          <p>热度判断不应只依赖绝对数字，因为不同平台热度尺度不同。</p>
+          <blockquote>一个强信号，或两个中等信号，可以进入热议型候选事件。</blockquote>
+          <p>系统应综合平台位置、互动增速、跨源重复、主体影响力和讨论质量。纯标题党、搬运号传播、低质量重复转发不应被视为有效热度。</p>
+        </section>
+
+        <section id="merge">
+          <h2>10. 事件合并规则</h2>
+          <p>事件合并以“主体 + 触发点 + 时间窗口”为核心。</p>
+          <ul>
+            <li>同一主体的同一变化，应合并为同一个事件。</li>
+            <li>同一主体出现不同触发点时，应拆分为不同事件。</li>
+            <li>社区讨论依附于事实事件时，应合并到事实事件下。</li>
+            <li>讨论本身成为焦点时，可以单独形成热议型事件。</li>
+            <li>同一事件的后续发展优先更新原事件，只有出现实质新变化时才拆分为新事件。</li>
+          </ul>
+        </section>
+
+        <section id="ranking">
+          <h2>11. 排序策略</h2>
+          <p>候选事件排序采用综合优先级，不采用单一时间倒序或单一热度排序。</p>
+          <ul>
+            <li>热度。</li>
+            <li>来源质量。</li>
+            <li>新鲜度。</li>
+            <li>影响范围。</li>
+            <li>用户相关性。</li>
+            <li>可解释性。</li>
+          </ul>
+          <blockquote>热度优先，但来源和影响兜底。</blockquote>
+        </section>
+
+        <section id="verify">
+          <h2>12. 待核验线索处理</h2>
+          <p>待核验线索是事件候选池的缓冲区。它不直接展示到前台，但系统会继续观察。</p>
+          <ul>
+            <li>出现更多来源后可以升级。</li>
+            <li>热度升高后可以升级。</li>
+            <li>人工确认后可以升级。</li>
+            <li>长期无进展则丢弃。</li>
+            <li>管理页可人工升级、丢弃、补源或暂缓观察。</li>
+          </ul>
+        </section>
+
+        <section id="discard">
+          <h2>13. 丢弃规则</h2>
+          <p>普通教程、工具合集、明显营销软文、旧闻重复发布、无来源搬运、主体不清内容、AI 相关性弱的泛科技新闻、低质量争议、纯投资或股价短讯、重复内容应直接丢弃。</p>
+          <div class="warning">例外：如果教程、工具合集或观点文章本身形成高热讨论，可以作为热议型事件入池。此时事件不是教程内容本身，而是该内容引发了外网热议。</div>
+        </section>
+
+        <section id="cadence">
+          <h2>14. 更新节奏</h2>
+          <ul>
+            <li>信息采集：默认每 6 小时采集一次信息源。</li>
+            <li>首页雷达：每轮采集后重新计算最近 24 小时事件池，更新 Top 12。</li>
+            <li>今日简报：每天生成主版本，并允许补充更新。</li>
+            <li>事件详情：只对入选事件生成。</li>
+            <li>管理页：支持重新采集、重新生成、隐藏和恢复。</li>
+          </ul>
+        </section>
+
+        <section id="conclusion">
+          <h2>15. 当前阶段结论</h2>
+          <p>P1 信息源策略的核心不是“源越多越好”，而是用稳定可回源的信息源跑通 AI 情报生产闭环，用热度源判断事件价值，用线索源补充盲区，并通过分流、合并、排序和人工兜底控制噪声。</p>
+          <blockquote>当前策略能够支撑下一阶段进入 Agent 系统设计。</blockquote>
+        </section>
+
+        <p class="footer">AI World Radar 信息源策略 v0.1 · 2026-06-03</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
