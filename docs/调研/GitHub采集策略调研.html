@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar GitHub 采集策略调研</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --amber: #9a5b00;
+      --amber-soft: #fff2d6;
+      --blue: #315f86;
+      --blue-soft: #e6f0f8;
+      --red: #9f2f2f;
+      --red-soft: #fde9e7;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    code { padding: 2px 5px; border-radius: 5px; background: var(--code); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; }
+    pre { overflow: auto; padding: 16px 18px; border-radius: 10px; background: #202124; color: #f5f7f7; line-height: 1.55; }
+    pre code { padding: 0; background: transparent; color: inherit; }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+
+    .doc {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 32px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 16px;
+      font-size: clamp(30px, 5vw, 50px);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 0;
+      max-width: 850px;
+      color: #3c4043;
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #3c4043;
+      background: #fbfbf8;
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    section {
+      margin: 0 0 28px;
+      padding: 30px 34px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 10px 32px rgba(30, 35, 40, 0.045);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 16px; padding-left: 22px; }
+    li { margin: 4px 0; }
+
+    .callout {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #24413d;
+    }
+
+    .callout.warning {
+      border-left-color: var(--amber);
+      background: var(--amber-soft);
+      color: #4f3400;
+    }
+
+    .callout.danger {
+      border-left-color: var(--red);
+      background: var(--red-soft);
+      color: #5f1919;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 16px 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 880px;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    th {
+      color: #36413f;
+      background: #f2f5f2;
+      font-weight: 750;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .stage {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fbfbf8;
+    }
+
+    .stage h3 { margin-top: 0; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .content { padding: 28px 16px 52px; }
+      .hero, section { padding: 24px 20px; }
+      .stage-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">GitHub 采集策略调研 · 2026-06-03</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">1. 调研目的</a></li>
+        <li><a href="#relation">2. 与项目关系</a></li>
+        <li><a href="#conclusion">3. 总体结论</a></li>
+        <li><a href="#hot">4. 高热平台</a></li>
+        <li><a href="#p1">5. P1 稳定源</a></li>
+        <li><a href="#repos">6. 典型仓库</a></li>
+        <li><a href="#compare">7. 策略对比</a></li>
+        <li><a href="#architecture">8. 推荐架构</a></li>
+        <li><a href="#stages">9. 分阶段建议</a></li>
+        <li><a href="#risks">10. 风险清单</a></li>
+        <li><a href="#questions">11. 待验证问题</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Research Report</p>
+          <h1>GitHub 采集策略调研</h1>
+          <p class="lead">本报告通过开源仓库源码研究 AI World Radar 后续采集系统的可行路线：P1 以 RSS/API/稳定页面为主，P1.5 再接入 Reddit、YouTube、GitHub Trending 等热度信号，X 与 Facebook 的非官方方案默认高风险。</p>
+          <div class="meta">
+            <span class="pill">输出：Markdown + HTML + 仓库清单</span>
+            <span class="pill">范围：源码策略调研</span>
+            <span class="pill">不实际爬取社媒数据</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 调研目的</h2>
+          <p>本次调研不是立刻引入某个 scraper，也不是实际抓取 X、Reddit、YouTube 或 Facebook，而是从 GitHub 开源项目源码中提炼采集策略、限流和缓存设计、失败恢复、合规风险，以及哪些方案适合 AI World Radar 的 P1、P1.5、P2。</p>
+          <p>重点覆盖两类源：高热平台，包括 X / Twitter、Reddit、YouTube、Facebook；P1 当前信息源，包括 OpenAI News、Anthropic News、DeepMind Blog、NVIDIA Blog/RSS、GitHub Changelog、GitHub Trending、Hacker News、Hugging Face、TLDR AI、AIBase 和 AI 新闻/RSS/Newsletter 聚合源。</p>
+        </section>
+
+        <section id="relation">
+          <h2>2. 与 AI World Radar 的关系</h2>
+          <p>AI World Radar 的核心内容单元是事件卡，而不是新闻链接。因此采集层必须服务于可回源、可聚合、可解释的内部链路。</p>
+          <pre><code>Source Registry
+  -> Raw Snapshot
+  -> Raw Item
+  -> Evidence Card
+  -> Event Cluster
+  -> Published Event</code></pre>
+          <p>采集层要保存原始响应、URL、headers、状态码、ETag、Last-Modified、抓取时间、adapter version 和 content hash。LLM 可以做语义判断，但不能替代事实证据。</p>
+        </section>
+
+        <section id="conclusion">
+          <h2>3. 总体结论</h2>
+          <div class="callout">
+            <strong>P1 主路径：</strong>自建轻量 Source Registry + Adapter Manifest + Raw Snapshot Store + Normalizer。优先官方 RSS、官方 API、稳定公开页面。RSSHub、Miniflux、Huginn、changedetection.io 更适合作为设计参考，而不是整体套用。
+          </div>
+          <div class="callout warning">
+            <strong>P1.5 增强：</strong>Reddit 官方 API、YouTube Data API、GitHub Trending、Hugging Face Papers/Trending、Browser worker 和 LLM fallback 可作为热度或补充证据，但必须可降级。
+          </div>
+          <div class="callout danger">
+            <strong>不进 P1：</strong>X 非官方 GraphQL/guest token/cookie/账号池，Facebook mobile/mbasic HTML + cookie/login，YouTube 评论广域抓取，代理池和绕登录方案。
+          </div>
+        </section>
+
+        <section id="hot">
+          <h2>4. 高热平台采集策略</h2>
+
+          <h3>4.1 X / Twitter</h3>
+          <p>源码显示两条路线：官方 API 路线以 `tweepy`、`twarc` 为代表，依赖 bearer/OAuth token，支持 pagination、rate limit 和归档；非官方路线以 `twscrape`、`snscrape`、`nitter`、`ntscraper` 为代表，常见 guest token、私有 GraphQL、cookie、账号池、session pool、proxy 或 Nitter 实例池。</p>
+          <p>可借鉴的是 endpoint budget、lock_until、next_available_at、source health、dedup、hydration、compliance jobs。不可借鉴到 P1 的是账号池、cookie 登录、绕过限制或公开 Nitter 实例轮询。</p>
+
+          <h3>4.2 Reddit</h3>
+          <p>Reddit 最稳路线是官方 API。`praw` 和 `prawcore` 处理 listing cursor、`after` 分页、`x-ratelimit-*` headers、429 和 comments tree；`asyncpraw` 可作为异步栈备选；`redditwarp` 的 token bucket 可借鉴；`redlib`、Pushshift/old Reddit 类方案不建议作为主数据源。</p>
+          <p>适合 P1.5 的热度信号包括 subreddit、标题、URL、score、comments_count、upvote ratio、发布时间和 top comments。评论只能作为热议证据，不能直接当事实。</p>
+
+          <h3>4.3 YouTube</h3>
+          <p>官方路线是 YouTube Data API，可通过 `google-api-python-client` 和 `youtube/api-samples` 获取 search、videos statistics、channels、commentThreads、captions 等，缺点是 API key/OAuth 和 quota。</p>
+          <p>非官方增强路线包括 `yt-dlp`、`YouTube.js`、`youtube-transcript-api`、`youtube-comment-downloader`、`pytube`。这些能覆盖 view_count、like_count、comment_count、upload_date、subtitles、chapters、comments continuation 等，但更适合 P1.5 精选视频补证，不适合 P1 广域硬依赖。</p>
+
+          <h3>4.4 Facebook</h3>
+          <p>官方路线是 Graph API：`facebook-sdk`、`pyfacebook`、`facebook-python-business-sdk` 都需要 token、App、权限和合规授权。网页路线如 `facebook-scraper` 依赖 mobile/mbasic HTML、cookie、credentials、checkpoint/2FA，风险高且稳定性差。</p>
+          <p>Facebook 不建议进入 P1；P2 若确有需求，应只考虑授权 Graph API 或人工验证型小规模实验。</p>
+        </section>
+
+        <section id="p1">
+          <h2>5. P1 稳定信息源采集策略</h2>
+          <h3>5.1 官方博客 / RSS</h3>
+          <p>`feedparser` 适合作 P1 feed parser；`RSSHub` 的 route registry 值得参考；`Miniflux` 证明 ETag、Last-Modified、entry hash、worker pool 是成熟 RSS 系统的基本功；`Huginn` 证明 source health、memory checkpoint 和 event flow 对多源采集有价值。</p>
+
+          <h3>5.2 GitHub</h3>
+          <p>GitHub Changelog、Releases、Issues、PRs 应优先走官方 API/RSS。`agents-radar/src/github.ts` 展示了 token、分页、since 时间窗口和 digest 输出。GitHub Trending 没有官方 API，`github-trending-api`、`go-trending`、`github-trending-repos` 都是 HTML 解析，应每日快照、低频运行并配 selector test。</p>
+
+          <h3>5.3 Hacker News</h3>
+          <p>HN 是 P1 友好源。可用官方 Firebase API，也可用 Algolia HN Search API 做关键词时间窗搜索。`node-hnapi` 提供 memory/Redis cache 和 news/newest/ask/show/jobs/item 封装。</p>
+
+          <h3>5.4 Hugging Face</h3>
+          <p>`huggingface_hub` 官方 API 支持 models、datasets、spaces 的 `downloads`、`likes`、`last_modified`、`trending_score` 等字段。Papers/Trending 若 API 覆盖不足，可参考 RSSHub/page adapter，但必须保留 raw snapshot。</p>
+
+          <h3>5.5 Newsletter / AI 新闻源</h3>
+          <p>TLDR AI、AIBase、LearnPrompt、TrendRadar 等适合作候选线索。聚合源只能作为辅助，Evidence Card 应尽量补回官方原始链接。</p>
+        </section>
+
+        <section id="repos">
+          <h2>6. 典型仓库分析</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>仓库</th>
+                  <th>方式</th>
+                  <th>关键源码</th>
+                  <th>可借鉴点</th>
+                  <th>阶段</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>DIYgod/RSSHub</td><td>RSS/API/HTML route</td><td><code>lib/registry.ts</code>, <code>lib/routes/*</code></td><td>source namespace、route registry、统一 feed 输出</td><td>P1 参考</td></tr>
+                <tr><td>feedparser</td><td>RSS/Atom/JSON Feed</td><td><code>feedparser/api.py</code></td><td>ETag/modified、成熟 parser、bozo 异常</td><td>P1</td></tr>
+                <tr><td>huggingface_hub</td><td>官方 API</td><td><code>hf_api.py</code></td><td>trending_score、likes、downloads、last_modified</td><td>P1</td></tr>
+                <tr><td>PRAW / prawcore</td><td>Reddit 官方 API</td><td><code>listing/generator.py</code>, <code>rate_limit.py</code></td><td>cursor、x-ratelimit headers、comments tree</td><td>P1.5</td></tr>
+                <tr><td>Tweepy / Twarc</td><td>X 官方 API</td><td><code>client.py</code>, <code>client2.py</code></td><td>pagination、rate limit、hydration、compliance</td><td>P1.5/P2</td></tr>
+                <tr><td>twscrape / snscrape</td><td>X 非官方 API</td><td><code>accounts_pool.py</code>, <code>twitter.py</code></td><td>endpoint budget、locks、retry/backoff</td><td>不建议</td></tr>
+                <tr><td>yt-dlp / YouTube.js</td><td>YouTube 非官方 extractor</td><td><code>_video.py</code>, <code>Innertube.js</code></td><td>视频统计、字幕、continuation、字段覆盖</td><td>P1.5/P2</td></tr>
+                <tr><td>youtube-transcript-api</td><td>字幕接口</td><td><code>_api.py</code>, <code>_transcripts.py</code></td><td>字幕补证、异常分类</td><td>P1.5/P2</td></tr>
+                <tr><td>facebook-sdk / pyfacebook</td><td>Graph API</td><td><code>facebook/__init__.py</code>, <code>pyfacebook/api/graph.py</code></td><td>授权 Graph API、paging、rate-limit sleep</td><td>P2</td></tr>
+                <tr><td>facebook-scraper</td><td>mobile/mbasic HTML</td><td><code>facebook_scraper.py</code>, <code>extractors.py</code></td><td>风险样本、reaction/comment 字段</td><td>不建议</td></tr>
+                <tr><td>agents-radar</td><td>API digest pipeline</td><td><code>src/github.ts</code>, <code>src/hf.ts</code>, <code>src/hn.ts</code></td><td>AI digest、时间窗口、失败返回</td><td>P1 参考</td></tr>
+                <tr><td>changedetection.io</td><td>HTTP/browser watch</td><td><code>worker.py</code></td><td>snapshot、diff、last_error、source health</td><td>P1/P1.5 参考</td></tr>
+                <tr><td>Crawlee / Firecrawl / Crawl4AI</td><td>crawler / AI extraction</td><td><code>basic-crawler.ts</code>, API types, <code>async_webcrawler.py</code></td><td>queue、retry、session、markdown/rawHtml contract</td><td>P1.5/P2</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="compare">
+          <h2>7. 源码策略对比</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>策略</th><th>稳定性</th><th>合规风险</th><th>适合来源</th><th>建议</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>官方 RSS/Feed</td><td>高</td><td>低</td><td>官方博客、newsletter</td><td>P1 主路径</td></tr>
+                <tr><td>官方 API</td><td>高</td><td>低到中</td><td>GitHub、HN、HF、Reddit、YouTube</td><td>P1/P1.5</td></tr>
+                <tr><td>稳定 HTML</td><td>中</td><td>中</td><td>GitHub Trending、AIBase</td><td>P1 第二批，要求快照和 selector test</td></tr>
+                <tr><td>Browser worker</td><td>中</td><td>中到高</td><td>JS 渲染、高价值源兜底</td><td>P1.5</td></tr>
+                <tr><td>非官方 API</td><td>低到中</td><td>高</td><td>X、YouTube comments、Facebook HTML</td><td>不进 P1</td></tr>
+                <tr><td>cookie/账号池/代理</td><td>低</td><td>高</td><td>X、Facebook</td><td>不建议</td></tr>
+                <tr><td>LLM fallback</td><td>中</td><td>中</td><td>schema drift、复杂抽取</td><td>P1.5/P2，不能替代 raw evidence</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="architecture">
+          <h2>8. 推荐给 AI World Radar 的采集架构</h2>
+          <h3>8.1 Source Registry</h3>
+          <pre><code>source_id
+display_name
+platform
+source_kind
+priority_stage
+collector_mode
+entrypoints
+auth_profile
+schedule
+rate_limit_policy
+fetch_policy
+adapter_id
+parser_profile
+dedupe_keys
+snapshot_policy
+health_policy
+legal_risk
+owner
+status
+last_validated_at</code></pre>
+
+          <h3>8.2 Adapter Manifest</h3>
+          <pre><code>adapter_id: github_trending
+version: 1
+modes: [page]
+fetch:
+  primary: page
+retry:
+  max_attempts: 3
+  backoff: exponential_jitter
+snapshot:
+  store_body: true
+  store_headers: true
+normalize:
+  mapper: github_trending_v1
+health:
+  selector_test: true
+  circuit_breaker: true
+risk:
+  legal: medium
+  stability: medium</code></pre>
+
+          <h3>8.3 Raw Item / Evidence Card</h3>
+          <p>Raw Item 记录抓取事实：source、URL、标题、发布时间、抓取时间、headers/hash、snapshot、adapter version、parse status。Evidence Card 记录证据判断：claim、source_level、quote/excerpt、实体、时间、热度信号、confidence、raw_item_ids 和推荐动作。</p>
+
+          <h3>8.4 Source Health</h3>
+          <p>每个 source 维护 last_success_at、consecutive_failures、success_rate、parse_success_rate、latency、freshness_lag、block_rate、last_error_class、health_status。red 后暂停 browser/LLM 高成本 fallback，只保留低频健康探测。</p>
+        </section>
+
+        <section id="stages">
+          <h2>9. P1 / P1.5 / P2 分阶段建议</h2>
+          <div class="stage-grid">
+            <div class="stage">
+              <h3>P1</h3>
+              <p>RSS/API/page fetcher、Raw Snapshot、Raw Item、Evidence Card、source health、dedupe。信息源为 OpenAI、Anthropic、DeepMind、NVIDIA、GitHub、HN、HF、TLDR AI、AIBase。</p>
+            </div>
+            <div class="stage">
+              <h3>P1.5</h3>
+              <p>Reddit 官方 API、YouTube Data API、GitHub Trending、HF Papers/Trending、Browser worker、LLM fallback、candidate event pool 和 source health dashboard。</p>
+            </div>
+            <div class="stage">
+              <h3>P2</h3>
+              <p>X 官方 API 或授权数据源、Facebook Graph API 授权场景、AI follow-up assistant、个性化、冲突检测、可视化 source/workflow 管理。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="risks">
+          <h2>10. 风险清单</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>风险</th><th>典型来源</th><th>处理建议</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>ToS / 合规风险</td><td>X 非官方 API、Facebook HTML</td><td>不进 P1，优先官方 API/授权</td></tr>
+                <tr><td>登录/cookie 风险</td><td>twscrape、facebook-scraper</td><td>禁止产品主链路使用</td></tr>
+                <tr><td>页面结构漂移</td><td>GitHub Trending、AIBase</td><td>selector test + snapshot + health</td></tr>
+                <tr><td>API 额度风险</td><td>YouTube Data API、X API</td><td>配额监控 + 低频策略</td></tr>
+                <tr><td>聚合源事实污染</td><td>TLDR AI、AIBase、中文聚合站</td><td>Evidence Card 补原始源</td></tr>
+                <tr><td>LLM 幻觉</td><td>LLM extraction</td><td>不能作为唯一证据</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="questions">
+          <h2>11. 后续待验证问题</h2>
+          <ol>
+            <li>OpenAI、Anthropic、DeepMind、NVIDIA 当前是否都有稳定 RSS；没有 RSS 的页面 selector 如何设计。</li>
+            <li>AIBase 是否有稳定 RSS 或公开列表 API；若只有 HTML，selector test 如何覆盖。</li>
+            <li>TLDR AI 是否可通过公开 RSS、newsletter archive 或邮件入口稳定采集。</li>
+            <li>Hugging Face Daily Papers 是否完全可由官方 API 覆盖，还是需要 RSSHub/page adapter。</li>
+            <li>GitHub Trending 是否进入 P1 第二批还是 P1.5；如果进入 P1，是否接受每日一次快照。</li>
+            <li>Raw Snapshot 存储用数据库、对象存储还是本地文件；保留周期如何定。</li>
+            <li>未来 X/Reddit/YouTube 热度信号如何与官方源事实事件聚合，避免热度压过可信度。</li>
+          </ol>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
+
