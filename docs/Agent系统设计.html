@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar Agent 系统设计</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --warning: #9a5b00;
+      --warning-soft: #fff2d6;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+
+    .doc {
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      margin-bottom: 42px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .summary {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #3c4043;
+      font-size: 13px;
+    }
+
+    section {
+      margin: 0 0 38px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul {
+      margin: 0 0 14px;
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    blockquote {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      background: var(--accent-soft);
+      color: #133f3a;
+      font-weight: 650;
+    }
+
+    pre {
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 16px;
+      border-radius: 8px;
+      background: var(--code);
+      color: #202124;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 14px;
+    }
+
+    .mini-panel {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbf8;
+    }
+
+    .mini-panel h3 {
+      margin-top: 0;
+    }
+
+    .footer {
+      margin: 44px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        display: block;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .content {
+        padding: 32px 18px 56px;
+      }
+
+      section {
+        padding: 22px;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">Agent 系统设计 v0.1</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">1. 文档目的</a></li>
+        <li><a href="#background">2. 设计背景</a></li>
+        <li><a href="#research">3. 架构调研结论</a></li>
+        <li><a href="#principles">4. 核心设计原则</a></li>
+        <li><a href="#flow">5. P1 总体流程</a></li>
+        <li><a href="#engineering">6. 工程模块职责</a></li>
+        <li><a href="#agents">7. Agent 模块职责</a></li>
+        <li><a href="#publish">8. 发布与管理模块</a></li>
+        <li><a href="#rules">9. 内容发布规则</a></li>
+        <li><a href="#roadmap">10. 演进路线</a></li>
+        <li><a href="#acceptance">11. 验收标准</a></li>
+        <li><a href="#conclusion">12. 当前阶段结论</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">P1 MVP Agent Design</p>
+          <h1>AI World Radar Agent 系统设计</h1>
+          <p class="summary">定义 P1 MVP 的 Agent 生产链路、模块边界、发布分层与质量门禁，确保产品不是普通爬虫，也不是简单的大模型总结器。</p>
+          <div class="meta">
+            <span class="pill">版本：v0.1</span>
+            <span class="pill">更新时间：2026-06-03</span>
+            <span class="pill">阶段：P1 MVP</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 文档目的</h2>
+          <p>本文档用于定义 AI World Radar P1 MVP 的 Agent 系统生产链路、模块边界、Agent 职责、发布分层、质量门禁和后续演进方向。</p>
+          <p>本文档只讨论 Agent 系统设计，不进入具体数据库字段、接口设计、UI 视觉设计和代码实现计划。后续阶段将基于本文档继续拆解技术架构、数据模型、接口设计和开发计划。</p>
+        </section>
+
+        <section id="background">
+          <h2>2. 设计背景</h2>
+          <p>AI World Radar 的目标不是做普通 AI 新闻聚合站，也不是做一个把网页丢给大模型总结的工具，而是为中文 AI 学习型用户提供全球 AI 圈事件情报雷达。</p>
+          <blockquote>自动发现全球 AI 圈碎片化信息，将其整理成中文用户能快速理解、可追溯来源、可点击详情的 AI 事件。</blockquote>
+          <p>因此，Agent 系统必须解决多源识别、跨源合并、内容生成和自动发布质量控制等问题。</p>
+        </section>
+
+        <section id="research">
+          <h2>3. 架构调研结论</h2>
+          <p>在设计前，已参考 GitHub 上多类相关项目的源码策略，包括采集与抽取类、深度研究与报告类、AI 新闻与日报类项目。</p>
+          <ul>
+            <li>采集与抽取类：Firecrawl、Crawl4AI、ScrapeGraphAI、RSSHub。</li>
+            <li>深度研究与报告类：GPT Researcher、STORM、Open Deep Research。</li>
+            <li>AI 新闻与日报类：LearnPrompt/ai-news-radar、auto-news、Horizon、hn-buddy。</li>
+          </ul>
+          <p>核心结论是：成熟产品不应让一个大 Agent 自由浏览全网、抓取内容、写稿和发布。AI World Radar P1 应采用“工程化情报流水线 + 局部 Agent 决策”的架构。</p>
+        </section>
+
+        <section id="principles">
+          <h2>4. 核心设计原则</h2>
+          <div class="two-col">
+            <div class="mini-panel">
+              <h3>工程代码负责稳定性</h3>
+              <p>信息源注册、定时采集、解析、去重、存储、发布和后台操作由工程代码负责。</p>
+            </div>
+            <div class="mini-panel">
+              <h3>Agent 负责语义判断</h3>
+              <p>事件判断、聚合边界、排序解释、内容生成和质量检查由 Agent 负责。</p>
+            </div>
+            <div class="mini-panel">
+              <h3>先事件，后文章</h3>
+              <p>系统的核心内容单位是事件，不是文章。同一事件可由多个来源共同支撑。</p>
+            </div>
+            <div class="mini-panel">
+              <h3>先证据，后写作</h3>
+              <p>写作 Agent 只能基于 Evidence Card 和 Event Cluster 写作，不能自由搜索。</p>
+            </div>
+          </div>
+          <blockquote>只要事件进入前台公开展示，就必须有详情页；今日简报只是从公开发布事件中精选出的重点事件。</blockquote>
+        </section>
+
+        <section id="flow">
+          <h2>5. P1 总体流程</h2>
+          <pre><code>Source Registry
+-> Source Collector
+-> Raw Item Store
+-> Extract / Normalize
+-> Evidence Card Agent
+-> Candidate Router Agent
+-> Event Cluster Agent
+-> Event Ranking Agent
+-> Content Planning Agent
+-> Content Generation Agent
+-> Quality Gate Agent
+-> Publisher
+-> Admin Console</code></pre>
+          <p>前四个模块主要是工程模块，中间六个模块是 Agent 语义处理模块，最后两个模块是发布与管理模块。</p>
+        </section>
+
+        <section id="engineering">
+          <h2>6. 工程模块职责</h2>
+          <h3>6.1 Source Registry</h3>
+          <p>负责管理信息源，包括来源名称、类型、抓取方式、频率、可信度权重、启用状态和最近抓取状态。</p>
+          <h3>6.2 Source Collector</h3>
+          <p>负责定时采集信息。P1 优先使用 RSS/API 和稳定公开页面，不默认接入复杂反爬平台。</p>
+          <h3>6.3 Raw Item Store</h3>
+          <p>保存原始采集结果，用于来源追溯、内容重跑、采集排查和生成内容核查。</p>
+          <h3>6.4 Extract / Normalize</h3>
+          <p>把不同来源统一成标题、链接、来源、发布时间、抓取时间、语言和正文片段等标准输入。P1 优先使用确定性代码，LLM 只做兜底。</p>
+        </section>
+
+        <section id="agents">
+          <h2>7. Agent 模块职责</h2>
+          <h3>7.1 Evidence Card Agent</h3>
+          <p>把标准化后的 Raw Item 压缩成内部证据单元，提取来源主张、主体、触发点、候选分类、证据句和不确定性。</p>
+          <h3>7.2 Candidate Router Agent</h3>
+          <p>将 Evidence Card 分为事实型候选事件、热议型候选事件、待核验线索和丢弃内容。</p>
+          <h3>7.3 Event Cluster Agent</h3>
+          <p>负责把多个 Evidence Card 合并成同一个事件。P1 使用规则合并 + LLM 模糊判断，暂不引入 embedding。</p>
+          <h3>7.4 Event Ranking Agent</h3>
+          <p>根据热度、来源可信度、事件重要性、中文用户价值、时间新鲜度和多源交叉情况给事件排序。</p>
+          <h3>7.5 Content Planning Agent</h3>
+          <p>决定事件是否公开展示、展示在哪个区域、是否进入今日简报、是否只留后台观察或不发布。</p>
+          <h3>7.6 Content Generation Agent</h3>
+          <p>对公开事件生成事件卡片和详情页，对简报事件额外生成今日简报条目。该 Agent 不能自由搜索，只能基于证据和发布计划写作。</p>
+          <h3>7.7 Quality Gate Agent</h3>
+          <p>检查幻觉、夸大、事实错配、热议与事实混淆、搬运风险、日期错误、标题党和中文表达质量。</p>
+        </section>
+
+        <section id="publish">
+          <h2>8. 发布与管理模块</h2>
+          <h3>8.1 Publisher</h3>
+          <p>负责把通过质量门禁的内容发布到首页事件列表、今日简报、事件详情页、分类页和数据 JSON。</p>
+          <h3>8.2 Admin Console</h3>
+          <p>提供维护者人工兜底能力，包括隐藏、置顶、降权、重写、重新生成、合并、拆分、降级为待核验和恢复发布。</p>
+        </section>
+
+        <section id="rules">
+          <h2>9. 内容发布规则</h2>
+          <pre><code>收集到的信息 ≠ 候选事件 ≠ 发布事件 ≠ 简报事件</code></pre>
+          <ul>
+            <li>收集到的信息只是原始输入。</li>
+            <li>候选事件进入系统内部判断，不一定展示。</li>
+            <li>发布事件进入前台展示，必须有卡片和详情页。</li>
+            <li>简报事件从发布事件中精选，额外进入今日简报。</li>
+          </ul>
+          <p>这能避免把所有低价值信息写进简报，也能保证用户点击任何前台事件时都能看到详情页。</p>
+        </section>
+
+        <section id="roadmap">
+          <h2>10. 演进路线</h2>
+          <h3>10.1 P1</h3>
+          <p>工程代码采集稳定来源，Evidence Card 作为核心证据层，规则 + LLM 做事件聚合，不引入 embedding。</p>
+          <h3>10.2 P1.5</h3>
+          <p>接入 X、Reddit、YouTube 等高热平台，引入 embedding 做语义召回，增强来源健康、失败兜底和热度计算。</p>
+          <h3>10.3 P2</h3>
+          <p>考虑事件级 AI 追问助手、个性化排序、收藏订阅、趋势专题、知识图谱和更复杂的人机协同审核。</p>
+        </section>
+
+        <section id="acceptance">
+          <h2>11. P1 验收标准</h2>
+          <ul>
+            <li>系统能自动从多个来源采集 AI 圈信息。</li>
+            <li>系统能将原始信息整理成 Evidence Card。</li>
+            <li>系统能路由事实事件、热议事件、待核验线索和丢弃内容。</li>
+            <li>系统能将多个来源聚合为同一个事件。</li>
+            <li>系统能对事件进行排序和发布规划。</li>
+            <li>公开展示事件都有详情页。</li>
+            <li>今日简报只包含精选事件，不是全量事件合集。</li>
+            <li>生成内容能通过质量门禁。</li>
+            <li>维护者可以通过管理页事后校正。</li>
+          </ul>
+        </section>
+
+        <section id="conclusion">
+          <h2>12. 当前阶段结论</h2>
+          <p>AI World Radar P1 的 Agent 系统不采用“万能 Agent 自由上网”的方案，而采用“工程化情报流水线 + 局部 Agent 决策”的方案。</p>
+          <blockquote>工程代码负责采集、存储、调度和发布；Agent 负责理解、判断、合并、排序、写作和质检；所有公开事件都有详情页；今日简报只从公开事件中精选重点内容。</blockquote>
+          <p>下一阶段应进入技术架构与数据模型设计。</p>
+        </section>
+      </article>
+
+      <p class="footer">AI World Radar Agent 系统设计 HTML 阅读版</p>
+    </main>
+  </div>
+</body>
+</html>
