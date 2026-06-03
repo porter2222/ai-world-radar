@@ -344,7 +344,7 @@
             <strong>P1.5 增强：</strong>Reddit 官方 API、YouTube Data API、GitHub Trending、Hugging Face Papers/Trending、Browser worker 和 LLM fallback 可作为热度或补充证据，但必须可降级。
           </div>
           <div class="callout danger">
-            <strong>不进 P1：</strong>X 非官方 GraphQL/guest token/cookie/账号池，Facebook mobile/mbasic HTML + cookie/login，YouTube 评论广域抓取，代理池和绕登录方案。
+            <strong>不进 P1：</strong>X 非官方 GraphQL/guest token/cookie/账号池，Facebook mobile/mbasic HTML + cookie/login，YouTube 评论广域抓取，MediaCrawler 类中文社媒登录态采集，代理池和绕登录方案。
           </div>
         </section>
 
@@ -384,6 +384,11 @@
 
           <h3>5.5 Newsletter / AI 新闻源</h3>
           <p>TLDR AI、AIBase、LearnPrompt、TrendRadar 等适合作候选线索。聚合源只能作为辅助，Evidence Card 应尽量补回官方原始链接。</p>
+
+          <h3>5.6 中文社媒采集参考：MediaCrawler</h3>
+          <p><a href="https://github.com/NanmiCoder/MediaCrawler">NanmiCoder/MediaCrawler</a> 是 Python 多平台中文社媒采集项目，GitHub API 显示截至 2026-06-03 约 50,622 stars，最近 push 为 2026-05-29。它支持小红书、抖音、快手、B 站、微博、贴吧、知乎；当前不支持 X/Twitter、Facebook、Reddit。</p>
+          <p>关键源码包括 <code>main.py</code>、<code>config/base_config.py</code>、<code>base/base_crawler.py</code>、<code>media_platform/*/core.py</code>、<code>media_platform/*/client.py</code>、<code>media_platform/*/login.py</code>、<code>proxy/proxy_ip_pool.py</code>。源码结构可借鉴 adapter factory、crawler/login/client/store 分层、search/detail/creator 模式和风险配置显式化。</p>
+          <p>但它依赖 Playwright、登录态缓存、二维码/手机号/cookie 登录、平台签名、可选代理池和风控处理；许可证为非商业学习使用，明确不应用于大规模爬虫或商业用途。因此它只能作为 P2 中文社媒热度实验的源码策略参考，不应进入 P1，也不应作为 AI World Radar 的生产依赖。</p>
         </section>
 
         <section id="repos">
@@ -410,6 +415,7 @@
                 <tr><td>youtube-transcript-api</td><td>字幕接口</td><td><code>_api.py</code>, <code>_transcripts.py</code></td><td>字幕补证、异常分类</td><td>P1.5/P2</td></tr>
                 <tr><td>facebook-sdk / pyfacebook</td><td>Graph API</td><td><code>facebook/__init__.py</code>, <code>pyfacebook/api/graph.py</code></td><td>授权 Graph API、paging、rate-limit sleep</td><td>P2</td></tr>
                 <tr><td>facebook-scraper</td><td>mobile/mbasic HTML</td><td><code>facebook_scraper.py</code>, <code>extractors.py</code></td><td>风险样本、reaction/comment 字段</td><td>不建议</td></tr>
+                <tr><td>NanmiCoder/MediaCrawler</td><td>Playwright + 中文社媒非官方接口</td><td><code>main.py</code>, <code>base_crawler.py</code>, <code>media_platform/*</code></td><td>多平台 adapter、login/client/store 分层、采集模式拆分；不支持 X/Facebook</td><td>P2 研究参考，不进 P1</td></tr>
                 <tr><td>agents-radar</td><td>API digest pipeline</td><td><code>src/github.ts</code>, <code>src/hf.ts</code>, <code>src/hn.ts</code></td><td>AI digest、时间窗口、失败返回</td><td>P1 参考</td></tr>
                 <tr><td>changedetection.io</td><td>HTTP/browser watch</td><td><code>worker.py</code></td><td>snapshot、diff、last_error、source health</td><td>P1/P1.5 参考</td></tr>
                 <tr><td>Crawlee / Firecrawl / Crawl4AI</td><td>crawler / AI extraction</td><td><code>basic-crawler.ts</code>, API types, <code>async_webcrawler.py</code></td><td>queue、retry、session、markdown/rawHtml contract</td><td>P1.5/P2</td></tr>
@@ -431,7 +437,7 @@
                 <tr><td>稳定 HTML</td><td>中</td><td>中</td><td>GitHub Trending、AIBase</td><td>P1 第二批，要求快照和 selector test</td></tr>
                 <tr><td>Browser worker</td><td>中</td><td>中到高</td><td>JS 渲染、高价值源兜底</td><td>P1.5</td></tr>
                 <tr><td>非官方 API</td><td>低到中</td><td>高</td><td>X、YouTube comments、Facebook HTML</td><td>不进 P1</td></tr>
-                <tr><td>cookie/账号池/代理</td><td>低</td><td>高</td><td>X、Facebook</td><td>不建议</td></tr>
+                <tr><td>cookie/账号池/代理</td><td>低</td><td>高</td><td>X、Facebook、中文社媒</td><td>不建议</td></tr>
                 <tr><td>LLM fallback</td><td>中</td><td>中</td><td>schema drift、复杂抽取</td><td>P1.5/P2，不能替代 raw evidence</td></tr>
               </tbody>
             </table>
@@ -495,15 +501,15 @@ risk:
           <div class="stage-grid">
             <div class="stage">
               <h3>P1</h3>
-              <p>RSS/API/page fetcher、Raw Snapshot、Raw Item、Evidence Card、source health、dedupe。信息源为 OpenAI、Anthropic、DeepMind、NVIDIA、GitHub、HN、HF、TLDR AI、AIBase。</p>
+              <p>RSS/API/page fetcher、Raw Snapshot、Raw Item、Evidence Card、source health、dedupe。信息源为 OpenAI、Anthropic、DeepMind、NVIDIA、GitHub、HN、HF、TLDR AI、AIBase。暂不接入 MediaCrawler 或类似中文社媒登录态采集。</p>
             </div>
             <div class="stage">
               <h3>P1.5</h3>
-              <p>Reddit 官方 API、YouTube Data API、GitHub Trending、HF Papers/Trending、Browser worker、LLM fallback、candidate event pool 和 source health dashboard。</p>
+              <p>Reddit 官方 API、YouTube Data API、GitHub Trending、HF Papers/Trending、Browser worker、LLM fallback、candidate event pool 和 source health dashboard。MediaCrawler 只作为 adapter 与风险字段设计参考，不作为运行时依赖。</p>
             </div>
             <div class="stage">
               <h3>P2</h3>
-              <p>X 官方 API 或授权数据源、Facebook Graph API 授权场景、AI follow-up assistant、个性化、冲突检测、可视化 source/workflow 管理。</p>
+              <p>X 官方 API 或授权数据源、Facebook Graph API 授权场景、中文社媒热度实验室、AI follow-up assistant、个性化、冲突检测、可视化 source/workflow 管理。若参考 MediaCrawler，必须授权、小规模、隔离环境。</p>
             </div>
           </div>
         </section>
@@ -518,6 +524,8 @@ risk:
               <tbody>
                 <tr><td>ToS / 合规风险</td><td>X 非官方 API、Facebook HTML</td><td>不进 P1，优先官方 API/授权</td></tr>
                 <tr><td>登录/cookie 风险</td><td>twscrape、facebook-scraper</td><td>禁止产品主链路使用</td></tr>
+                <tr><td>非商业许可证风险</td><td>MediaCrawler</td><td>只做源码策略参考，不能直接集成</td></tr>
+                <tr><td>中文社媒风控风险</td><td>MediaCrawler、小红书/抖音/微博等</td><td>不进 P1；P2 必须授权、小规模、隔离</td></tr>
                 <tr><td>页面结构漂移</td><td>GitHub Trending、AIBase</td><td>selector test + snapshot + health</td></tr>
                 <tr><td>API 额度风险</td><td>YouTube Data API、X API</td><td>配额监控 + 低频策略</td></tr>
                 <tr><td>聚合源事实污染</td><td>TLDR AI、AIBase、中文聚合站</td><td>Evidence Card 补原始源</td></tr>
@@ -537,6 +545,7 @@ risk:
             <li>GitHub Trending 是否进入 P1 第二批还是 P1.5；如果进入 P1，是否接受每日一次快照。</li>
             <li>Raw Snapshot 存储用数据库、对象存储还是本地文件；保留周期如何定。</li>
             <li>未来 X/Reddit/YouTube 热度信号如何与官方源事实事件聚合，避免热度压过可信度。</li>
+            <li>若未来引入中文社媒热度信号，哪些平台有官方/授权路径；MediaCrawler 只能作为架构参考，不能作为默认实现。</li>
           </ol>
         </section>
       </article>
@@ -544,4 +553,3 @@ risk:
   </div>
 </body>
 </html>
-

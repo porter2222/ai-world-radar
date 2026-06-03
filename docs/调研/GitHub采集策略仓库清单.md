@@ -38,6 +38,7 @@
 | [sns-sdks/python-facebook](https://github.com/sns-sdks/python-facebook) | 约 378 | 2026-02 | Python | Facebook Graph API wrapper | `pyfacebook/api/graph.py` | P2 |
 | [facebook/facebook-python-business-sdk](https://github.com/facebook/facebook-python-business-sdk) | 约 1,500 | 2026-06-02 | Python | Meta Business SDK | Business SDK modules | P2+ |
 | [kevinzg/facebook-scraper](https://github.com/kevinzg/facebook-scraper) | 3,199 | 2024-06-22 | Python | Facebook HTML scraper | `facebook_scraper/facebook_scraper.py`, `extractors.py` | 不建议 |
+| [NanmiCoder/MediaCrawler](https://github.com/NanmiCoder/MediaCrawler) | 50,622 | 2026-05-29 | Python | 中文社媒多平台采集 | `main.py`, `config/base_config.py`, `base/base_crawler.py`, `media_platform/*/core.py`, `media_platform/*/client.py`, `media_platform/*/login.py`, `proxy/proxy_ip_pool.py` | P2 研究参考，不进 P1 |
 | [scrapy/scrapy](https://github.com/scrapy/scrapy) | 62,086 | 2026-06-03 | Python | Crawling framework | `scrapy/downloadermiddlewares/retry.py` | P1 参考 |
 | [apify/crawlee](https://github.com/apify/crawlee) | 23,643 | 2026-06-02 | TypeScript | Browser/HTTP crawler | `packages/basic-crawler/src/internals/basic-crawler.ts` | P1.5 |
 | [firecrawl/firecrawl](https://github.com/firecrawl/firecrawl) | 127,948 | 2026-06-03 | TypeScript | AI crawl API | `apps/api/src/controllers/v2/types.ts` | P1.5/P2 |

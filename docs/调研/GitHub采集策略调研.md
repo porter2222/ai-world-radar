@@ -328,12 +328,57 @@ P1 建议：
 - `DIYgod/RSSHub` 的 AIBase 相关 route。
 - `LearnPrompt/ai-news-radar` 的中文 AI 新闻整理脚本。
 - `sansan0/TrendRadar` 的中文热点/RSS/AI 分析产品结构。
+- `NanmiCoder/MediaCrawler` 的中文社媒多平台采集结构。
 
 策略结论：
 
 - 中文站适合作为“中文用户关心什么”的辅助信号。
 - 不能把中文聚合站作为事实源的唯一证据，尤其是工具发布、模型发布、融资、政策等事件。
 - P1 应在 Evidence Card 中标注“原始源 / 聚合源 / 社区源”的来源等级。
+
+### 5.7 中文社媒采集参考：MediaCrawler
+
+仓库：`NanmiCoder/MediaCrawler`
+
+链接：https://github.com/NanmiCoder/MediaCrawler
+
+源码观察：
+
+- 截至 2026-06-03，GitHub API 显示 stars 约 50,622，最近 push 为 2026-05-29，主要语言为 Python。
+- `main.py` 中 `CrawlerFactory.CRAWLERS` 将 `xhs`、`dy`、`ks`、`bili`、`wb`、`tieba`、`zhihu` 映射到各平台 crawler；当前不包含 X/Twitter、Facebook、Reddit。
+- `config/base_config.py` 暴露 `PLATFORM`、`LOGIN_TYPE`、`COOKIES`、`CRAWLER_TYPE`、`ENABLE_IP_PROXY`、`SAVE_LOGIN_STATE`、`SAVE_DATA_OPTION`、评论采集和并发等配置。
+- `base/base_crawler.py` 抽象了 `AbstractCrawler`、`AbstractLogin`、`AbstractStore`、`AbstractApiClient`。
+- `media_platform/*/core.py` 普遍使用 Playwright 创建浏览器上下文，支持普通浏览器或 CDP 模式，并在多平台中注入 `libs/stealth.min.js`。
+- `media_platform/*/client.py` 按平台封装私有 endpoint、签名参数、cookie 更新、评论/详情/搜索请求和重试。
+- `media_platform/*/login.py` 支持二维码、手机号、cookie 登录态。
+- `proxy/proxy_ip_pool.py` 支持快代理、豌豆代理和静态代理。
+
+能力边界：
+
+- 能覆盖小红书、抖音、快手、B 站、微博、百度贴吧、知乎的搜索、指定内容、作者主页、评论/二级评论等场景。
+- 不能直接满足 X/Twitter 或 Facebook 采集；后续若有人试图“照着扩展 X/Facebook”，必须先经过合规、账号风险和数据范围评审。
+- 它更像中文社媒采集实验框架，不是 AI World Radar P1 的稳定信源采集框架。
+
+许可证与风险：
+
+- LICENSE 为 `NON-COMMERCIAL LEARNING LICENSE 1.1`，限制非商业学习使用，明确不得用于大规模爬虫或影响平台运营；AI World Radar 不应把它作为生产依赖。
+- 项目核心依赖登录态、cookie、二维码/手机号登录、浏览器自动化、签名参数、代理池和平台风控处理，和 P1 “无登录、低风险、可持续、可回源”的原则冲突。
+- README 与源码均带有学习/研究用途提示；后续 Agent 不应把它解读为可直接上线的合规方案。
+
+可借鉴点：
+
+- 多平台 adapter/factory 结构：`PLATFORM -> crawler` 的注册方式可作为 Source Registry 的反面与正面参考。
+- 分层接口：crawler、login、api client、store 分离，有助于 AI World Radar 设计 `source adapter + fetcher + normalizer + store`。
+- 采集模式拆分：`search | detail | creator` 可映射到 AI World Radar 的 `list | detail | profile | comments` collector mode。
+- 存储选项：json/jsonl/csv/sqlite/db/postgres/excel 的分层思路可参考，但 P1 应优先 Raw Snapshot + Raw Item 数据库，不需要 excel/wordcloud 等展示型输出。
+- 风险配置显式化：登录类型、cookie、代理、评论深度、最大采集数应在 AI World Radar 的 adapter manifest 中作为风险字段，而不是隐藏在代码里。
+
+阶段建议：
+
+- P1：不建议接入，也不建议作为依赖。
+- P1.5：只可借鉴 adapter、store、source health、评论字段设计；不得引入登录/cookie/代理/stealth 采集。
+- P2：可作为“中文社媒热度实验室”的源码参考，仅限授权、小规模、隔离环境，并需单独合规评审。
+- 不建议：任何需要账号池、绕过登录、抓取私密内容或大规模中文社媒采集的方案。
 
 ## 6. 典型仓库分析
 
@@ -359,6 +404,7 @@ P1 建议：
 | `sns-sdks/python-facebook` | 约 378 / 2026-02 / Python | Graph API wrapper | `pyfacebook/api/graph.py`, `resource/page.py` | 官方 API | app/token/权限 | cursor paging、rate-limit sleep | 授权场景 | 不支持匿名情报 | P2 |
 | `facebook-python-business-sdk` | 约 1,500 / 2026-06-02 / Python | Meta Business API SDK | business SDK modules | 官方 API | business token/app review | 官方 SDK | 商业数据授权 | 不是公开帖子采集 | P2+ |
 | `kevinzg/facebook-scraper` | 3,199 / 2024-06-22 / Python | Facebook 页面/帖子 HTML | `facebook_scraper.py`, `extractors.py`, `page_iterators.py` | mobile/mbasic HTML | cookie/login/proxy | next_url、LoginRequired | 风险样本 | 账号/ToS/稳定性风险高 | 不建议 |
+| `NanmiCoder/MediaCrawler` | 50,622 / 2026-05-29 / Python | 中文社媒多平台采集 | `main.py`, `config/base_config.py`, `base/base_crawler.py`, `media_platform/*/core.py`, `media_platform/*/client.py`, `media_platform/*/login.py`, `proxy/proxy_ip_pool.py` | Playwright/browser + 非官方接口/签名 | 二维码/手机号/cookie、登录态缓存、可选代理 | retry、登录检测、代理刷新、采集上限 | adapter factory、crawler/login/client/store 分层、search/detail/creator 模式 | 不支持 X/Facebook；非商业学习许可证；账号/ToS/风控风险高 | P2 研究参考，不进 P1 |
 | `Pyprohly/redditwarp` | 58 / 2024-07-01 / Python | Reddit API wrapper | `redditwarp/core/rate_limited_SYNC.py` | 官方 API | OAuth | token bucket | rate budget | 生态小 | P2 参考 |
 | `redlib-org/redlib` | 3,371 / 2026-04-24 / Rust | Reddit 替代前端 | `src/client.rs`, `oauth.rs`, `post.rs` | Reddit JSON/OAuth | token daemon | cache、canonical path | parser/canonicalization | mobile spoof 风险 | 不建议 |
 | `huchenme/github-trending-api` | 823 / 2023-01-06 / JavaScript | GitHub Trending API 化 | `src/functions/utils/fetch.js` | HTML + Cheerio | 无 | 无强重试 | selector 示例 | 页面变动风险 | P1 第二批 |
@@ -381,7 +427,7 @@ P1 建议：
 | RSSHub route 复用/参考 | 中到高 | 取决于 route | 中 | 公开网站转换 RSS | P1 参考，不整体绑定 |
 | Browser automation | 中 | 中到高 | 高 | JS 渲染页面、少量高价值源 | P1.5 兜底，不进 P1 主路径 |
 | 非官方 API / 私有 endpoint | 低到中 | 高 | 高 | X、YouTube comments、Facebook HTML | 不进 P1；谨慎 P1.5/P2 |
-| cookie 登录 / 账号池 / 代理 | 低 | 高 | 高 | X、Facebook | 不建议 |
+| cookie 登录 / 账号池 / 代理 | 低 | 高 | 高 | X、Facebook、中文社媒 | 不建议 |
 | LLM extraction fallback | 中 | 低到中 | 中到高 | schema drift、复杂页面摘要 | P1.5/P2；不能作为唯一证据 |
 
 ## 8. 推荐给 AI World Radar 的采集架构
@@ -609,6 +655,7 @@ recommended_action: publish | hold | enrich | discard
 
 - X/Facebook 非官方采集。
 - YouTube 评论采集。
+- MediaCrawler 或类似中文社媒登录态采集。
 - 大规模 browser worker。
 - 代理池、账号池、cookie 登录。
 - AI follow-up assistant。
@@ -627,6 +674,7 @@ recommended_action: publish | hold | enrich | discard
 - LLM extraction fallback，但必须绑定 raw snapshot。
 - source health dashboard。
 - candidate event pool。
+- MediaCrawler 只作为多平台 adapter 和风险字段设计参考，不作为运行时依赖。
 
 ### P2
 
@@ -636,6 +684,7 @@ recommended_action: publish | hold | enrich | discard
 
 - X 官方 API 或授权数据源。
 - Facebook Graph API 授权页面。
+- 中文社媒热度实验室；若参考 MediaCrawler，只能在授权、小规模、隔离环境中研究。
 - AI follow-up assistant。
 - 个性化订阅。
 - 跨源冲突检测。
@@ -655,7 +704,9 @@ recommended_action: publish | hold | enrich | discard
 |---|---|---|---|
 | ToS / 合规风险 | 账号、服务、法律风险 | X 非官方 API、Facebook HTML | 不进 P1；优先官方 API/授权 |
 | 登录/cookie 风险 | 账号封禁、泄露、维护成本 | twscrape、facebook-scraper | 禁止产品主链路使用 |
+| 非商业许可证风险 | 不能作为生产依赖 | MediaCrawler | 只做源码策略参考，不能直接集成 |
 | 反爬/封禁风险 | 高失败率、不稳定 | YouTube comments、X、Facebook | 限制在 P1.5/P2 兜底 |
+| 中文社媒风控风险 | 登录失败、验证码、账号限制、数据不稳定 | MediaCrawler、小红书/抖音/微博等 | 不进 P1；P2 必须授权、小规模、隔离 |
 | 页面结构漂移 | parse fail、误采 | GitHub Trending、AIBase 页面 | selector test + snapshot + health |
 | API 额度风险 | 数据缺口、成本 | YouTube Data API、X API | 配额监控 + 低频策略 |
 | 聚合源事实污染 | 二手信息误传 | TLDR AI、AIBase、中文聚合站 | Evidence Card 补原始源 |
@@ -674,4 +725,5 @@ recommended_action: publish | hold | enrich | discard
 7. Evidence Card 的 quote/excerpt 是否需要保存原文短摘，如何避免版权和过度引用风险。
 8. 是否需要 source health 管理页，还是 P1 先用日志/表格即可。
 9. 未来 X/Reddit/YouTube 热度信号如何与官方源事实事件做聚合，不让热度压过可信度。
-10. 是否需要为高风险源设单独的“research-only”运行环境，隔离生产发布链路。
+10. 若未来引入中文社媒热度信号，哪些平台有官方/授权路径；MediaCrawler 只能作为架构参考，不能作为默认实现。
+11. 是否需要为高风险源设单独的“research-only”运行环境，隔离生产发布链路。
