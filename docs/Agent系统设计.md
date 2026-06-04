@@ -1,519 +1,680 @@
 # AI World Radar Agent 系统设计
 
-版本：v0.1  
-更新时间：2026-06-03  
-阶段：P1 MVP Agent 系统设计确认版
+版本：v0.2
+
+更新时间：2026-06-04
+
+阶段：P1 Agent 系统设计修订版
 
 ## 1. 文档目的
 
-本文档用于定义 AI World Radar P1 MVP 的 Agent 系统生产链路、模块边界、Agent 职责、发布分层、质量门禁和后续演进方向。
+本文档用于定义 AI World Radar P1 的 Agent 系统设计 v0.2。它描述 Agent 在后端情报生产链路中的职责、边界、工具调用方式、LangGraph 工作流设计，以及与工程代码、LLMClient、数据库发布链路之间的关系。
 
-本文档只讨论 Agent 系统设计，不进入具体数据库字段、接口设计、UI 视觉设计和代码实现计划。后续阶段将基于本文档继续拆解技术架构、数据模型、接口设计和开发计划。
+本文档不讨论：
 
-## 2. 设计背景
+- UI 视觉设计。
+- 具体前端页面。
+- 具体数据库字段细节。
+- 部署方案。
+- P2 AI 追问助手。
+
+本文档的核心问题是：
+
+> P1 的 Agent 到底是什么，哪些事情由 Agent 做，哪些事情必须由工程代码控制。
+
+## 2. v0.2 修订背景
+
+v0.1 文档形成于早期 Agent 架构讨论阶段。后续产品和技术设计继续推进，已经确认了新的 P1 口径：
+
+- P1 不单独建 `RawItem` 表。
+- P1 不单独建 `CandidateEvent` 表。
+- P1 不做真实性核验。
+- P1 使用 LangGraph / LangChain。
+- P1 迁入用户已有 Python LLMClient。
+- P1 复杂节点允许受控 tool-calling。
+- P1 后端第一功能切片是 HN AI 事件生产闭环。
+
+因此需要将 Agent 系统设计升级为 v0.2，避免旧文档中的 Raw Item、Candidate Router、可信度和待核验等旧口径误导后续开发代理。
+
+## 3. Agent 系统的核心定位
+
+AI World Radar 的 Agent 不是自由浏览互联网的万能 Agent，而是：
+
+> 工程化情报流水线中的多阶段 Agent Workflow。
+
+一句话定义：
+
+> 工程代码负责稳定执行，Agent 负责语义判断和内容生产。
+
+具体来说：
+
+```text
+工程代码负责：
+采集、解析、存储、调度、发布、失败控制。
+
+Agent 负责：
+理解、聚合、排序、写作、简报、质量门禁。
+```
 
 AI World Radar 的目标不是做普通 AI 新闻聚合站，也不是做一个把网页丢给大模型总结的工具，而是为中文 AI 学习型用户提供全球 AI 圈事件情报雷达。
 
-P1 的核心任务是：
+## 4. P1 Agent 边界
 
-> 自动发现全球 AI 圈碎片化信息，将其整理成中文用户能快速理解、可追溯来源、可点击详情的 AI 事件。
+P1 的 Agent 可以调用工具，但必须受控。
 
-因此，Agent 系统必须解决三个问题：
+P1 Agent 允许：
 
-- 如何从多源信息中识别真正值得关注的 AI 事件。
-- 如何把多篇文章、多条信号、多种语言的信息合并成同一个事件。
-- 如何在自动发布的同时降低幻觉、误导、搬运和低质量内容风险。
+- 在指定节点调用白名单工具。
+- 使用来源内容和数据库已有证据。
+- 生成结构化结果。
+- 参与事件聚合、内容生成和质量门禁。
 
-## 3. 架构调研结论
+P1 Agent 不允许：
 
-在设计前，已参考 GitHub 上多类相关项目的源码策略：
+- 自由浏览全网。
+- 自由决定发布。
+- 直接修改核心数据库状态。
+- 绕过工程代码采集来源。
+- 无限循环调用工具。
+- 绕过质量门禁。
 
-- 采集与抽取类：Firecrawl、Crawl4AI、ScrapeGraphAI、RSSHub。
-- 深度研究与报告类：GPT Researcher、STORM、Open Deep Research。
-- AI 新闻与日报类：LearnPrompt/ai-news-radar、auto-news、Horizon、hn-buddy。
+核心边界是：
 
-核心结论是：
+> Agent 可以提出判断和生成内容，但主流程、数据库写入和发布状态由工程代码控制。
 
-- 成熟产品不应让一个大 Agent 自由浏览全网、抓取内容、写稿和发布。
-- 工程代码应负责稳定采集、调度、解析、去重、存储、发布和失败处理。
-- Agent 应负责语义理解、事件判断、聚合边界、排序解释、内容生成和质量检查。
-- 写作 Agent 不应直接面对海量原文，而应基于被压缩、可追溯、带来源的证据包写作。
+## 5. P1 不做什么
 
-AI World Radar P1 应采用“工程化情报流水线 + 局部 Agent 决策”的架构，而不是“爬虫 + 大模型总结”的架构。
+P1 Agent 系统不做：
 
-## 4. 核心设计原则
+- 不做自由自治 Agent。
+- 不做复杂研究 Agent。
+- 不做 AI 追问助手。
+- 不做真实性核验。
+- 不做用户个性化推荐。
+- 不做 embedding 聚合。
+- 不做 X、Reddit、YouTube 复杂高热平台采集。
+- 不做 `RawItem` 独立表。
+- 不做 `CandidateEvent` 独立表。
 
-### 4.1 工程代码优先负责稳定性
+这些内容后续可进入 P1.5 或 P2。
 
-以下环节由工程代码负责：
+## 6. 总体架构：工程流水线 + LangGraph Agent Workflow
 
-- 信息源注册。
-- 定时采集。
-- RSS/API/页面抓取。
-- 原始内容存储。
+P1 采用：
+
+```text
+工程代码控制主流程
+LangGraph 编排 Agent 工作流
+LangChain 支持模型与工具能力
+LLMClient 提供底层 chat / stream / provider 切换
+```
+
+总体链路：
+
+```text
+Source Adapter
+-> SourceItem
+-> LangGraph Workflow
+   -> EvidenceAgent
+   -> EventClusterAgent
+   -> RankingAgent
+   -> DetailWriterAgent
+   -> BriefWriterAgent
+   -> QualityGateAgent
+-> PublishService
+-> PostgreSQL
+```
+
+其中：
+
+- Source Adapter 是工程代码。
+- LangGraph Workflow 是 Agent 编排层。
+- Agent 节点负责语义判断和内容生成。
+- PublishService 是工程代码。
+- PostgreSQL 是系统事实记录。
+
+## 7. 工程代码负责的部分
+
+工程代码负责确定性、可复现、可调试的部分：
+
+- 信息源配置。
+- HN / GitHub Changelog 采集。
 - URL 归一化。
-- 基础去重。
-- 失败重试。
-- 发布。
-- 后台管理操作。
+- 基础字段解析。
+- PostgreSQL 读写。
+- PipelineRun 记录。
+- 发布状态写入。
+- 失败状态记录。
+- Agent 最大步数限制。
+- 工具白名单控制。
+- 运行脚本入口。
 
-### 4.2 Agent 负责语义判断
+工程代码不把核心控制权交给 Agent。
 
-以下环节由 Agent 负责：
+## 8. Agent 负责的部分
 
-- 判断内容是否构成 AI 事件。
-- 提取事件主体、触发点和不确定性。
-- 判断多条证据是否属于同一个事件。
-- 判断事件对中文 AI 用户是否值得关注。
-- 生成中文卡片、详情页和简报内容。
-- 检查生成内容是否存在幻觉、夸大或事实错配。
+Agent 负责语义性、生成性、判断性的部分：
 
-### 4.3 先事件，后文章
+- 判断内容是否与 AI 圈相关。
+- 提取 EvidenceCard。
+- 判断多个 EvidenceCard 是否属于同一事件。
+- 解释事件热度和中文用户价值。
+- 生成事件卡片内容。
+- 生成事件详情内容。
+- 生成今日简报内容。
+- 检查内容是否跑题、空泛、夸大、缺来源。
 
-系统的核心内容单位是事件，不是文章。
+Agent 的结果必须经过：
 
-同一个事件可以由多个来源共同支撑。用户最终看到的是事件卡和事件详情，而不是来源文章列表。
+- 结构化解析。
+- 质量门禁。
+- 工程代码发布。
 
-### 4.4 先证据，后写作
+Agent 不是数据库发布者，而是情报生产链路中的语义处理者。
 
-写作 Agent 不能直接读取原始网页或自由搜索。
+## 9. LLMClient 的职责边界
 
-系统必须先把来源内容整理成 Evidence Card，再把多个 Evidence Card 聚合为 Event Cluster，最后才进入内容生成。
+用户已有 Python LLMClient 会迁入项目，但它不是 Agent 系统本身。
 
-### 4.5 公开展示必须有详情页
+LLMClient 只负责：
 
-只要事件进入前台公开展示，就必须有详情页。
+- provider 切换。
+- model 切换。
+- api_key / base_url 配置。
+- chat。
+- stream_chat。
+- 基础 OpenAI-compatible 调用。
 
-今日简报不是所有事件的合集，而是从公开发布事件中精选出的重点事件。
+LLMClient 不负责：
 
-## 5. P1 总体流程
+- 业务 prompt。
+- EvidenceCard schema。
+- Brief schema。
+- 工具绑定。
+- Agent 循环。
+- 质量门禁。
+- 数据库写入。
 
-AI World Radar P1 Agent 系统链路如下：
+一句话：
 
-```text
-Source Registry
--> Source Collector
--> Raw Item Store
--> Extract / Normalize
--> Evidence Card Agent
--> Candidate Router Agent
--> Event Cluster Agent
--> Event Ranking Agent
--> Content Planning Agent
--> Content Generation Agent
--> Quality Gate Agent
--> Publisher
--> Admin Console
-```
+> LLMClient 是模型调用底座，不是业务 Agent。
 
-其中，前四个模块主要是工程模块，中间六个模块是 Agent 语义处理模块，最后两个模块是发布与管理模块。
+结构化输出、工具绑定和多步 Agent 行为应放在具体 Agent 节点中设计。
 
-## 6. 工程模块职责
+## 10. LangGraph 工作流设计
 
-### 6.1 Source Registry
-
-Source Registry 负责管理信息源。
-
-P1 信息源包括但不限于：
-
-- OpenAI News。
-- Anthropic News。
-- Google DeepMind Blog。
-- NVIDIA RSS。
-- GitHub Changelog。
-- Hugging Face Papers / Models。
-- Hacker News API。
-- GitHub Trending。
-- TLDR AI。
-- AIBase。
-
-Source Registry 需要记录：
-
-- 来源名称。
-- 来源类型。
-- 抓取方式。
-- 抓取频率。
-- 可信度权重。
-- 是否启用。
-- 最近抓取状态。
-
-### 6.2 Source Collector
-
-Source Collector 负责定时采集信息。
-
-P1 采集策略是：
-
-- RSS/API 优先。
-- 稳定公开页面其次。
-- 浏览器渲染和复杂反爬暂不作为 P1 默认能力。
-- X、Reddit、YouTube 等高热平台进入 P1.5。
-
-采集由工程代码执行，不由 Agent 自由探索。
-
-### 6.3 Raw Item Store
-
-Raw Item Store 保存原始采集结果。
-
-保存原始内容的目的包括：
-
-- 支持来源追溯。
-- 支持内容重跑。
-- 支持调试采集失败。
-- 支持检查 AI 生成内容是否有依据。
-
-### 6.4 Extract / Normalize
-
-Extract / Normalize 负责将不同来源的内容统一成标准输入。
-
-统一后的信息至少应包含：
-
-- 标题。
-- 原始链接。
-- 来源名称。
-- 发布时间。
-- 抓取时间。
-- 语言。
-- 原始摘要或正文片段。
-
-P1 优先使用规则、解析器和确定性代码完成归一化。只有在内容缺字段、页面结构异常或需要跨语言理解时，才使用 LLM 兜底。
-
-## 7. Agent 模块职责
-
-### 7.1 Evidence Card Agent
-
-Evidence Card Agent 是 P1 的核心中间层。
-
-它的输入是标准化后的 Raw Item，输出是 Evidence Card。
-
-Evidence Card 不是用户看到的事件卡，而是系统内部的证据单元。
-
-Evidence Card 需要回答：
-
-- 这个来源说了什么。
-- 主体是谁。
-- 发生了什么变化。
-- 触发点是什么。
-- 是否与 AI 圈有关。
-- 是否有清晰时间线。
-- 有哪些不确定性。
-- 哪句话可以作为后续写作依据。
-
-P1 Evidence Card 建议包含：
+P1 LangGraph 主流程暂定为：
 
 ```text
-来源标题
-来源链接
-来源名称
-发布时间
-原始摘要/正文片段
-AI 提取的一句话主张
-涉及主体：公司/人物/产品/模型/项目
-事件触发点：发布、融资、开源、跳槽、争议、榜单变化等
-候选分类建议
-可信度说明
-可用于简报或详情页的证据句
-不确定性说明
+collect_sources
+-> build_evidence_cards
+-> cluster_events
+-> rank_events
+-> generate_event_content
+-> generate_brief
+-> quality_gate
+-> publish_results
 ```
 
-### 7.2 Candidate Router Agent
-
-Candidate Router Agent 负责判断 Evidence Card 的去向。
-
-输出分为四类：
-
-- 事实型候选事件。
-- 热议型候选事件。
-- 待核验线索。
-- 丢弃内容。
-
-判断逻辑是：
-
-- 有明确主体、明确动作、明确来源的信息进入事实型候选事件。
-- 外网讨论热度高但事实尚未完全确认的信息进入热议型候选事件。
-- 只有线索、缺少可靠原始来源的信息进入待核验线索。
-- SEO、广告、泛泛教程、低价值重复内容进入丢弃内容。
-
-该 Agent 不应单独决定发布，只负责候选路由。
-
-### 7.3 Event Cluster Agent
-
-Event Cluster Agent 负责把多个 Evidence Card 合并成同一个事件。
-
-P1 聚合策略是：
+节点分类：
 
 ```text
-规则合并 + LLM 模糊判断
+工程节点：
+collect_sources
+publish_results
+
+Agent 节点：
+build_evidence_cards
+cluster_events
+rank_events
+generate_event_content
+generate_brief
+quality_gate
 ```
 
-P1 暂不引入 embedding。后续 P1.5 再增加 embedding 做语义召回。
+第一版工作流不追求复杂分支，先追求：
 
-规则合并负责处理：
+- 状态清晰。
+- 输入输出明确。
+- 失败可记录。
+- 节点可单独测试。
+- 可通过本地命令手动触发。
 
-- URL 完全相同。
-- canonical URL 相同。
-- 标题高度相似。
-- 同一来源重复抓取。
-- 发布时间窗口接近。
+## 11. Agent 节点设计
 
-LLM 模糊判断负责处理：
+P1 Agent 节点分成 6 个：
 
-- 不同语言、不同标题但可能是同一事件。
-- 同一主体但触发点不同。
-- 同一事件下的事实报道与社区反应。
-- 相似但不应合并的边界样本。
+```text
+EvidenceAgent
+EventClusterAgent
+RankingAgent
+DetailWriterAgent
+BriefWriterAgent
+QualityGateAgent
+```
 
-Event Cluster Agent 输出：
+### 11.1 EvidenceAgent
+
+EvidenceAgent 从 SourceItem 生成 EvidenceCard。
+
+职责：
+
+- 判断是否 AI 相关。
+- 提取主体。
+- 提取事件触发点。
+- 提取分类建议。
+- 提取热度线索。
+- 提取重要度线索。
+- 给出中文用户价值理由。
+
+### 11.2 EventClusterAgent
+
+EventClusterAgent 判断多个 EvidenceCard 是否属于同一事件。
+
+职责：
+
+- 判断相似来源是否应该合并。
+- 输出合并原因。
+- 输出不合并原因。
+- 生成事件聚合结果。
+
+第一版使用：
+
+```text
+规则合并 + Agent 辅助判断
+```
+
+不使用 embedding。
+
+### 11.3 RankingAgent
+
+RankingAgent 根据热度、重要度、中文用户价值给事件排序。
+
+排序口径：
+
+```text
+热度主导 + 重要度兜底 + 中文用户价值修正
+```
+
+输出：
+
+- ranking_score。
+- ranking_reason。
+- 是否适合发布。
+- 是否适合进入今日简报。
+
+### 11.4 DetailWriterAgent
+
+DetailWriterAgent 负责生成事件详情正文。
+
+它可以调用受控工具补充上下文，但不能自由浏览全网。
+
+输出：
 
 - 事件标题。
-- 主事件描述。
-- 涉及主体。
-- 事件触发点。
-- 归属分类。
-- 首次发现时间。
-- 最近更新时间。
-- 证据来源列表。
-- 合并原因。
-- 不合并原因。
+- 事件摘要。
+- 详情正文。
+- 关键背景。
+- 为什么值得关注。
+- 来源引用。
+- 后续关注点。
 
-### 7.4 Event Ranking Agent
+### 11.5 BriefWriterAgent
 
-Event Ranking Agent 负责给事件排序。
+BriefWriterAgent 负责从已发布事件中生成今日简报。
 
-P1 排序口径是：
+规则：
 
-> 热度优先，但不能被热度绑架。
+- 简报不是全量事件合集。
+- 简报只选 Top 3-5 个重点事件。
+- 简报应让用户只看它也能知道今日重点。
+- 每条 brief item 必须能关联到 PublishedEvent。
 
-排序需要综合：
+### 11.6 QualityGateAgent
 
-- 外网讨论热度。
-- 来源可信度。
-- 事件本身重要性。
-- 对中文 AI 用户的价值。
-- 时间新鲜度。
-- 多源交叉情况。
+QualityGateAgent 检查生成内容质量。
 
-P1 可用热度信号包括：
+它不做真实性核验，只做生成质量和工程发布安全检查。
 
-- Hacker News 分数与评论数。
-- GitHub Trending 排名或 star 增长。
-- Hugging Face 趋势。
-- 多个来源同时报道。
-- 竞品站重复出现。
-- 官方博客或 changelog 的重要更新。
-
-Event Ranking Agent 输出：
-
-- 事件排序。
-- 排名理由。
-- 是否值得首页展示。
-- 是否值得进入今日简报候选。
-- 是否需要后续关注。
-
-### 7.5 Content Planning Agent
-
-Content Planning Agent 负责决定事件如何发布。
-
-它位于 Event Ranking Agent 和 Content Generation Agent 之间。
-
-它判断：
-
-- 是否公开展示。
-- 展示在哪个区域。
-- 首页靠前还是靠后。
-- 是否进入今日简报。
-- 是否只留后台观察。
-- 是否不发布。
-
-发布层级分为：
+输出建议：
 
 ```text
-候选事件
-系统内部判断，不一定展示。
-
-发布事件
-进入前台公开展示，必须生成卡片和详情页。
-
-简报事件
-从发布事件中精选，额外生成今日简报条目。
+publish
+regenerate
+manual_review
+discard
 ```
 
-关键规则：
+## 12. 受控 Tool-Calling 设计
 
-- 不是所有候选事件都会公开展示。
-- 只要公开展示，就必须有详情页。
-- 不是所有公开事件都进入今日简报。
-- 今日简报是精选情报，不是全量事件合集。
+P1 支持 tool-calling，但只在复杂节点中使用。
 
-### 7.6 Content Generation Agent
+允许使用工具的节点：
 
-Content Generation Agent 负责生成用户可见内容。
+```text
+EvidenceAgent
+DetailWriterAgent
+BriefWriterAgent
+QualityGateAgent
+```
 
-对公开发布事件，生成：
+第一版工具白名单：
 
-- 事件卡片。
-- 事件详情页。
+```text
+fetch_url_content(url)
+fetch_hn_comments(item_id)
+extract_page_metadata(url)
+search_existing_evidence(query)
+load_cluster_evidence(cluster_id)
+```
 
-对进入今日简报的事件，额外生成：
+工具使用限制：
 
-- 今日简报条目。
+- 每个 Agent 最多 3-5 步。
+- 每个 Agent 最多 2-3 次工具调用。
+- 工具只能读数据，不能直接发布。
+- 工具不能绕过来源策略自由爬全网。
+- 工具调用结果必须进入 Agent 输入上下文。
 
-Content Generation Agent 不能自由搜索，不能直接读取原始网页，只能基于：
+这样既保留 Agent 性，又保持工程可控。
 
-- Event Cluster。
-- Evidence Cards。
-- Ranking Reason。
-- Content Plan。
-- 写作风格规则。
+## 13. EvidenceCard 设计口径
 
-内容生成原则：
+P1 不再把 RawItem 作为正式 P1 表。
 
-- 中文原创整理。
-- 不搬运竞品正文。
-- 不把热议写成事实。
-- 不夸大影响。
-- 事实为主体，解读为辅助。
+EvidenceCard 是：
+
+> 来源信号 + AI 理解结果的统一内部证据单元。
+
+EvidenceCard 应同时保存来源信息和 AI 理解结果。
+
+来源信息包括：
+
+- original_title。
+- original_url。
+- source_id。
+- published_at。
+- raw_summary / raw_excerpt。
+- raw_heat_metrics。
+
+AI 理解结果包括：
+
+- claim_summary。
+- normalized_title。
+- subjects。
+- event_trigger。
+- event_type。
+- category。
+- heat_clues。
+- impact_clues。
+- audience_value_reason。
+- candidate_score。
+- merge_key_hint。
+
+EvidenceCard 不是用户看到的事件卡，而是 Agent 后续聚合和写作的证据材料。
+
+## 14. EventCluster 设计口径
+
+EventCluster 是多个 EvidenceCard 聚合后的内部事件。
+
+它解决的问题是：
+
+- 多条来源信号是不是在讲同一件事。
+- 这个事件的核心主体是什么。
+- 事件触发点是什么。
+- 应该如何排序和发布。
+
+EventCluster 不等于 PublishedEvent。
+
+```text
+EventCluster：内部事件
+PublishedEvent：公开展示事件
+```
+
+第一版聚合策略：
+
+```text
+规则合并 + Agent 辅助判断
+不使用 embedding
+```
+
+聚合依据：
+
+- 主体相同。
+- 触发点相似。
+- 标题相似。
+- URL / canonical URL 相同。
+- 发布时间窗口接近。
+- Agent 判断为同一事件。
+
+## 15. 内容生成 Agent 设计
+
+内容生成不再是简单摘要，而是事件内容生产。
+
+DetailWriterAgent 的输入包括：
+
+- EventCluster。
+- 关联 EvidenceCards。
+- RankingReason。
+- 来源链接。
+- 可选工具补充结果。
+
+输出包括：
+
+- 事件标题。
+- 事件摘要。
+- 详情正文。
+- 关键背景。
+- 为什么值得关注。
+- 来源引用。
+- 后续关注点。
+
+要求：
+
+- 不能直接搬运原文。
+- 不能把热议写成事实。
+- 不能夸大影响。
+- 中文表达要自然。
 - 用户阅读时不应看到大量结构化字段堆叠。
 
-### 7.7 Quality Gate Agent
+第一版详情内容先以“可读正文”为目标，不追求深度长文。
 
-Quality Gate Agent 负责生成内容的质量门禁。
+## 16. Brief 生成 Agent 设计
 
-检查内容包括：
+BriefWriterAgent 负责从已发布事件中生成今日简报内容。
 
-- 是否存在幻觉。
-- 是否夸大影响。
-- 是否把热议写成事实。
-- 是否有来源支撑。
-- 是否直接搬运竞品正文。
-- 日期是否错误。
-- 标题是否标题党。
-- 中文表达是否清楚。
+输入：
 
-输出结果包括：
+- Top PublishedEvents。
+- 对应 card / detail 内容。
+- RankingReason。
+- 来源信息。
 
-- 通过。
-- 通过但有警告。
-- 要求重写。
-- 降级为待核验。
-- 进入人工后台。
-- 丢弃。
+输出：
 
-P1 兜底策略是：
+- brief title。
+- brief summary。
+- brief items。
+- 每条 brief item 对应 published_event_id。
 
-- 小问题：自动重写一次。
-- 中等问题：降级或降低展示优先级。
-- 严重问题：进入后台人工处理。
-- 来源不足：不生成前台内容。
+规则：
 
-## 8. 发布与管理模块
+- 简报不是全量事件合集。
+- 简报只选 Top 3-5 个重点事件。
+- 简报应让用户只看它也能知道今日重点。
+- 每条 brief item 必须能跳到事件详情。
 
-### 8.1 Publisher
+第一版 brief 生成可以先服务后端数据验收，不先考虑页面排版。
 
-Publisher 负责把通过质量门禁的内容发布到前台。
+## 17. Quality Gate Agent 设计
 
-P1 发布内容包括：
+P1 Quality Gate 不做真实性核验。
 
-- 首页事件列表。
-- 今日简报。
-- 事件详情页。
-- 分类页。
-- 数据 JSON。
+它只检查生成质量和工程发布安全：
 
-Publisher 是工程模块，不由 Agent 直接写入前台页面。
+- 内容是否为空。
+- 结构是否可解析。
+- 标题和正文是否明显不一致。
+- 是否缺少来源链接。
+- 是否直接搬运原文。
+- 是否过度夸张。
+- 是否把不确定内容写成确定事实。
+- event_card 和 event_detail 是否成对存在。
+- brief_item 是否关联 published_event。
 
-### 8.2 Admin Console
-
-Admin Console 提供维护者人工兜底能力。
-
-P1 管理能力包括：
-
-- 隐藏事件。
-- 置顶事件。
-- 降权事件。
-- 重写内容。
-- 重新生成。
-- 合并事件。
-- 拆分事件。
-- 降级为待核验。
-- 恢复发布。
-
-P1 不设置人工前置审核，管理页用于事后校正。
-
-## 9. 内容发布规则
-
-AI World Radar 的内容发布关系如下：
+输出建议：
 
 ```text
-收集到的信息 ≠ 候选事件 ≠ 发布事件 ≠ 简报事件
+publish
+regenerate
+manual_review
+discard
 ```
 
-具体规则是：
+注意：
 
-- 收集到的信息只是原始输入。
-- 候选事件进入系统内部判断，不一定展示。
-- 发布事件进入前台展示，必须有卡片和详情页。
-- 简报事件从发布事件中精选，额外进入今日简报。
+> manual_review 不是事实核验状态，只说明当前内容不适合自动发布。
 
-这能避免两个问题：
+## 18. 发布与入库边界
 
-- 不会把所有低价值信息都写进简报。
-- 用户点击任何前台事件，都能看到详情页。
+Agent 不能直接发布。
 
-## 10. P1、P1.5 与 P2 演进
+Agent 输出的是结构化建议和内容草稿，最终由工程服务写入数据库。
 
-### 10.1 P1
+发布由：
 
-P1 采用轻量可落地方案：
+```text
+PublishService
+```
 
-- 工程代码采集稳定来源。
-- Evidence Card 作为核心证据层。
-- 规则 + LLM 做事件聚合。
-- 不引入 embedding。
-- 自动生成卡片、详情页和简报。
-- Quality Gate 做生成后检查。
-- 管理页做事后校正。
+负责。
 
-### 10.2 P1.5
+写入内容包括：
 
-P1.5 增强：
+- published_events。
+- content_artifacts。
+- briefs。
+- brief_items。
+- quality_gate_results。
+- pipeline_runs。
 
-- 接入 X、Reddit、YouTube 等高热平台。
-- 引入 embedding 做语义召回和事件聚合辅助。
-- 增强来源健康、失败兜底和候选池。
-- 增强热度计算。
-- 增强图片选择和多源追踪。
+核心边界：
 
-### 10.3 P2
+```text
+Agent 生成内容
+QualityGate 给建议
+PublishService 决定写入发布表
+```
+
+如果质量门禁失败：
+
+- 不写入 published 状态。
+- 可写入 draft / manual_review / discarded 状态。
+
+## 19. 后端 P1 第一功能切片：HN AI 事件生产闭环
+
+后端 P1 的第一交付切片不是“采集模块”，而是：
+
+> HN AI 事件生产闭环。
+
+完整链路：
+
+```text
+Hacker News API
+-> SourceItem
+-> EvidenceAgent
+-> EventClusterAgent
+-> RankingAgent
+-> DetailWriterAgent
+-> BriefWriterAgent
+-> QualityGateAgent
+-> PublishService
+-> PostgreSQL
+-> PipelineRun 报告
+```
+
+完成后应能通过本地命令触发：
+
+```powershell
+python -m app.scripts.run_pipeline --source hn --limit 20
+```
+
+并在数据库中得到：
+
+- EvidenceCard。
+- EventCluster。
+- ContentArtifact。
+- PublishedEvent。
+- Brief。
+- BriefItem。
+- QualityGateResult。
+- PipelineRun。
+
+这一节的关键口径是：
+
+> 模块是实现单元，功能切片是交付单元。
+
+## 20. P1、P1.5 与 P2 演进
+
+### 20.1 P1
+
+P1 包括：
+
+- HN。
+- GitHub Changelog。
+- LangGraph Agent Workflow。
+- 受控 tool-calling。
+- PostgreSQL 入库。
+- 本机手动命令触发。
+- 不做真实性核验。
+- 不做复杂高热平台。
+
+### 20.2 P1.5
+
+P1.5 可增强：
+
+- Reddit。
+- YouTube。
+- GitHub Trending。
+- Hugging Face Trending。
+- embedding 聚合。
+- 更强热度信号。
+- 更强失败兜底。
+- 可选 Docker Compose。
+
+### 20.3 P2
 
 P2 可考虑：
 
 - 事件级 AI 追问助手。
-- 个性化排序。
-- 收藏和订阅。
+- 用户收藏。
+- 订阅提醒。
+- 个性化。
 - 趋势专题。
-- 更完整的知识图谱。
-- 更复杂的人机协同审核。
+- 更完整管理后台。
 
-## 11. P1 验收标准
+## 21. 与旧版 v0.1 的差异
 
-P1 Agent 系统设计的验收标准是：
+| 主题 | v0.1 | v0.2 |
+| --- | --- | --- |
+| Raw Item Store | P1 模块 | 不作为正式 P1 表，改为临时 SourceItem |
+| Candidate Router Agent | 独立 Agent | 合并进 EvidenceAgent / RankingAgent / PublishService |
+| 真实性 / 可信度 | 有事实型、待核验、可信度权重 | P1 不做真实性核验，只做生成质量门禁 |
+| 写作 Agent 读取材料 | 不能读取网页 | 不能自由浏览，但可调用白名单工具补充上下文 |
+| Agent 框架 | 抽象 Agent 流水线 | 明确使用 LangGraph / LangChain |
+| LLMClient | 未明确 | 只作为底层模型调用底座 |
+| 开发切片 | 未定义 | 后端 P1 第一切片为 HN AI 事件生产闭环 |
 
-- 系统能自动从多个来源采集 AI 圈信息。
-- 系统能将原始信息整理成 Evidence Card。
-- 系统能把 Evidence Card 路由为事实事件、热议事件、待核验线索或丢弃内容。
-- 系统能将多个来源聚合为同一个事件。
-- 系统能对事件进行排序和发布规划。
-- 公开展示事件都有详情页。
-- 今日简报只包含精选事件，不是全量事件合集。
-- 生成内容能通过质量门禁。
-- 维护者可以通过管理页事后校正。
+## 22. 下一步
 
-## 12. 当前阶段结论
+新版 Agent 系统设计确认后，下一步进入：
 
-AI World Radar P1 的 Agent 系统不采用“万能 Agent 自由上网”的方案，而采用“工程化情报流水线 + 局部 Agent 决策”的方案。
+> 后端 P1 实现计划与功能切片拆解。
 
-一句话总结：
+在写后端实现计划前，后续代理必须先阅读：
 
-> 工程代码负责采集、存储、调度和发布；Agent 负责理解、判断、合并、排序、写作和质检；所有公开事件都有详情页；今日简报只从公开事件中精选重点内容。
+1. `docs\项目状态.md`
+2. `docs\Agent系统设计.md`
+3. `docs\技术架构与数据模型设计.md`
 
-下一阶段应进入技术架构与数据模型设计。
+然后才能开始底座落地和 HN 功能切片开发。

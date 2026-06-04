@@ -13,20 +13,11 @@
       --line: #deded8;
       --accent: #0f766e;
       --accent-soft: #e4f4f1;
-      --warning: #9a5b00;
-      --warning-soft: #fff2d6;
       --code: #f0f1ec;
       --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
     }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       color: var(--text);
@@ -34,18 +25,12 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
       line-height: 1.72;
     }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
+    a { color: inherit; text-decoration: none; }
     .layout {
       display: grid;
       grid-template-columns: 292px minmax(0, 1fr);
       min-height: 100vh;
     }
-
     .sidebar {
       position: sticky;
       top: 0;
@@ -56,13 +41,11 @@
       background: rgba(255, 255, 255, 0.78);
       backdrop-filter: blur(18px);
     }
-
     .brand {
       margin-bottom: 26px;
       padding-bottom: 22px;
       border-bottom: 1px solid var(--line);
     }
-
     .brand-title {
       margin: 0 0 6px;
       font-size: 20px;
@@ -70,14 +53,12 @@
       font-weight: 750;
       letter-spacing: 0;
     }
-
     .brand-subtitle {
       margin: 0;
       color: var(--muted);
       font-size: 13px;
       line-height: 1.5;
     }
-
     .nav-title {
       margin: 0 0 10px;
       color: var(--muted);
@@ -86,7 +67,6 @@
       letter-spacing: 0.06em;
       text-transform: uppercase;
     }
-
     .nav {
       display: grid;
       gap: 4px;
@@ -94,7 +74,6 @@
       padding: 0;
       list-style: none;
     }
-
     .nav a {
       display: block;
       padding: 8px 10px;
@@ -103,28 +82,23 @@
       font-size: 14px;
       line-height: 1.35;
     }
-
     .nav a:hover {
       color: var(--accent);
       background: var(--accent-soft);
     }
-
     .content {
       min-width: 0;
       padding: 48px min(7vw, 88px) 80px;
     }
-
     .doc {
-      max-width: 920px;
+      max-width: 980px;
       margin: 0 auto;
     }
-
     .hero {
       margin-bottom: 42px;
       padding-bottom: 32px;
       border-bottom: 1px solid var(--line);
     }
-
     .eyebrow {
       margin: 0 0 12px;
       color: var(--accent);
@@ -133,149 +107,89 @@
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-
     h1 {
       margin: 0 0 18px;
       font-size: clamp(34px, 5vw, 58px);
       line-height: 1.05;
       letter-spacing: 0;
     }
-
     .summary {
-      max-width: 760px;
+      max-width: 780px;
       margin: 0;
       color: var(--muted);
       font-size: 18px;
     }
-
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 24px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 4px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #fff;
-      color: #3c4043;
-      font-size: 13px;
-    }
-
     section {
-      margin: 0 0 38px;
-      padding: 30px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
+      margin: 38px 0;
+      padding: 0;
     }
-
     h2 {
-      margin: 0 0 16px;
-      font-size: 24px;
+      margin: 0 0 14px;
+      font-size: 26px;
       line-height: 1.25;
       letter-spacing: 0;
     }
-
     h3 {
-      margin: 24px 0 10px;
-      font-size: 18px;
-      line-height: 1.3;
+      margin: 28px 0 10px;
+      font-size: 19px;
+      line-height: 1.35;
       letter-spacing: 0;
     }
-
-    p {
-      margin: 0 0 14px;
-    }
-
-    ul {
-      margin: 0 0 14px;
-      padding-left: 22px;
-    }
-
-    li {
-      margin: 4px 0;
-    }
-
-    blockquote {
+    p { margin: 12px 0; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 6px 0; }
+    .callout {
       margin: 18px 0;
       padding: 16px 18px;
       border-left: 4px solid var(--accent);
-      border-radius: 0 8px 8px 0;
       background: var(--accent-soft);
-      color: #133f3a;
-      font-weight: 650;
-    }
-
-    pre {
-      overflow-x: auto;
-      margin: 16px 0;
-      padding: 16px;
       border-radius: 8px;
-      background: var(--code);
-      color: #202124;
-      font-size: 14px;
-      line-height: 1.6;
     }
-
     code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.92em;
     }
-
-    .two-col {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-      margin-top: 14px;
-    }
-
-    .mini-panel {
-      padding: 16px;
+    pre {
+      margin: 14px 0;
+      padding: 16px 18px;
+      overflow-x: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: #fbfbf8;
+      background: var(--code);
     }
-
-    .mini-panel h3 {
-      margin-top: 0;
-    }
-
-    .footer {
-      margin: 44px 0 0;
-      color: var(--muted);
+    pre code {
+      padding: 0;
+      background: transparent;
       font-size: 13px;
-      text-align: center;
     }
-
-    @media (max-width: 880px) {
-      .layout {
-        display: block;
-      }
-
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    th, td {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f4ef; }
+    @media (max-width: 860px) {
+      .layout { display: block; }
       .sidebar {
-        position: static;
+        position: relative;
+        width: 100%;
         height: auto;
         border-right: 0;
         border-bottom: 1px solid var(--line);
       }
-
-      .content {
-        padding: 32px 18px 56px;
-      }
-
-      section {
-        padding: 22px;
-      }
-
-      .two-col {
-        grid-template-columns: 1fr;
-      }
+      .content { padding: 34px 20px 56px; }
+      h1 { font-size: 34px; }
     }
   </style>
 </head>
@@ -283,188 +197,355 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <p class="brand-title">AI World Radar</p>
-        <p class="brand-subtitle">Agent 系统设计 v0.1</p>
+        <h1 class="brand-title">AI World Radar</h1>
+        <p class="brand-subtitle">Agent 系统设计 v0.2</p>
       </div>
-      <p class="nav-title">目录</p>
-      <ol class="nav">
-        <li><a href="#purpose">1. 文档目的</a></li>
-        <li><a href="#background">2. 设计背景</a></li>
-        <li><a href="#research">3. 架构调研结论</a></li>
-        <li><a href="#principles">4. 核心设计原则</a></li>
-        <li><a href="#flow">5. P1 总体流程</a></li>
-        <li><a href="#engineering">6. 工程模块职责</a></li>
-        <li><a href="#agents">7. Agent 模块职责</a></li>
-        <li><a href="#publish">8. 发布与管理模块</a></li>
-        <li><a href="#rules">9. 内容发布规则</a></li>
-        <li><a href="#roadmap">10. 演进路线</a></li>
-        <li><a href="#acceptance">11. 验收标准</a></li>
-        <li><a href="#conclusion">12. 当前阶段结论</a></li>
-      </ol>
+      <p class="nav-title">导航</p>
+      <ul class="nav">
+        <li><a href="#purpose">文档目的</a></li>
+        <li><a href="#revision">修订背景</a></li>
+        <li><a href="#position">核心定位</a></li>
+        <li><a href="#boundary">Agent 边界</a></li>
+        <li><a href="#not-do">P1 不做什么</a></li>
+        <li><a href="#architecture">总体架构</a></li>
+        <li><a href="#engineering">工程代码职责</a></li>
+        <li><a href="#agent-role">Agent 职责</a></li>
+        <li><a href="#llmclient">LLMClient 边界</a></li>
+        <li><a href="#langgraph">LangGraph 工作流</a></li>
+        <li><a href="#nodes">Agent 节点</a></li>
+        <li><a href="#tools">受控工具调用</a></li>
+        <li><a href="#evidence">EvidenceCard</a></li>
+        <li><a href="#cluster">EventCluster</a></li>
+        <li><a href="#content">内容生成</a></li>
+        <li><a href="#brief">Brief 生成</a></li>
+        <li><a href="#quality">Quality Gate</a></li>
+        <li><a href="#publish">发布边界</a></li>
+        <li><a href="#slice">HN 功能切片</a></li>
+        <li><a href="#roadmap">演进</a></li>
+        <li><a href="#diff">v0.1 差异</a></li>
+        <li><a href="#next">下一步</a></li>
+      </ul>
     </aside>
-
     <main class="content">
       <article class="doc">
         <header class="hero">
-          <p class="eyebrow">P1 MVP Agent Design</p>
+          <p class="eyebrow">Agent System Design</p>
           <h1>AI World Radar Agent 系统设计</h1>
-          <p class="summary">定义 P1 MVP 的 Agent 生产链路、模块边界、发布分层与质量门禁，确保产品不是普通爬虫，也不是简单的大模型总结器。</p>
-          <div class="meta">
-            <span class="pill">版本：v0.1</span>
-            <span class="pill">更新时间：2026-06-03</span>
-            <span class="pill">阶段：P1 MVP</span>
-          </div>
+          <p class="summary">v0.2 明确 P1 采用工程化 LangGraph Agent Workflow：工程代码控制主流程，Agent 负责语义判断、内容生产和质量门禁，复杂节点允许受控工具调用。</p>
         </header>
 
         <section id="purpose">
           <h2>1. 文档目的</h2>
-          <p>本文档用于定义 AI World Radar P1 MVP 的 Agent 系统生产链路、模块边界、Agent 职责、发布分层、质量门禁和后续演进方向。</p>
-          <p>本文档只讨论 Agent 系统设计，不进入具体数据库字段、接口设计、UI 视觉设计和代码实现计划。后续阶段将基于本文档继续拆解技术架构、数据模型、接口设计和开发计划。</p>
+          <p>本文档用于定义 AI World Radar P1 的 Agent 系统设计 v0.2。它描述 Agent 在后端情报生产链路中的职责、边界、工具调用方式、LangGraph 工作流设计，以及与工程代码、LLMClient、数据库发布链路之间的关系。</p>
+          <div class="callout">核心问题：P1 的 Agent 到底是什么，哪些事情由 Agent 做，哪些事情必须由工程代码控制。</div>
+          <p>本文档不讨论 UI、具体前端页面、具体数据库字段细节、部署方案和 P2 AI 追问助手。</p>
         </section>
 
-        <section id="background">
-          <h2>2. 设计背景</h2>
-          <p>AI World Radar 的目标不是做普通 AI 新闻聚合站，也不是做一个把网页丢给大模型总结的工具，而是为中文 AI 学习型用户提供全球 AI 圈事件情报雷达。</p>
-          <blockquote>自动发现全球 AI 圈碎片化信息，将其整理成中文用户能快速理解、可追溯来源、可点击详情的 AI 事件。</blockquote>
-          <p>因此，Agent 系统必须解决多源识别、跨源合并、内容生成和自动发布质量控制等问题。</p>
-        </section>
-
-        <section id="research">
-          <h2>3. 架构调研结论</h2>
-          <p>在设计前，已参考 GitHub 上多类相关项目的源码策略，包括采集与抽取类、深度研究与报告类、AI 新闻与日报类项目。</p>
+        <section id="revision">
+          <h2>2. v0.2 修订背景</h2>
+          <p>v0.1 文档形成于早期 Agent 架构讨论阶段。后续产品和技术设计继续推进，已经确认了新的 P1 口径。</p>
           <ul>
-            <li>采集与抽取类：Firecrawl、Crawl4AI、ScrapeGraphAI、RSSHub。</li>
-            <li>深度研究与报告类：GPT Researcher、STORM、Open Deep Research。</li>
-            <li>AI 新闻与日报类：LearnPrompt/ai-news-radar、auto-news、Horizon、hn-buddy。</li>
+            <li>P1 不单独建 <code>RawItem</code> 表。</li>
+            <li>P1 不单独建 <code>CandidateEvent</code> 表。</li>
+            <li>P1 不做真实性核验。</li>
+            <li>P1 使用 LangGraph / LangChain。</li>
+            <li>P1 迁入用户已有 Python LLMClient。</li>
+            <li>P1 复杂节点允许受控 tool-calling。</li>
+            <li>P1 后端第一功能切片是 HN AI 事件生产闭环。</li>
           </ul>
-          <p>核心结论是：成熟产品不应让一个大 Agent 自由浏览全网、抓取内容、写稿和发布。AI World Radar P1 应采用“工程化情报流水线 + 局部 Agent 决策”的架构。</p>
         </section>
 
-        <section id="principles">
-          <h2>4. 核心设计原则</h2>
-          <div class="two-col">
-            <div class="mini-panel">
-              <h3>工程代码负责稳定性</h3>
-              <p>信息源注册、定时采集、解析、去重、存储、发布和后台操作由工程代码负责。</p>
-            </div>
-            <div class="mini-panel">
-              <h3>Agent 负责语义判断</h3>
-              <p>事件判断、聚合边界、排序解释、内容生成和质量检查由 Agent 负责。</p>
-            </div>
-            <div class="mini-panel">
-              <h3>先事件，后文章</h3>
-              <p>系统的核心内容单位是事件，不是文章。同一事件可由多个来源共同支撑。</p>
-            </div>
-            <div class="mini-panel">
-              <h3>先证据，后写作</h3>
-              <p>写作 Agent 只能基于 Evidence Card 和 Event Cluster 写作，不能自由搜索。</p>
-            </div>
-          </div>
-          <blockquote>只要事件进入前台公开展示，就必须有详情页；今日简报只是从公开发布事件中精选出的重点事件。</blockquote>
+        <section id="position">
+          <h2>3. Agent 系统的核心定位</h2>
+          <p>AI World Radar 的 Agent 不是自由浏览互联网的万能 Agent，而是工程化情报流水线中的多阶段 Agent Workflow。</p>
+          <pre><code>工程代码负责：
+采集、解析、存储、调度、发布、失败控制。
+
+Agent 负责：
+理解、聚合、排序、写作、简报、质量门禁。</code></pre>
+          <p>AI World Radar 的目标不是做普通 AI 新闻聚合站，也不是做一个把网页丢给大模型总结的工具，而是为中文 AI 学习型用户提供全球 AI 圈事件情报雷达。</p>
         </section>
 
-        <section id="flow">
-          <h2>5. P1 总体流程</h2>
-          <pre><code>Source Registry
--> Source Collector
--> Raw Item Store
--> Extract / Normalize
--> Evidence Card Agent
--> Candidate Router Agent
--> Event Cluster Agent
--> Event Ranking Agent
--> Content Planning Agent
--> Content Generation Agent
--> Quality Gate Agent
--> Publisher
--> Admin Console</code></pre>
-          <p>前四个模块主要是工程模块，中间六个模块是 Agent 语义处理模块，最后两个模块是发布与管理模块。</p>
+        <section id="boundary">
+          <h2>4. P1 Agent 边界</h2>
+          <p>P1 的 Agent 可以调用工具，但必须受控。</p>
+          <table>
+            <thead><tr><th>允许</th><th>不允许</th></tr></thead>
+            <tbody>
+              <tr><td>在指定节点调用白名单工具</td><td>自由浏览全网</td></tr>
+              <tr><td>使用来源内容和数据库已有证据</td><td>自由决定发布</td></tr>
+              <tr><td>生成结构化结果</td><td>直接修改核心数据库状态</td></tr>
+              <tr><td>参与聚合、生成和质检</td><td>无限循环调用工具</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">Agent 可以提出判断和生成内容，但主流程、数据库写入和发布状态由工程代码控制。</div>
+        </section>
+
+        <section id="not-do">
+          <h2>5. P1 不做什么</h2>
+          <ul>
+            <li>不做自由自治 Agent。</li>
+            <li>不做复杂研究 Agent。</li>
+            <li>不做 AI 追问助手。</li>
+            <li>不做真实性核验。</li>
+            <li>不做用户个性化推荐。</li>
+            <li>不做 embedding 聚合。</li>
+            <li>不做 X、Reddit、YouTube 复杂高热平台采集。</li>
+            <li>不做 <code>RawItem</code> 独立表。</li>
+            <li>不做 <code>CandidateEvent</code> 独立表。</li>
+          </ul>
+        </section>
+
+        <section id="architecture">
+          <h2>6. 总体架构</h2>
+          <pre><code>工程代码控制主流程
+LangGraph 编排 Agent 工作流
+LangChain 支持模型与工具能力
+LLMClient 提供底层 chat / stream / provider 切换</code></pre>
+          <pre><code>Source Adapter
+-> SourceItem
+-> LangGraph Workflow
+   -> EvidenceAgent
+   -> EventClusterAgent
+   -> RankingAgent
+   -> DetailWriterAgent
+   -> BriefWriterAgent
+   -> QualityGateAgent
+-> PublishService
+-> PostgreSQL</code></pre>
         </section>
 
         <section id="engineering">
-          <h2>6. 工程模块职责</h2>
-          <h3>6.1 Source Registry</h3>
-          <p>负责管理信息源，包括来源名称、类型、抓取方式、频率、可信度权重、启用状态和最近抓取状态。</p>
-          <h3>6.2 Source Collector</h3>
-          <p>负责定时采集信息。P1 优先使用 RSS/API 和稳定公开页面，不默认接入复杂反爬平台。</p>
-          <h3>6.3 Raw Item Store</h3>
-          <p>保存原始采集结果，用于来源追溯、内容重跑、采集排查和生成内容核查。</p>
-          <h3>6.4 Extract / Normalize</h3>
-          <p>把不同来源统一成标题、链接、来源、发布时间、抓取时间、语言和正文片段等标准输入。P1 优先使用确定性代码，LLM 只做兜底。</p>
+          <h2>7. 工程代码负责的部分</h2>
+          <ul>
+            <li>信息源配置。</li>
+            <li>HN / GitHub Changelog 采集。</li>
+            <li>URL 归一化。</li>
+            <li>基础字段解析。</li>
+            <li>PostgreSQL 读写。</li>
+            <li>PipelineRun 记录。</li>
+            <li>发布状态写入。</li>
+            <li>失败状态记录。</li>
+            <li>Agent 最大步数限制。</li>
+            <li>工具白名单控制。</li>
+            <li>运行脚本入口。</li>
+          </ul>
         </section>
 
-        <section id="agents">
-          <h2>7. Agent 模块职责</h2>
-          <h3>7.1 Evidence Card Agent</h3>
-          <p>把标准化后的 Raw Item 压缩成内部证据单元，提取来源主张、主体、触发点、候选分类、证据句和不确定性。</p>
-          <h3>7.2 Candidate Router Agent</h3>
-          <p>将 Evidence Card 分为事实型候选事件、热议型候选事件、待核验线索和丢弃内容。</p>
-          <h3>7.3 Event Cluster Agent</h3>
-          <p>负责把多个 Evidence Card 合并成同一个事件。P1 使用规则合并 + LLM 模糊判断，暂不引入 embedding。</p>
-          <h3>7.4 Event Ranking Agent</h3>
-          <p>根据热度、来源可信度、事件重要性、中文用户价值、时间新鲜度和多源交叉情况给事件排序。</p>
-          <h3>7.5 Content Planning Agent</h3>
-          <p>决定事件是否公开展示、展示在哪个区域、是否进入今日简报、是否只留后台观察或不发布。</p>
-          <h3>7.6 Content Generation Agent</h3>
-          <p>对公开事件生成事件卡片和详情页，对简报事件额外生成今日简报条目。该 Agent 不能自由搜索，只能基于证据和发布计划写作。</p>
-          <h3>7.7 Quality Gate Agent</h3>
-          <p>检查幻觉、夸大、事实错配、热议与事实混淆、搬运风险、日期错误、标题党和中文表达质量。</p>
+        <section id="agent-role">
+          <h2>8. Agent 负责的部分</h2>
+          <ul>
+            <li>判断内容是否与 AI 圈相关。</li>
+            <li>提取 EvidenceCard。</li>
+            <li>判断多个 EvidenceCard 是否属于同一事件。</li>
+            <li>解释事件热度和中文用户价值。</li>
+            <li>生成事件卡片内容。</li>
+            <li>生成事件详情内容。</li>
+            <li>生成今日简报内容。</li>
+            <li>检查内容是否跑题、空泛、夸大、缺来源。</li>
+          </ul>
+          <p>Agent 的结果必须经过结构化解析、质量门禁和工程代码发布。</p>
+        </section>
+
+        <section id="llmclient">
+          <h2>9. LLMClient 的职责边界</h2>
+          <p>用户已有 Python LLMClient 会迁入项目，但它不是 Agent 系统本身。</p>
+          <table>
+            <thead><tr><th>负责</th><th>不负责</th></tr></thead>
+            <tbody>
+              <tr><td>provider / model 切换</td><td>业务 prompt</td></tr>
+              <tr><td>api_key / base_url 配置</td><td>EvidenceCard schema</td></tr>
+              <tr><td>chat / stream_chat</td><td>工具绑定</td></tr>
+              <tr><td>基础 OpenAI-compatible 调用</td><td>Agent 循环、质量门禁、数据库写入</td></tr>
+            </tbody>
+          </table>
+          <div class="callout">LLMClient 是模型调用底座，不是业务 Agent。</div>
+        </section>
+
+        <section id="langgraph">
+          <h2>10. LangGraph 工作流设计</h2>
+          <pre><code>collect_sources
+-> build_evidence_cards
+-> cluster_events
+-> rank_events
+-> generate_event_content
+-> generate_brief
+-> quality_gate
+-> publish_results</code></pre>
+          <p>第一版工作流不追求复杂分支，先追求状态清晰、输入输出明确、失败可记录、节点可单独测试，并且可通过本地命令手动触发。</p>
+        </section>
+
+        <section id="nodes">
+          <h2>11. Agent 节点设计</h2>
+          <pre><code>EvidenceAgent
+EventClusterAgent
+RankingAgent
+DetailWriterAgent
+BriefWriterAgent
+QualityGateAgent</code></pre>
+          <p><strong>EvidenceAgent</strong> 从 SourceItem 生成 EvidenceCard，判断 AI 相关性并提取主体、触发点、分类、热度线索和中文用户价值。</p>
+          <p><strong>EventClusterAgent</strong> 判断多个 EvidenceCard 是否属于同一事件，输出合并原因和事件聚合结果。</p>
+          <p><strong>RankingAgent</strong> 根据热度、重要度、中文用户价值给事件排序。</p>
+          <p><strong>DetailWriterAgent</strong> 负责生成事件详情正文，可调用受控工具补充上下文。</p>
+          <p><strong>BriefWriterAgent</strong> 负责从已发布事件中生成今日简报。</p>
+          <p><strong>QualityGateAgent</strong> 检查生成内容质量，输出发布建议。</p>
+        </section>
+
+        <section id="tools">
+          <h2>12. 受控 Tool-Calling 设计</h2>
+          <pre><code>fetch_url_content(url)
+fetch_hn_comments(item_id)
+extract_page_metadata(url)
+search_existing_evidence(query)
+load_cluster_evidence(cluster_id)</code></pre>
+          <ul>
+            <li>每个 Agent 最多 3-5 步。</li>
+            <li>每个 Agent 最多 2-3 次工具调用。</li>
+            <li>工具只能读数据，不能直接发布。</li>
+            <li>工具不能绕过来源策略自由爬全网。</li>
+            <li>工具调用结果必须进入 Agent 输入上下文。</li>
+          </ul>
+        </section>
+
+        <section id="evidence">
+          <h2>13. EvidenceCard 设计口径</h2>
+          <p>P1 不再把 RawItem 作为正式 P1 表。EvidenceCard 是来源信号 + AI 理解结果的统一内部证据单元。</p>
+          <pre><code>来源信息：
+original_title
+original_url
+source_id
+published_at
+raw_summary / raw_excerpt
+raw_heat_metrics
+
+AI 理解结果：
+claim_summary
+normalized_title
+subjects
+event_trigger
+event_type
+category
+heat_clues
+impact_clues
+audience_value_reason
+candidate_score
+merge_key_hint</code></pre>
+        </section>
+
+        <section id="cluster">
+          <h2>14. EventCluster 设计口径</h2>
+          <p>EventCluster 是多个 EvidenceCard 聚合后的内部事件，不等于 PublishedEvent。</p>
+          <pre><code>EventCluster：内部事件
+PublishedEvent：公开展示事件</code></pre>
+          <p>第一版聚合策略是规则合并 + Agent 辅助判断，不使用 embedding。</p>
+        </section>
+
+        <section id="content">
+          <h2>15. 内容生成 Agent 设计</h2>
+          <p>内容生成不再是简单摘要，而是事件内容生产。DetailWriterAgent 输入 EventCluster、关联 EvidenceCards、RankingReason、来源链接和可选工具补充结果。</p>
+          <ul>
+            <li>不能直接搬运原文。</li>
+            <li>不能把热议写成事实。</li>
+            <li>不能夸大影响。</li>
+            <li>中文表达要自然。</li>
+            <li>用户阅读时不应看到大量结构化字段堆叠。</li>
+          </ul>
+        </section>
+
+        <section id="brief">
+          <h2>16. Brief 生成 Agent 设计</h2>
+          <p>BriefWriterAgent 负责从已发布事件中生成今日简报内容。</p>
+          <ul>
+            <li>简报不是全量事件合集。</li>
+            <li>简报只选 Top 3-5 个重点事件。</li>
+            <li>简报应让用户只看它也能知道今日重点。</li>
+            <li>每条 brief item 必须能跳到事件详情。</li>
+          </ul>
+        </section>
+
+        <section id="quality">
+          <h2>17. Quality Gate Agent 设计</h2>
+          <p>P1 Quality Gate 不做真实性核验，只检查生成质量和工程发布安全。</p>
+          <ul>
+            <li>内容是否为空。</li>
+            <li>结构是否可解析。</li>
+            <li>标题和正文是否明显不一致。</li>
+            <li>是否缺少来源链接。</li>
+            <li>是否直接搬运原文。</li>
+            <li>是否过度夸张。</li>
+            <li>event_card 和 event_detail 是否成对存在。</li>
+            <li>brief_item 是否关联 published_event。</li>
+          </ul>
+          <pre><code>publish
+regenerate
+manual_review
+discard</code></pre>
         </section>
 
         <section id="publish">
-          <h2>8. 发布与管理模块</h2>
-          <h3>8.1 Publisher</h3>
-          <p>负责把通过质量门禁的内容发布到首页事件列表、今日简报、事件详情页、分类页和数据 JSON。</p>
-          <h3>8.2 Admin Console</h3>
-          <p>提供维护者人工兜底能力，包括隐藏、置顶、降权、重写、重新生成、合并、拆分、降级为待核验和恢复发布。</p>
+          <h2>18. 发布与入库边界</h2>
+          <p>Agent 不能直接发布。Agent 输出的是结构化建议和内容草稿，最终由 PublishService 写入数据库。</p>
+          <pre><code>Agent 生成内容
+QualityGate 给建议
+PublishService 决定写入发布表</code></pre>
         </section>
 
-        <section id="rules">
-          <h2>9. 内容发布规则</h2>
-          <pre><code>收集到的信息 ≠ 候选事件 ≠ 发布事件 ≠ 简报事件</code></pre>
-          <ul>
-            <li>收集到的信息只是原始输入。</li>
-            <li>候选事件进入系统内部判断，不一定展示。</li>
-            <li>发布事件进入前台展示，必须有卡片和详情页。</li>
-            <li>简报事件从发布事件中精选，额外进入今日简报。</li>
-          </ul>
-          <p>这能避免把所有低价值信息写进简报，也能保证用户点击任何前台事件时都能看到详情页。</p>
+        <section id="slice">
+          <h2>19. 后端 P1 第一功能切片：HN AI 事件生产闭环</h2>
+          <pre><code>Hacker News API
+-> SourceItem
+-> EvidenceAgent
+-> EventClusterAgent
+-> RankingAgent
+-> DetailWriterAgent
+-> BriefWriterAgent
+-> QualityGateAgent
+-> PublishService
+-> PostgreSQL
+-> PipelineRun 报告</code></pre>
+          <p>完成后应能通过本地命令触发：</p>
+          <pre><code>python -m app.scripts.run_pipeline --source hn --limit 20</code></pre>
+          <div class="callout">模块是实现单元，功能切片是交付单元。</div>
         </section>
 
         <section id="roadmap">
-          <h2>10. 演进路线</h2>
-          <h3>10.1 P1</h3>
-          <p>工程代码采集稳定来源，Evidence Card 作为核心证据层，规则 + LLM 做事件聚合，不引入 embedding。</p>
-          <h3>10.2 P1.5</h3>
-          <p>接入 X、Reddit、YouTube 等高热平台，引入 embedding 做语义召回，增强来源健康、失败兜底和热度计算。</p>
-          <h3>10.3 P2</h3>
-          <p>考虑事件级 AI 追问助手、个性化排序、收藏订阅、趋势专题、知识图谱和更复杂的人机协同审核。</p>
+          <h2>20. P1、P1.5 与 P2 演进</h2>
+          <table>
+            <thead><tr><th>阶段</th><th>范围</th></tr></thead>
+            <tbody>
+              <tr><td>P1</td><td>HN、GitHub Changelog、LangGraph Agent Workflow、受控 tool-calling、PostgreSQL 入库、本机手动命令触发。</td></tr>
+              <tr><td>P1.5</td><td>Reddit、YouTube、GitHub Trending、Hugging Face Trending、embedding 聚合、更强热度信号和失败兜底。</td></tr>
+              <tr><td>P2</td><td>事件级 AI 追问助手、收藏、订阅提醒、个性化、趋势专题和更完整管理后台。</td></tr>
+            </tbody>
+          </table>
         </section>
 
-        <section id="acceptance">
-          <h2>11. P1 验收标准</h2>
-          <ul>
-            <li>系统能自动从多个来源采集 AI 圈信息。</li>
-            <li>系统能将原始信息整理成 Evidence Card。</li>
-            <li>系统能路由事实事件、热议事件、待核验线索和丢弃内容。</li>
-            <li>系统能将多个来源聚合为同一个事件。</li>
-            <li>系统能对事件进行排序和发布规划。</li>
-            <li>公开展示事件都有详情页。</li>
-            <li>今日简报只包含精选事件，不是全量事件合集。</li>
-            <li>生成内容能通过质量门禁。</li>
-            <li>维护者可以通过管理页事后校正。</li>
-          </ul>
+        <section id="diff">
+          <h2>21. 与旧版 v0.1 的差异</h2>
+          <table>
+            <thead><tr><th>主题</th><th>v0.1</th><th>v0.2</th></tr></thead>
+            <tbody>
+              <tr><td>Raw Item Store</td><td>P1 模块</td><td>不作为正式 P1 表，改为临时 SourceItem</td></tr>
+              <tr><td>Candidate Router Agent</td><td>独立 Agent</td><td>合并进 EvidenceAgent / RankingAgent / PublishService</td></tr>
+              <tr><td>真实性 / 可信度</td><td>有事实型、待核验、可信度权重</td><td>P1 不做真实性核验，只做生成质量门禁</td></tr>
+              <tr><td>写作 Agent 读取材料</td><td>不能读取网页</td><td>不能自由浏览，但可调用白名单工具补充上下文</td></tr>
+              <tr><td>Agent 框架</td><td>抽象 Agent 流水线</td><td>明确使用 LangGraph / LangChain</td></tr>
+              <tr><td>LLMClient</td><td>未明确</td><td>只作为底层模型调用底座</td></tr>
+              <tr><td>开发切片</td><td>未定义</td><td>后端 P1 第一切片为 HN AI 事件生产闭环</td></tr>
+            </tbody>
+          </table>
         </section>
 
-        <section id="conclusion">
-          <h2>12. 当前阶段结论</h2>
-          <p>AI World Radar P1 的 Agent 系统不采用“万能 Agent 自由上网”的方案，而采用“工程化情报流水线 + 局部 Agent 决策”的方案。</p>
-          <blockquote>工程代码负责采集、存储、调度和发布；Agent 负责理解、判断、合并、排序、写作和质检；所有公开事件都有详情页；今日简报只从公开事件中精选重点内容。</blockquote>
-          <p>下一阶段应进入技术架构与数据模型设计。</p>
+        <section id="next">
+          <h2>22. 下一步</h2>
+          <p>新版 Agent 系统设计确认后，下一步进入后端 P1 实现计划与功能切片拆解。</p>
+          <ol>
+            <li><code>docs\项目状态.md</code></li>
+            <li><code>docs\Agent系统设计.md</code></li>
+            <li><code>docs\技术架构与数据模型设计.md</code></li>
+          </ol>
         </section>
       </article>
-
-      <p class="footer">AI World Radar Agent 系统设计 HTML 阅读版</p>
     </main>
   </div>
 </body>
