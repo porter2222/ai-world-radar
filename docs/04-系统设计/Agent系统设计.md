@@ -580,8 +580,9 @@ PublishService 决定写入发布表
 完整链路：
 
 ```text
-Hacker News API
+HN Algolia API
 -> SourceItem
+-> original_url 原文补全
 -> EvidenceAgent
 -> EventClusterAgent
 -> RankingAgent
@@ -596,7 +597,8 @@ Hacker News API
 完成后应能通过本地命令触发：
 
 ```powershell
-python -m app.scripts.run_pipeline --source hn --limit 20
+cd apps/worker
+python scripts/run_hn_pipeline.py --days 7 --limit 100
 ```
 
 并在数据库中得到：
@@ -667,14 +669,15 @@ P2 可考虑：
 
 ## 22. 下一步
 
-新版 Agent 系统设计确认后，下一步进入：
+新版 Agent 系统设计和后端 P1 实现计划确认后，下一步进入：
 
-> 后端 P1 实现计划与功能切片拆解。
+> 后端 P1 代码实现准备与代理任务书拆解。
 
-在写后端实现计划前，后续代理必须先阅读：
+在开始后端实现前，后续代理必须先阅读：
 
 1. `docs\00-项目总览\项目状态.md`
 2. `docs\04-系统设计\Agent系统设计.md`
 3. `docs\04-系统设计\技术架构与数据模型设计.md`
+4. `docs\05-实现计划\后端P1实现计划与功能切片拆解.md`
 
 然后才能开始底座落地和 HN 功能切片开发。

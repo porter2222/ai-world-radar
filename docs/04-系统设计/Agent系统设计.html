@@ -492,8 +492,9 @@ PublishService 决定写入发布表</code></pre>
 
         <section id="slice">
           <h2>19. 后端 P1 第一功能切片：HN AI 事件生产闭环</h2>
-          <pre><code>Hacker News API
+          <pre><code>HN Algolia API
 -> SourceItem
+-> original_url 原文补全
 -> EvidenceAgent
 -> EventClusterAgent
 -> RankingAgent
@@ -504,7 +505,8 @@ PublishService 决定写入发布表</code></pre>
 -> PostgreSQL
 -> PipelineRun 报告</code></pre>
           <p>完成后应能通过本地命令触发：</p>
-          <pre><code>python -m app.scripts.run_pipeline --source hn --limit 20</code></pre>
+          <pre><code>cd apps/worker
+python scripts/run_hn_pipeline.py --days 7 --limit 100</code></pre>
           <div class="callout">模块是实现单元，功能切片是交付单元。</div>
         </section>
 
@@ -538,11 +540,12 @@ PublishService 决定写入发布表</code></pre>
 
         <section id="next">
           <h2>22. 下一步</h2>
-          <p>新版 Agent 系统设计确认后，下一步进入后端 P1 实现计划与功能切片拆解。</p>
+          <p>新版 Agent 系统设计和后端 P1 实现计划确认后，下一步进入后端 P1 代码实现准备与代理任务书拆解。</p>
           <ol>
             <li><code>docs\00-项目总览\项目状态.md</code></li>
             <li><code>docs\04-系统设计\Agent系统设计.md</code></li>
             <li><code>docs\04-系统设计\技术架构与数据模型设计.md</code></li>
+            <li><code>docs\05-实现计划\后端P1实现计划与功能切片拆解.md</code></li>
           </ol>
         </section>
       </article>

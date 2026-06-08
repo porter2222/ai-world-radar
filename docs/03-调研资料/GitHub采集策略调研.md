@@ -382,6 +382,52 @@ P1 建议：
 
 ## 6. 典型仓库分析
 
+### 6.1 仓库学习链接
+
+以下链接用于后续自己学习源码。更详细的“如何精准爬取目标信息”的策略拆解，见同目录新增报告：[GitHub爬虫精准采集策略补充调研.md](GitHub爬虫精准采集策略补充调研.md)。
+
+| 分组 | 仓库 | GitHub 链接 | 建议重点看 |
+|---|---|---|---|
+| P1 稳定源 | feedparser | https://github.com/kurtmckee/feedparser | `feedparser/api.py`, `feedparser/http.py` |
+| P1 稳定源 | RSSHub | https://github.com/DIYgod/RSSHub | `lib/registry.ts`, `lib/routes/*` |
+| P1 稳定源 | Miniflux | https://github.com/miniflux/v2 | `internal/reader/*`, `internal/storage/entry.go` |
+| P1 稳定源 | Huginn | https://github.com/huginn/huginn | `app/models/agents/rss_agent.rb`, `website_agent.rb` |
+| P1 稳定源 | changedetection.io | https://github.com/dgtlmoon/changedetection.io | `changedetectionio/worker.py`, processors |
+| P1 稳定源 | HackerNews/API | https://github.com/HackerNews/API | 官方 Firebase API 文档 |
+| P1 稳定源 | node-hnapi | https://github.com/cheeaun/node-hnapi | `lib/hnapi.js`, `lib/cache.js` |
+| P1 稳定源 | huggingface_hub | https://github.com/huggingface/huggingface_hub | `src/huggingface_hub/hf_api.py` |
+| P1 稳定源 | agents-radar | https://github.com/duanyytop/agents-radar | `src/github.ts`, `src/hf.ts`, `src/hn.ts` |
+| P1.5 热度源 | PRAW | https://github.com/praw-dev/praw | `praw/models/reddit/subreddit.py`, `listing/generator.py` |
+| P1.5 热度源 | prawcore | https://github.com/praw-dev/prawcore | `prawcore/rate_limit.py`, `sessions.py` |
+| P1.5 热度源 | asyncpraw | https://github.com/praw-dev/asyncpraw | async PRAW modules |
+| P1.5 热度源 | redditwarp | https://github.com/Pyprohly/redditwarp | `redditwarp/core/rate_limited_SYNC.py` |
+| P1.5 热度源 | youtube/api-samples | https://github.com/youtube/api-samples | `python/search.py`, `comment_threads.py`, `captions.py` |
+| P1.5 热度源 | google-api-python-client | https://github.com/googleapis/google-api-python-client | `googleapiclient/discovery.py`, `http.py` |
+| P1.5 热度源 | yt-dlp | https://github.com/yt-dlp/yt-dlp | `yt_dlp/extractor/youtube/_video.py`, `_tab.py`, `_search.py` |
+| P1.5 热度源 | YouTube.js | https://github.com/LuanRT/YouTube.js | `src/Innertube.ts`, `src/core/Session.ts` |
+| P1.5 热度源 | youtube-transcript-api | https://github.com/jdepoix/youtube-transcript-api | `youtube_transcript_api/_api.py`, `_transcripts.py` |
+| P1.5 热度源 | youtube-comment-downloader | https://github.com/egbertbouman/youtube-comment-downloader | `youtube_comment_downloader/downloader.py` |
+| P1.5 热度源 | github-trending-api | https://github.com/huchenme/github-trending-api | `src/functions/utils/fetch.js` |
+| P1.5 热度源 | go-trending | https://github.com/andygrunwald/go-trending | `trending.go` |
+| P1.5 热度源 | github-trending-repos | https://github.com/vitalets/github-trending-repos | `scripts/helpers/trends.js` |
+| P2 / 高风险 | tweepy | https://github.com/tweepy/tweepy | `tweepy/client.py`, `tweepy/pagination.py` |
+| P2 / 高风险 | twarc | https://github.com/DocNow/twarc | `src/twarc/client2.py`, decorators |
+| P2 / 高风险 | twscrape | https://github.com/vladkens/twscrape | `twscrape/api.py`, `accounts_pool.py` |
+| P2 / 高风险 | snscrape | https://github.com/JustAnotherArchivist/snscrape | `snscrape/modules/twitter.py`, `reddit.py`, `facebook.py` |
+| P2 / 高风险 | ntscraper | https://github.com/bocchilorenzo/ntscraper | `ntscraper/nitter.py` |
+| P2 / 高风险 | nitter | https://github.com/zedeus/nitter | service code |
+| P2 / 高风险 | redlib | https://github.com/redlib-org/redlib | `src/client.rs`, `oauth.rs`, `post.rs` |
+| P2 / 高风险 | facebook-sdk | https://github.com/mobolic/facebook-sdk | `facebook/__init__.py` |
+| P2 / 高风险 | python-facebook | https://github.com/sns-sdks/python-facebook | `pyfacebook/api/graph.py` |
+| P2 / 高风险 | facebook-python-business-sdk | https://github.com/facebook/facebook-python-business-sdk | Business SDK modules |
+| P2 / 高风险 | facebook-scraper | https://github.com/kevinzg/facebook-scraper | `facebook_scraper.py`, `extractors.py` |
+| P2 / 高风险 | MediaCrawler | https://github.com/NanmiCoder/MediaCrawler | `main.py`, `config/base_config.py`, `media_platform/*` |
+| 通用框架 | Crawlee | https://github.com/apify/crawlee | `packages/basic-crawler/*` |
+| 通用框架 | Firecrawl | https://github.com/firecrawl/firecrawl | API controller/types |
+| 通用框架 | Crawl4AI | https://github.com/unclecode/crawl4ai | `crawl4ai/async_webcrawler.py` |
+| 通用框架 | ScrapeGraphAI | https://github.com/ScrapeGraphAI/Scrapegraph-ai | `scrapegraphai/graphs/*`, `nodes/*` |
+| 通用框架 | Scrapy | https://github.com/scrapy/scrapy | downloader middlewares, retry |
+
 | 仓库 | stars / 更新时间 / 语言 | 解决的问题 | 关键源码路径 | 采集方式 | 登录/Token/代理 | 稳定性处理 | 借鉴点 | 不适合点 | 阶段 |
 |---|---:|---|---|---|---|---|---|---|---|
 | `DIYgod/RSSHub` | 44,455 / 2026-06-03 / TypeScript | 把各站点转换为 RSS | `lib/registry.ts`, `lib/routes/*` | RSS/HTML/API route | 多数 public 源无需登录，部分 route 可 token | route cache，中间件，统一输出 | source namespace + adapter | AGPL、全量依赖重 | P1 参考 |

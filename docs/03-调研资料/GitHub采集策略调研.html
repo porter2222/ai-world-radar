@@ -393,6 +393,32 @@
 
         <section id="repos">
           <h2>6. 典型仓库分析</h2>
+          <p>以下链接用于后续学习源码。更详细的“如何精准爬取目标信息”的策略拆解，见同目录新增报告：<a href="GitHub爬虫精准采集策略补充调研.html">GitHub爬虫精准采集策略补充调研.html</a>。</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>分组</th><th>仓库</th><th>GitHub 链接</th><th>建议重点看</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>P1 稳定源</td><td>feedparser</td><td><a href="https://github.com/kurtmckee/feedparser">github.com/kurtmckee/feedparser</a></td><td><code>feedparser/api.py</code>, <code>feedparser/http.py</code></td></tr>
+                <tr><td>P1 稳定源</td><td>RSSHub</td><td><a href="https://github.com/DIYgod/RSSHub">github.com/DIYgod/RSSHub</a></td><td><code>lib/registry.ts</code>, <code>lib/routes/*</code></td></tr>
+                <tr><td>P1 稳定源</td><td>Miniflux</td><td><a href="https://github.com/miniflux/v2">github.com/miniflux/v2</a></td><td><code>internal/reader/*</code>, <code>internal/storage/entry.go</code></td></tr>
+                <tr><td>P1 稳定源</td><td>Huginn</td><td><a href="https://github.com/huginn/huginn">github.com/huginn/huginn</a></td><td><code>rss_agent.rb</code>, <code>website_agent.rb</code></td></tr>
+                <tr><td>P1 稳定源</td><td>changedetection.io</td><td><a href="https://github.com/dgtlmoon/changedetection.io">github.com/dgtlmoon/changedetection.io</a></td><td><code>worker.py</code>, processors</td></tr>
+                <tr><td>P1 稳定源</td><td>HN API / node-hnapi</td><td><a href="https://github.com/HackerNews/API">HN API</a> / <a href="https://github.com/cheeaun/node-hnapi">node-hnapi</a></td><td>Firebase list/item API, cache</td></tr>
+                <tr><td>P1 稳定源</td><td>huggingface_hub</td><td><a href="https://github.com/huggingface/huggingface_hub">github.com/huggingface/huggingface_hub</a></td><td><code>src/huggingface_hub/hf_api.py</code></td></tr>
+                <tr><td>P1 稳定源</td><td>agents-radar</td><td><a href="https://github.com/duanyytop/agents-radar">github.com/duanyytop/agents-radar</a></td><td><code>src/github.ts</code>, <code>src/hf.ts</code>, <code>src/hn.ts</code></td></tr>
+                <tr><td>P1.5 热度源</td><td>PRAW / prawcore / asyncpraw</td><td><a href="https://github.com/praw-dev/praw">PRAW</a> / <a href="https://github.com/praw-dev/prawcore">prawcore</a> / <a href="https://github.com/praw-dev/asyncpraw">asyncpraw</a></td><td>subreddit search、ListingGenerator、rate limit</td></tr>
+                <tr><td>P1.5 热度源</td><td>YouTube API / yt-dlp / YouTube.js</td><td><a href="https://github.com/youtube/api-samples">api-samples</a> / <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> / <a href="https://github.com/LuanRT/YouTube.js">YouTube.js</a></td><td>search/video/comment/caption、continuation</td></tr>
+                <tr><td>P1.5 热度源</td><td>YouTube 字幕/评论</td><td><a href="https://github.com/jdepoix/youtube-transcript-api">youtube-transcript-api</a> / <a href="https://github.com/egbertbouman/youtube-comment-downloader">youtube-comment-downloader</a></td><td>videoId enrichment、comment continuation</td></tr>
+                <tr><td>P1.5 热度源</td><td>GitHub Trending</td><td><a href="https://github.com/huchenme/github-trending-api">github-trending-api</a> / <a href="https://github.com/andygrunwald/go-trending">go-trending</a> / <a href="https://github.com/vitalets/github-trending-repos">github-trending-repos</a></td><td>HTML selector、daily snapshot</td></tr>
+                <tr><td>P2 / 高风险</td><td>X 官方与非官方</td><td><a href="https://github.com/tweepy/tweepy">tweepy</a> / <a href="https://github.com/DocNow/twarc">twarc</a> / <a href="https://github.com/vladkens/twscrape">twscrape</a> / <a href="https://github.com/JustAnotherArchivist/snscrape">snscrape</a></td><td>官方 API、GraphQL、cursor、账号风险</td></tr>
+                <tr><td>P2 / 高风险</td><td>Facebook</td><td><a href="https://github.com/mobolic/facebook-sdk">facebook-sdk</a> / <a href="https://github.com/sns-sdks/python-facebook">python-facebook</a> / <a href="https://github.com/kevinzg/facebook-scraper">facebook-scraper</a></td><td>Graph API vs mobile/mbasic HTML 风险</td></tr>
+                <tr><td>P2 / 高风险</td><td>MediaCrawler</td><td><a href="https://github.com/NanmiCoder/MediaCrawler">github.com/NanmiCoder/MediaCrawler</a></td><td><code>main.py</code>, <code>config/base_config.py</code>, <code>media_platform/*</code></td></tr>
+                <tr><td>通用框架</td><td>Crawlee / Firecrawl / Crawl4AI / ScrapeGraphAI / Scrapy</td><td><a href="https://github.com/apify/crawlee">Crawlee</a> / <a href="https://github.com/firecrawl/firecrawl">Firecrawl</a> / <a href="https://github.com/unclecode/crawl4ai">Crawl4AI</a> / <a href="https://github.com/ScrapeGraphAI/Scrapegraph-ai">ScrapeGraphAI</a> / <a href="https://github.com/scrapy/scrapy">Scrapy</a></td><td>queue、retry、browser fallback、LLM extraction</td></tr>
+              </tbody>
+            </table>
+          </div>
           <div class="table-wrap">
             <table>
               <thead>

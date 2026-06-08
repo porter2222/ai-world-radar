@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar AI 事件重要性与热议度采集策略报告</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --amber-soft: #fff3d7;
+      --red-soft: #fde9e7;
+      --code: #f0f1ec;
+      --shadow: 0 18px 42px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { padding: 2px 5px; border-radius: 5px; background: var(--code); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; }
+    pre { overflow: auto; padding: 16px 18px; border-radius: 10px; background: #202124; color: #f5f7f7; line-height: 1.55; }
+    pre code { padding: 0; background: transparent; color: inherit; }
+    .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(18px);
+    }
+    .brand { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+    .brand-title { margin: 0 0 6px; font-size: 20px; line-height: 1.2; font-weight: 750; letter-spacing: 0; }
+    .brand-subtitle { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .nav-title { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 10px; color: #3c4043; border-radius: 8px; font-size: 14px; line-height: 1.35; }
+    .nav a:hover { color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+    .content { min-width: 0; padding: 48px min(7vw, 88px) 80px; }
+    .doc { max-width: 1120px; margin: 0 auto; }
+    .hero {
+      margin-bottom: 28px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1 { margin: 0 0 16px; font-size: clamp(30px, 4vw, 48px); line-height: 1.12; letter-spacing: 0; }
+    .lead { margin: 0; max-width: 920px; color: #3c4043; font-size: 18px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .pill { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
+    section {
+      margin: 24px 0;
+      padding: 28px 30px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    h2 { margin: 0 0 16px; font-size: 25px; line-height: 1.28; letter-spacing: 0; }
+    h3 { margin: 24px 0 10px; font-size: 18px; line-height: 1.35; letter-spacing: 0; }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 16px; padding-left: 22px; }
+    li { margin: 4px 0; }
+    blockquote { margin: 18px 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+    .note { padding: 14px 16px; border-radius: 10px; background: var(--amber-soft); color: #5f3b00; }
+    .danger { padding: 14px 16px; border-radius: 10px; background: var(--red-soft); color: #6f1d1d; }
+    .table-wrap { overflow-x: auto; margin: 14px 0 4px; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #f0f1ec; font-weight: 750; }
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .content { padding: 24px 16px 56px; }
+      .hero, section { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">重要性 + 热议度采集策略</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">1. 报告目的</a></li>
+        <li><a href="#need">2. 信息需求</a></li>
+        <li><a href="#not-hot">3. 不只追火爆</a></li>
+        <li><a href="#routing">4. 四档分流</a></li>
+        <li><a href="#sources">5. 来源分层</a></li>
+        <li><a href="#heat">6. 热度算法</a></li>
+        <li><a href="#impact">7. 重要度算法</a></li>
+        <li><a href="#ranking">8. 综合排序</a></li>
+        <li><a href="#oss">9. 开源项目参考</a></li>
+        <li><a href="#roadmap">10. 落地顺序</a></li>
+        <li><a href="#fields">11. 字段建议</a></li>
+        <li><a href="#quality">12. 质量门禁</a></li>
+        <li><a href="#final">13. 最终建议</a></li>
+      </ol>
+    </aside>
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Research Report</p>
+          <h1>AI 事件重要性与热议度采集策略报告</h1>
+          <p class="lead">本报告基于 AI World Radar 项目 docs，重新定义采集目标：系统要发现的是有主体、有触发点、有来源、有中文用户价值的 AI 事件，而不是单纯抓最热门的链接。</p>
+          <div class="meta">
+            <span class="pill">更新时间：2026-06-05</span>
+            <span class="pill">P1 / P1.5 / P2 策略</span>
+            <span class="pill">事件价值优先</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 报告目的</h2>
+          <p>用户关心的不只是“最火爆”，而是 AI World Radar 需要抓哪些信息，以及如何同时识别“最热议”和“最重要”的 AI 事件。</p>
+          <blockquote>采集系统的目标不是抓更多网页，而是把多源信号变成可回源、可聚合、可排序、可解释的 AI 事件。</blockquote>
+        </section>
+
+        <section id="need">
+          <h2>2. 从项目 docs 抽出的信息需求</h2>
+          <p>AI World Radar 的核心内容单位是事件，不是新闻、帖子、视频或仓库。候选事件必须能说成一句：谁或什么东西，发生了什么变化。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>目标信息</th><th>含义</th><th>示例</th></tr></thead>
+              <tbody>
+                <tr><td>主体</td><td>事件围绕谁或什么</td><td>OpenAI、Claude、GitHub Copilot、某个开源仓库</td></tr>
+                <tr><td>触发点</td><td>发生了什么变化</td><td>发布、更新、涨价、开源、争议、政策变化</td></tr>
+                <tr><td>来源</td><td>能否回源</td><td>官方博客、GitHub、HN、HF、YouTube、Reddit</td></tr>
+                <tr><td>热度线索</td><td>是否正在被讨论</td><td>排名、评论数、增速、多平台重复出现</td></tr>
+                <tr><td>重要度线索</td><td>为什么即使不热也重要</td><td>重大模型、核心论文、平台能力、安全政策</td></tr>
+                <tr><td>中文用户价值</td><td>为什么目标用户需要知道</td><td>学习认知、工具使用、开发实践、风险理解</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="not-hot">
+          <h2>3. 不应该只追“火爆”</h2>
+          <p>只追热度会导致娱乐化、漏掉低热高影响事件、重复内容污染首页。项目当前排序口径应是：热度主导 + 重要度兜底 + 中文用户价值修正。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>线索类型</th><th>目标</th><th>典型来源</th><th>最终去向</th></tr></thead>
+              <tbody>
+                <tr><td>热议线</td><td>找正在发酵的讨论</td><td>HN、GitHub Trending、HF Trending、Reddit、YouTube、X</td><td>热议型候选事件</td></tr>
+                <tr><td>重要线</td><td>找影响大但未必爆火的事件</td><td>官方博客、GitHub Changelog、论文、安全公告</td><td>事实型候选事件</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="routing">
+          <h2>4. 四档分流模型</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>分流</th><th>进入条件</th><th>处理方式</th></tr></thead>
+              <tbody>
+                <tr><td>事实型候选事件</td><td>官方、一手页面、GitHub、HF、论文页出现明确主体和触发点</td><td>进入事件生成链路</td></tr>
+                <tr><td>热议型候选事件</td><td>外网讨论热度高，能反映趋势、争议或舆论变化</td><td>谨慎表达为社区热议或待确认</td></tr>
+                <tr><td>待核验线索</td><td>主体明确但来源不足、变化不清或热度不够</td><td>不上首页，继续补源观察</td></tr>
+                <tr><td>丢弃内容</td><td>教程、工具合集、营销软文、旧闻、低相关内容</td><td>不进入 Agent 生成链路</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="sources">
+          <h2>5. 来源分层</h2>
+          <p>P1 不追求全网覆盖，应优先用稳定、可回源、低风险的来源跑通事件生产闭环。</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>来源层</th><th>作用</th><th>P1 是否适合</th><th>示例</th></tr></thead>
+              <tbody>
+                <tr><td>事实源</td><td>支撑正式事件</td><td>适合</td><td>OpenAI News、Anthropic News、DeepMind Blog、NVIDIA Blog、GitHub Changelog</td></tr>
+                <tr><td>热度源</td><td>判断外网是否关注</td><td>P1 简单源，P1.5 扩展</td><td>HN、GitHub Trending、HF Trending、Reddit、YouTube、X</td></tr>
+                <tr><td>线索源</td><td>补盲和冷启动</td><td>可用但不能当唯一事实依据</td><td>TLDR AI、AIBase、newsletter、竞品聚合站</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="heat">
+          <h2>6. 热度算法</h2>
+          <p>热度不应只看绝对数字。更适合使用平台位置、互动强度、增长速度、爆发检测、跨源共振和讨论质量。</p>
+          <pre><code>heat_score =
+  0.30 * platform_rank_score
+  + 0.25 * engagement_score
+  + 0.20 * velocity_score
+  + 0.15 * cross_source_score
+  + 0.10 * discussion_quality_score</code></pre>
+          <ul>
+            <li>平台位置：HN topstories、GitHub Trending、HF Trending、Reddit hot/rising。</li>
+            <li>互动强度：score、comments、likes、views、stars today、downloads。</li>
+            <li>增长速度：当前指标减上一轮指标，再除以时间差。</li>
+            <li>爆发检测：当前增速相对来源历史基线的异常程度。</li>
+            <li>跨源共振：同一事件出现在多个独立来源。</li>
+          </ul>
+        </section>
+
+        <section id="impact">
+          <h2>7. 重要度算法</h2>
+          <p>重要度用于兜底“低热但必须知道”的事件。它由主体重要度、事件类型、来源质量、影响范围和新颖性组成。</p>
+          <pre><code>impact_score =
+  0.30 * subject_tier_score
+  + 0.25 * event_type_score
+  + 0.20 * source_quality_score
+  + 0.15 * scope_score
+  + 0.10 * novelty_score</code></pre>
+          <p class="note">P1 最新技术口径不做真实性评分。这里的 source_quality 只表示来源作为线索或证据的优先级，不代表事实核验完成。</p>
+        </section>
+
+        <section id="ranking">
+          <h2>8. 综合排序模型</h2>
+          <pre><code>ranking_score =
+  0.40 * heat_score
+  + 0.30 * impact_score
+  + 0.20 * audience_value_score
+  + 0.10 * freshness_score
+  + evidence_bonus
+  - risk_penalty</code></pre>
+          <p>同时需要两个硬规则：高重要度 + 高来源质量的事件可以低热兜底；高热但来源差的内容只能作为热议或待确认谨慎处理。</p>
+        </section>
+
+        <section id="oss">
+          <h2>9. 开源项目参考</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>方向</th><th>项目</th><th>可借鉴点</th></tr></thead>
+              <tbody>
+                <tr><td>RSS / 官方源</td><td><a href="https://github.com/kurtmckee/feedparser">feedparser</a>, <a href="https://github.com/DIYgod/RSSHub">RSSHub</a>, <a href="https://github.com/miniflux/v2">Miniflux</a></td><td>source registry、ETag、Last-Modified、统一条目结构</td></tr>
+                <tr><td>HN 热议</td><td><a href="https://github.com/HackerNews/API">HackerNews/API</a>, <a href="https://github.com/cheeaun/node-hnapi">node-hnapi</a></td><td>list id -> item detail、score/comments/time</td></tr>
+                <tr><td>GitHub 开源热度</td><td><a href="https://github.com/huchenme/github-trending-api">github-trending-api</a>, <a href="https://github.com/andygrunwald/go-trending">go-trending</a>, <a href="https://github.com/duanyytop/agents-radar">agents-radar</a></td><td>Trending 快照、repo full_name 去重、GitHub/HF/HN 时间窗采集</td></tr>
+                <tr><td>HF 模型与论文</td><td><a href="https://github.com/huggingface/huggingface_hub">huggingface_hub</a></td><td>models/datasets/spaces/papers API、sort/filter</td></tr>
+                <tr><td>Reddit 社区</td><td><a href="https://github.com/praw-dev/praw">PRAW</a>, <a href="https://github.com/praw-dev/prawcore">prawcore</a></td><td>subreddit whitelist、hot/top/rising、rate limit</td></tr>
+                <tr><td>YouTube 视频</td><td><a href="https://github.com/youtube/api-samples">youtube/api-samples</a>, <a href="https://github.com/jdepoix/youtube-transcript-api">youtube-transcript-api</a></td><td>channel whitelist、videos.list 统计、字幕 enrichment</td></tr>
+                <tr><td>变更监控</td><td><a href="https://github.com/dgtlmoon/changedetection.io">changedetection.io</a>, <a href="https://github.com/huginn/huginn">Huginn</a></td><td>snapshot、diff、schedule、source health</td></tr>
+                <tr><td>高风险社媒</td><td><a href="https://github.com/NanmiCoder/MediaCrawler">MediaCrawler</a>, <a href="https://github.com/tweepy/tweepy">Tweepy</a>, <a href="https://github.com/apify/crawlee">Crawlee</a></td><td>search/detail/creator、adapter 分层、cursor、retry；只作架构参考</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="danger">不建议把 cookie 登录、账号池、代理池绕风控、私有 GraphQL 或私密内容采集放入 P1/P1.5 生产链路。</p>
+        </section>
+
+        <section id="roadmap">
+          <h2>10. 推荐落地顺序</h2>
+          <ol>
+            <li>P1 第一切片：HN AI 事件生产闭环。</li>
+            <li>P1 第二切片：OpenAI、Anthropic、DeepMind、NVIDIA、GitHub Changelog 官方事实源。</li>
+            <li>P1 第三切片：GitHub watchlist / Hugging Face Models / Papers / Trending。</li>
+            <li>P1.5：GitHub Trending、Reddit 指定社区、YouTube 指定频道、HN Algolia query profile、changedetection。</li>
+            <li>P2：X 官方 API、YouTube 字幕/评论、Facebook Graph API 授权页面、Browser fallback。</li>
+          </ol>
+        </section>
+
+        <section id="fields">
+          <h2>11. 字段建议</h2>
+          <pre><code>raw_heat_metrics:
+  platform_rank: 12
+  score: 180
+  comments: 75
+  stars_today: null
+
+heat_clues:
+  - HN topstories rank 12
+  - 75 comments in engineering discussion
+
+impact_clues:
+  - affects developer workflow
+  - official source attached
+
+suggested_route: high_heat_candidate
+candidate_score: 0.78</code></pre>
+        </section>
+
+        <section id="quality">
+          <h2>12. 质量门禁</h2>
+          <ul>
+            <li>有可点击来源。</li>
+            <li>标题和正文一致。</li>
+            <li>未确认内容不写成事实。</li>
+            <li>社区热议事件标明讨论性质。</li>
+            <li>详情页不是字段堆叠。</li>
+            <li>不直接搬运竞品正文。</li>
+            <li>不生成不存在的链接、截图、数据或人物言论。</li>
+            <li>内容不足时少发，不强行凑 Top 12。</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>13. 最终建议</h2>
+          <pre><code>Source Registry
+-> Adapter Fetch
+-> SourceItem
+-> EvidenceCard
+-> Four-way Route
+-> EventCluster
+-> Heat / Impact / Audience Ranking
+-> Quality Gate
+-> PublishedEvent / Brief</code></pre>
+          <blockquote>热度负责发现正在发生的讨论，重要度负责防漏关键事件，中文用户价值负责决定它是否值得展示给目标用户。</blockquote>
+          <p>完整 Markdown 版见同目录：<a href="AI事件重要性与热议度采集策略报告.md">AI事件重要性与热议度采集策略报告.md</a>。</p>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

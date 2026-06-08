@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar GitHub 爬虫精准采集策略补充调研</title>
+  <style>
+    :root {
+      --bg: #f6f7f5;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --amber: #9a5b00;
+      --amber-soft: #fff2d6;
+      --red: #9f2f2f;
+      --red-soft: #fde9e7;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { padding: 2px 5px; border-radius: 5px; background: var(--code); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.92em; }
+    pre { overflow: auto; padding: 16px 18px; border-radius: 10px; background: #202124; color: #f5f7f7; line-height: 1.55; }
+    pre code { padding: 0; background: transparent; color: inherit; }
+
+    .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(18px);
+    }
+    .brand { margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .brand-title { margin: 0 0 6px; font-size: 20px; line-height: 1.2; font-weight: 750; letter-spacing: 0; }
+    .brand-subtitle { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .nav-title { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 10px; color: #3c4043; border-radius: 8px; font-size: 14px; line-height: 1.35; }
+    .nav a:hover { color: var(--accent); background: var(--accent-soft); text-decoration: none; }
+
+    .content { min-width: 0; padding: 48px min(7vw, 88px) 80px; }
+    .doc { max-width: 1120px; margin: 0 auto; }
+    .hero {
+      margin-bottom: 32px;
+      padding: 34px 36px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-size: 13px; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+    h1 { margin: 0 0 16px; font-size: clamp(30px, 4vw, 48px); line-height: 1.12; letter-spacing: 0; }
+    .lead { margin: 0; max-width: 920px; color: #3c4043; font-size: 18px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .pill { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 700; }
+
+    section {
+      margin: 24px 0;
+      padding: 28px 30px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    h2 { margin: 0 0 16px; font-size: 25px; line-height: 1.28; letter-spacing: 0; }
+    h3 { margin: 24px 0 10px; font-size: 18px; line-height: 1.35; letter-spacing: 0; }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 16px; padding-left: 22px; }
+    li { margin: 4px 0; }
+    blockquote { margin: 18px 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+    .note { padding: 14px 16px; border-radius: 10px; background: var(--amber-soft); color: #583400; }
+    .danger { padding: 14px 16px; border-radius: 10px; background: var(--red-soft); color: #6f1d1d; }
+    .table-wrap { overflow-x: auto; margin: 14px 0 4px; }
+    table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #f0f1ec; font-weight: 750; }
+
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .content { padding: 24px 16px 56px; }
+      .hero, section { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">爬虫精准采集策略补充调研</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">1. 调研目的</a></li>
+        <li><a href="#principle">2. 核心结论</a></li>
+        <li><a href="#keyword">3. 关键词边界</a></li>
+        <li><a href="#menu">4. 策略菜单</a></li>
+        <li><a href="#platforms">5. 平台拆解</a></li>
+        <li><a href="#recommend">6. 阶段组合</a></li>
+        <li><a href="#query">7. Query Profile</a></li>
+        <li><a href="#manifest">8. Adapter Manifest</a></li>
+        <li><a href="#pipeline">9. 事件流水线</a></li>
+        <li><a href="#repos">10. 仓库链接</a></li>
+        <li><a href="#anti">11. 反模式</a></li>
+        <li><a href="#handoff">12. 开发建议</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Research Supplement</p>
+          <h1>GitHub 爬虫精准采集策略补充调研</h1>
+          <p class="lead">本报告专门回答“如何精准爬到想要的信息”：不是只靠 openai、cursor、claude 关键词撒网，而是组合固定信源、平台原生入口、时间窗口、热度排序、详情补全、去重和 Agent 语义过滤。</p>
+          <div class="meta">
+            <span class="pill">更新时间：2026-06-05</span>
+            <span class="pill">输出：Markdown + HTML</span>
+            <span class="pill">不实际抓取社媒数据</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 调研目的</h2>
+          <p>这份报告是对 <a href="GitHub采集策略调研.html">GitHub采集策略调研.html</a> 和 <a href="GitHub采集策略仓库清单.md">GitHub采集策略仓库清单.md</a> 的补充。原报告回答“哪些仓库和采集路线适合 P1/P1.5/P2”，本报告回答“这些仓库具体如何精确采集目标信息”。</p>
+          <ul>
+            <li>入口怎么确定：RSS、API endpoint、账号、频道、subreddit、repo、榜单、页面 URL、内容 ID。</li>
+            <li>候选怎么召回：source watchlist、关键词、平台搜索、趋势榜、变更监控、已知 ID enrichment。</li>
+            <li>如何收敛：时间窗口、分页游标、排序、热度字段、白名单/黑名单、去重、证据等级。</li>
+          </ul>
+        </section>
+
+        <section id="principle">
+          <h2>2. 核心结论</h2>
+          <blockquote>精准采集不是“给 Agent 几个关键词让它去爬”，而是“先锁定可信来源和平台入口，再用时间窗口、平台排序、结构化字段和二次语义过滤，把候选事件一步步收窄成可追溯证据”。</blockquote>
+          <pre><code>固定信源入口
+-&gt; 平台原生检索 / 榜单 / 时间窗
+-&gt; 结构化字段抽取
+-&gt; 规则过滤与去重
+-&gt; 详情 / 评论 / 字幕 / 仓库数据补证
+-&gt; Agent 做语义判断和事件聚合
+-&gt; Evidence Card / Published Event</code></pre>
+        </section>
+
+        <section id="keyword">
+          <h2>3. 关键词策略为什么不够</h2>
+          <p>把 <code>openai</code>、<code>cursor</code>、<code>claude</code> 设成关键词是有用的，但只能算最粗的召回层。</p>
+          <ul>
+            <li>噪声高：会命中教程、吐槽、招聘、广告、旧闻和二次转载。</li>
+            <li>漏召回：重要事件可能只写 “new coding agent benchmark” 或 “frontier model price cut”。</li>
+            <li>无来源等级：官方博客和 Reddit 评论都可能命中关键词，但可信度不同。</li>
+            <li>难去重：同一事件会在官方博客、HN、GitHub、YouTube、中文站重复出现。</li>
+          </ul>
+          <p>更好的做法是让关键词服从 query profile，并配合 source whitelist、时间窗、平台排序、稳定 ID 和 Agent 语义判断。</p>
+        </section>
+
+        <section id="menu">
+          <h2>4. 精准采集策略菜单</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>策略</th><th>适合阶段</th><th>做法</th><th>代表仓库</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>固定可信源</td><td>P1</td><td>维护官方 RSS/API/页面入口，用 guid、canonical_url、published_at 去重</td><td><a href="https://github.com/kurtmckee/feedparser">feedparser</a>, <a href="https://github.com/DIYgod/RSSHub">RSSHub</a>, <a href="https://github.com/miniflux/v2">Miniflux</a></td></tr>
+                <tr><td>Source Watchlist</td><td>P1/P1.5</td><td>维护官方账号、频道、subreddit、repo、org、newsletter，不做全网搜索</td><td>PRAW, YouTube Data API, GitHub API</td></tr>
+                <tr><td>平台原生搜索</td><td>P1.5</td><td>用平台 API 的 query、sort、time window、page token 召回候选</td><td><a href="https://github.com/praw-dev/praw">PRAW</a>, <a href="https://github.com/tweepy/tweepy">tweepy</a>, HN Algolia</td></tr>
+                <tr><td>平台榜单/热榜</td><td>P1/P1.5</td><td>读取 GitHub Trending、HN topstories、HF trending、Reddit top/hot</td><td><a href="https://github.com/huchenme/github-trending-api">github-trending-api</a>, <a href="https://github.com/HackerNews/API">HN API</a>, <a href="https://github.com/huggingface/huggingface_hub">huggingface_hub</a></td></tr>
+                <tr><td>已知 ID 详情补全</td><td>P1/P1.5/P2</td><td>先拿 videoId/repo_id/submission_id/tweet_id，再补正文、指标、评论、字幕</td><td><a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>, <a href="https://github.com/jdepoix/youtube-transcript-api">youtube-transcript-api</a></td></tr>
+                <tr><td>时间窗口与水位</td><td>所有阶段</td><td>用 etag、last_modified、since_id、after、pageToken、created_at_i 控制增量</td><td>Miniflux, PRAW, tweepy, Google API client</td></tr>
+                <tr><td>变更监控</td><td>P1/P1.5</td><td>对少量无 RSS 的高价值页面保存 snapshot 并 diff</td><td><a href="https://github.com/dgtlmoon/changedetection.io">changedetection.io</a>, <a href="https://github.com/huginn/huginn">Huginn</a></td></tr>
+                <tr><td>Agent 语义过滤</td><td>P1.5/P2</td><td>Agent 只消费结构化候选，判断事件类型、重复、是否需要官方源</td><td>AI World Radar 自建</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="platforms">
+          <h2>5. 各平台源码策略拆解</h2>
+
+          <h3>5.1 X / Twitter</h3>
+          <p>官方路线是 <a href="https://github.com/tweepy/tweepy">tweepy</a> / <a href="https://github.com/DocNow/twarc">twarc</a>。入口可以是 recent/all search、user timeline、mentions、tweet lookup 和 counts；分页用 <code>next_token</code> 或 <code>pagination_token</code>，时间窗用 <code>start_time/end_time</code>、<code>since_id/until_id</code>。适合 P1.5/P2，前提是有 API 权限和预算。</p>
+          <p>非官方路线是 <a href="https://github.com/vladkens/twscrape">twscrape</a>、<a href="https://github.com/JustAnotherArchivist/snscrape">snscrape</a>、Nitter/ntscraper。它们入口更广，包括 search、user、tweet、list、trend、community，但依赖 guest token、cookie、账号池、proxy 或私有 GraphQL，不建议进入主链路。</p>
+
+          <h3>5.2 Reddit</h3>
+          <p><a href="https://github.com/praw-dev/praw">PRAW</a> 是最可用路线。入口是 subreddit、search、submission、comment、user；<code>Subreddit.search()</code> 支持 <code>sort=relevance/hot/top/new/comments</code> 和 <code>time_filter=hour/day/week/month/year/all</code>。分页由 <code>ListingGenerator</code> 读取 <code>after</code> cursor，限流由 <a href="https://github.com/praw-dev/prawcore">prawcore</a> 读取 <code>x-ratelimit-*</code> headers。</p>
+          <p>推荐模式是“subreddit 白名单 + AI query + 时间窗 + 热度排序”，字段包括 score、num_comments、upvote_ratio、created_utc、top comments。Reddit 适合 P1.5 社区热议信号，不直接作为事实源。</p>
+
+          <h3>5.3 YouTube</h3>
+          <p>官方路线是 <a href="https://github.com/youtube/api-samples">youtube/api-samples</a> + <a href="https://github.com/googleapis/google-api-python-client">google-api-python-client</a>：先用 channelId 或少量 query 发现 videoId，再用 <code>videos.list</code> 补 viewCount、likeCount、commentCount、publishedAt。字幕和评论只对已入选的重要 videoId 做 enrichment。</p>
+          <p>非官方补全可参考 <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>、<a href="https://github.com/LuanRT/YouTube.js">YouTube.js</a>、<a href="https://github.com/jdepoix/youtube-transcript-api">youtube-transcript-api</a>、<a href="https://github.com/egbertbouman/youtube-comment-downloader">youtube-comment-downloader</a>。它们能处理 continuation、字幕、评论、章节和更多字段，但不适合作 P1 主发现源。</p>
+
+          <h3>5.4 Facebook</h3>
+          <p>合规路线是 <a href="https://github.com/mobolic/facebook-sdk">facebook-sdk</a> 或 <a href="https://github.com/sns-sdks/python-facebook">python-facebook</a> 的 Graph API：以 page/object id 和 connection edge 为入口，用 <code>paging.next</code> 或 cursor 翻页。它不是匿名关键词爬虫，适合 P2 授权页面实验。</p>
+          <p><a href="https://github.com/kevinzg/facebook-scraper">facebook-scraper</a> 和 snscrape 的 Facebook 模块依赖 mobile/mbasic HTML、cookie、登录、checkpoint、页面结构解析，不建议进入自动化产品链路。</p>
+
+          <h3>5.5 GitHub / HN / Hugging Face</h3>
+          <p>GitHub 优先用官方 API/RSS 和 repo/org watchlist；GitHub Trending 没有官方 API，只适合每日 HTML 快照。HN 可用 Firebase top/new/item API，也可用 Algolia 按 query + numeric time window 搜近期 AI 相关 stories。Hugging Face 优先用官方 SDK 的 <code>list_models</code>、<code>list_datasets</code>、<code>list_spaces</code>、papers API，按 <code>downloads</code>、<code>likes</code>、<code>last_modified</code>、<code>trending_score</code> 排序。</p>
+
+          <h3>5.6 MediaCrawler</h3>
+          <p><a href="https://github.com/NanmiCoder/MediaCrawler">MediaCrawler</a> 不支持 X、Reddit、Facebook；它支持小红书、抖音、快手、B 站、微博、贴吧、知乎。入口不是只有关键词，还包括 <code>search</code>、<code>detail</code>、<code>creator</code> 三类。可借鉴 adapter factory、crawler/login/client/store 分层、采集上限和风险配置显式化；不应作为 P1/P1.5 依赖。</p>
+        </section>
+
+        <section id="recommend">
+          <h2>6. AI World Radar 推荐策略组合</h2>
+          <h3>P1 稳定源组合</h3>
+          <ul>
+            <li>官方 RSS/API：OpenAI、Anthropic、DeepMind、NVIDIA。</li>
+            <li>GitHub Changelog / Releases / repo watchlist。</li>
+            <li>HN Algolia query + Firebase 榜单。</li>
+            <li>Hugging Face 官方 API。</li>
+            <li>中文聚合源只作为线索，发布前补官方源。</li>
+          </ul>
+          <h3>P1.5 热度增强组合</h3>
+          <ul>
+            <li>Reddit 官方 API：subreddit whitelist + query + sort + time_filter。</li>
+            <li>YouTube Data API：channel whitelist + publishedAfter + videos.list statistics。</li>
+            <li>GitHub Trending 每日快照。</li>
+            <li>Hugging Face Trending / Daily Papers。</li>
+            <li>changedetection-style page watch。</li>
+          </ul>
+          <h3>P2 实验组合</h3>
+          <ul>
+            <li>X 官方 API。</li>
+            <li>Facebook Graph API 授权页面。</li>
+            <li>YouTube transcript / comment enrichment。</li>
+            <li>中文社媒小规模授权实验。</li>
+          </ul>
+          <p class="danger">禁止默认使用 cookie 登录、账号池、代理池绕风控、私有 GraphQL 作为生产事实源，禁止抓取私密内容。</p>
+        </section>
+
+        <section id="query">
+          <h2>7. 推荐 Query Profile</h2>
+          <p>关键词不应写死在代码里，应配置成可审计、可复用、可回放的 query profile。</p>
+          <pre><code>id: ai_product_release_global
+stage: P1.5
+purpose: 发现 AI 产品/模型/开发工具发布事件
+entities:
+  companies: [OpenAI, Anthropic, Google DeepMind, NVIDIA, Meta AI]
+  products: [ChatGPT, Claude, Gemini, Cursor, Copilot, MCP, Sora, vLLM, Ollama]
+event_terms:
+  release: [launch, release, announce, rollout, preview]
+  engineering: [API, SDK, agent, coding agent, benchmark, open source]
+  business: [pricing, funding, acquisition]
+negative_terms: [coupon, giveaway, job, hiring, meme]
+platform_overrides:
+  reddit:
+    subreddits: [LocalLLaMA, MachineLearning, OpenAI]
+    sort: [top, new]
+    time_filter: day
+  youtube:
+    channel_whitelist: true
+    published_after_hours: 72
+  x:
+    official_api_only: true
+    exclude_retweets: true
+dedupe_keys: [canonical_url, platform_item_id, normalized_title_date]</code></pre>
+        </section>
+
+        <section id="manifest">
+          <h2>8. 推荐 Adapter Manifest 字段</h2>
+          <pre><code>source_id: reddit_localllama_ai_search
+display_name: Reddit LocalLLaMA AI Search
+platform: reddit
+source_kind: community
+priority_stage: P1.5
+collector_mode: api_search
+entrypoints:
+  - subreddit: LocalLLaMA
+query_profile_id: ai_product_release_global
+auth_profile: reddit_readonly_oauth
+schedule:
+  interval_minutes: 180
+fetch_policy:
+  max_pages: 3
+  timeout_seconds: 20
+  sort: top
+  time_filter: day
+watermark_policy:
+  type: cursor_and_time
+  cursor_field: after
+  time_field: created_utc
+dedupe_keys:
+  - platform_item_id
+  - external_url
+  - normalized_title_date
+metrics:
+  - score
+  - num_comments
+  - upvote_ratio
+risk_flags:
+  login_required: false
+  cookie_required: false
+  unofficial_api: false
+  comments_enabled: shallow
+source_level: community_signal
+quality_gate:
+  require_official_confirmation_for_publish: true</code></pre>
+        </section>
+
+        <section id="pipeline">
+          <h2>9. 推荐事件发现流水线</h2>
+          <pre><code>1. Source Registry 读取启用源
+2. Scheduler 按 source interval 创建 pipeline_run
+3. Adapter fetch list/search/trending
+4. 保存 raw snapshot
+5. Normalizer 生成 Raw Item
+6. Rule Filter 做时间、语言、关键词、排除词、source_level 过滤
+7. Enrichment Worker 对高价值候选补 detail/comment/transcript/repo stats
+8. Dedupe Worker 按 ID、URL、hash、标题时间合并
+9. Agent Candidate Judge 判断是否 AI 事件候选
+10. Event Clusterer 聚合同一事件
+11. Evidence Card Builder 标注来源等级和证据摘要
+12. Ranker 计算重要性
+13. Quality Gate 检查可回源、结构、谨慎表达
+14. Published Event / Brief 入库</code></pre>
+        </section>
+
+        <section id="repos">
+          <h2>10. GitHub 仓库学习链接</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>分组</th><th>仓库</th><th>GitHub 链接</th><th>建议重点看</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>P1 稳定源</td><td>feedparser</td><td><a href="https://github.com/kurtmckee/feedparser">github.com/kurtmckee/feedparser</a></td><td><code>feedparser/api.py</code>, <code>feedparser/http.py</code></td></tr>
+                <tr><td>P1 稳定源</td><td>RSSHub</td><td><a href="https://github.com/DIYgod/RSSHub">github.com/DIYgod/RSSHub</a></td><td><code>lib/registry.ts</code>, <code>lib/routes/*</code></td></tr>
+                <tr><td>P1 稳定源</td><td>Miniflux</td><td><a href="https://github.com/miniflux/v2">github.com/miniflux/v2</a></td><td><code>internal/reader/*</code></td></tr>
+                <tr><td>P1 稳定源</td><td>Huginn / changedetection.io</td><td><a href="https://github.com/huginn/huginn">Huginn</a> / <a href="https://github.com/dgtlmoon/changedetection.io">changedetection.io</a></td><td>schedule、memory、snapshot、diff、health</td></tr>
+                <tr><td>P1 稳定源</td><td>HN / HF / agents-radar</td><td><a href="https://github.com/HackerNews/API">HN API</a> / <a href="https://github.com/huggingface/huggingface_hub">huggingface_hub</a> / <a href="https://github.com/duanyytop/agents-radar">agents-radar</a></td><td>API、sort/filter、digest pipeline</td></tr>
+                <tr><td>P1.5 热度源</td><td>Reddit</td><td><a href="https://github.com/praw-dev/praw">PRAW</a> / <a href="https://github.com/praw-dev/prawcore">prawcore</a> / <a href="https://github.com/praw-dev/asyncpraw">asyncpraw</a> / <a href="https://github.com/Pyprohly/redditwarp">redditwarp</a></td><td>subreddit search、after cursor、rate limit</td></tr>
+                <tr><td>P1.5 热度源</td><td>YouTube</td><td><a href="https://github.com/youtube/api-samples">api-samples</a> / <a href="https://github.com/googleapis/google-api-python-client">google client</a> / <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a> / <a href="https://github.com/LuanRT/YouTube.js">YouTube.js</a></td><td>Data API、continuation、video metadata</td></tr>
+                <tr><td>P1.5 热度源</td><td>YouTube 字幕/评论</td><td><a href="https://github.com/jdepoix/youtube-transcript-api">youtube-transcript-api</a> / <a href="https://github.com/egbertbouman/youtube-comment-downloader">youtube-comment-downloader</a></td><td>videoId enrichment</td></tr>
+                <tr><td>P1.5 热度源</td><td>GitHub Trending</td><td><a href="https://github.com/huchenme/github-trending-api">github-trending-api</a> / <a href="https://github.com/andygrunwald/go-trending">go-trending</a> / <a href="https://github.com/vitalets/github-trending-repos">github-trending-repos</a></td><td>HTML selector、snapshot</td></tr>
+                <tr><td>P2 / 高风险</td><td>X / Twitter</td><td><a href="https://github.com/tweepy/tweepy">tweepy</a> / <a href="https://github.com/DocNow/twarc">twarc</a> / <a href="https://github.com/vladkens/twscrape">twscrape</a> / <a href="https://github.com/JustAnotherArchivist/snscrape">snscrape</a></td><td>官方 API、GraphQL、cursor、账号风险</td></tr>
+                <tr><td>P2 / 高风险</td><td>Facebook</td><td><a href="https://github.com/mobolic/facebook-sdk">facebook-sdk</a> / <a href="https://github.com/sns-sdks/python-facebook">python-facebook</a> / <a href="https://github.com/kevinzg/facebook-scraper">facebook-scraper</a></td><td>Graph API vs mobile HTML</td></tr>
+                <tr><td>P2 / 高风险</td><td>MediaCrawler</td><td><a href="https://github.com/NanmiCoder/MediaCrawler">github.com/NanmiCoder/MediaCrawler</a></td><td><code>search/detail/creator</code>, adapter factory</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="anti">
+          <h2>11. 反模式清单</h2>
+          <ul>
+            <li>让 Agent 拿几个关键词直接全网搜索并决定发布。</li>
+            <li>把 X / Facebook 非官方 scraper 当 P1 数据源。</li>
+            <li>用 cookie、账号池、代理池绕过登录或风控。</li>
+            <li>把 Reddit/HN/YouTube 评论当事实证据。</li>
+            <li>只存摘要，不存 raw snapshot。</li>
+            <li>只按标题去重，不用平台稳定 ID。</li>
+            <li>热度高就直接发布，不补官方源。</li>
+          </ul>
+        </section>
+
+        <section id="handoff">
+          <h2>12. 给开发 Agent 的执行建议</h2>
+          <ol>
+            <li>先实现 <code>source_registry.yaml</code> 和 <code>query_profiles.yaml</code>。</li>
+            <li>先写 RSS/API adapter，不写浏览器爬虫。</li>
+            <li>每个 adapter 必须输出统一 Raw Item。</li>
+            <li>每次 fetch 必须保存 raw snapshot。</li>
+            <li>每个 source 必须有水位字段和 source health。</li>
+            <li>第一个最小闭环建议：OpenAI RSS、HN Algolia 48 小时时间窗、GitHub Changelog、HF trending models。</li>
+            <li>跑通后再接 Reddit/YouTube。</li>
+            <li>X/Facebook/MediaCrawler 类方案只保留设计扩展点，不进入 P1。</li>
+          </ol>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
