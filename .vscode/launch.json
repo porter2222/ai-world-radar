@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Worker: LLMClient config smoke",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}\\apps\\worker\\scripts\\smoke_llm_client.py",
+      "cwd": "${workspaceFolder}\\apps\\worker",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Worker: HN pipeline smoke",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}\\apps\\worker\\scripts\\run_hn_pipeline.py",
+      "args": ["--days", "7", "--limit", "3"],
+      "cwd": "${workspaceFolder}\\apps\\worker",
+      "console": "integratedTerminal"
+    }
+  ]
+}
