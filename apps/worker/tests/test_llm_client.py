@@ -81,3 +81,14 @@ def test_llm_client_accepts_prebuilt_messages():
 
     call = fake_client.chat.completions.calls[0]
     assert call["messages"] == messages
+
+
+def test_worker_package_exports_llm_client():
+    """验证本地手动脚本可使用 `from worker import LLMClient`。
+
+    输入：worker 包级导入。
+    输出：导出的 LLMClient 与真实类一致。
+    """
+    from worker import LLMClient as ExportedLLMClient
+
+    assert ExportedLLMClient is LLMClient
