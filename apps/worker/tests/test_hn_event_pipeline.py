@@ -10,6 +10,11 @@ from worker.pipelines.hn_event_pipeline import HNEventPipeline
 
 
 def make_story(hn_id: str, score: int) -> HNStory:
+    """构造 pipeline 测试用 HNStory。
+
+    输入：HN ID 和基础 points。
+    输出：可进入 pipeline 的 HNStory。
+    """
     return HNStory(
         hn_id=hn_id,
         title=f"OpenAI story {hn_id}",
@@ -26,6 +31,11 @@ def make_story(hn_id: str, score: int) -> HNStory:
 
 
 def fake_page_fetcher(url: str | None, hn_id: str, runtime_dir: Path) -> PageFetchResult:
+    """构造不访问网络的页面抓取函数。
+
+    输入：URL、HN ID、runtime 目录。
+    输出：固定成功状态的 PageFetchResult。
+    """
     return PageFetchResult(
         url=url or "",
         page_title=f"Cached title {hn_id}",
@@ -38,10 +48,20 @@ def fake_page_fetcher(url: str | None, hn_id: str, runtime_dir: Path) -> PageFet
 
 
 def count(session: Session, model: type) -> int:
+    """统计测试数据库中的记录数。
+
+    输入：Session 和 ORM model。
+    输出：该表当前记录数。
+    """
     return session.scalar(select(func.count()).select_from(model)) or 0
 
 
 def test_hn_event_pipeline_writes_core_records_and_is_idempotent(tmp_path):
+    """验证 pipeline 写入核心记录并保持 PublishedEvent 幂等。
+
+    输入：内存 SQLite、固定 HNStory、fake page fetcher。
+    输出：断言 EvidenceCard/EventCluster/PublishedEvent/Brief 等记录数符合预期。
+    """
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     stories = [make_story("1001", 50), make_story("1002", 80)]

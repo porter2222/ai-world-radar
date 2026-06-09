@@ -5,9 +5,20 @@ from worker.collectors.page_cache import PageFetchResult
 
 
 class EvidenceAgentStub:
+    """证据卡生成 stub。
+
+    输入：HN story 和原文抓取结果。
+    输出：结构化 EvidenceCard 字典，后续 Agent 代理可替换为真实 LLM 逻辑。
+    """
+
     prompt_version = "stub-v1"
 
     def build(self, story: HNStory, page: PageFetchResult) -> dict:
+        """生成单条 EvidenceCard 字典。
+
+        输入：`HNStory` 和 `PageFetchResult`。
+        输出：包含来源字段、AI 理解占位字段、候选分和去重线索的 dict。
+        """
         title = page.page_title or story.title
         candidate_score = min(1.0, story.hn_heat_score / 100)
         subjects = _extract_subjects(title)
@@ -49,6 +60,11 @@ class EvidenceAgentStub:
 
 
 def _extract_subjects(title: str) -> list[str]:
+    """从标题里抽取粗粒度主体。
+
+    输入：标题字符串。
+    输出：命中的已知 AI 主体列表；没有命中时返回 `["AI"]`。
+    """
     known_subjects = ["OpenAI", "ChatGPT", "Anthropic", "Claude", "Gemini", "NVIDIA", "Hugging Face", "MCP"]
     subjects = [subject for subject in known_subjects if subject.lower() in title.lower()]
     return subjects or ["AI"]

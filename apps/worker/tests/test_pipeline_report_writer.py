@@ -4,6 +4,11 @@ from worker.reports.pipeline_report_writer import PipelineReport, PipelineReport
 
 
 def test_pipeline_report_writer_generates_txt_report(tmp_path):
+    """验证 pipeline 报告写入 txt。
+
+    输入：fake PipelineReport 和临时目录。
+    输出：断言生成 txt 文件且包含关键统计和失败信息。
+    """
     report = PipelineReport(
         pipeline_run_id="run-1",
         status="success",

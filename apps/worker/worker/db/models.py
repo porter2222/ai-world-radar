@@ -8,19 +8,42 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 def new_id(prefix: str) -> str:
+    """生成带业务前缀的唯一 ID。
+
+    输入：ID 前缀，例如 `run`、`ev`、`cluster`。
+    输出：形如 `prefix_uuidhex` 的字符串。
+    """
     return f"{prefix}_{uuid.uuid4().hex}"
 
 
 class Base(DeclarativeBase):
+    """SQLAlchemy declarative base。
+
+    输入：无。
+    输出：所有 ORM model 共享的 metadata 容器。
+    """
+
     pass
 
 
 class TimestampMixin:
+    """通用时间戳 mixin。
+
+    输入：无。
+    输出：为继承模型提供 `created_at` 和 `updated_at` 字段。
+    """
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
 class Source(Base, TimestampMixin):
+    """信息源配置表。
+
+    输入：来源类型、入口 URL、权重和状态。
+    输出：供 pipeline 判断启用来源和写入 EvidenceCard 关联。
+    """
+
     __tablename__ = "sources"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -43,6 +66,12 @@ class Source(Base, TimestampMixin):
 
 
 class PipelineRun(Base):
+    """pipeline 运行记录表。
+
+    输入：每次运行的参数、状态、计数和错误摘要。
+    输出：用于审计本地命令运行结果。
+    """
+
     __tablename__ = "pipeline_runs"
 
     pipeline_run_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("run"))
@@ -65,6 +94,12 @@ class PipelineRun(Base):
 
 
 class EvidenceCard(Base, TimestampMixin):
+    """证据卡表。
+
+    输入：HN 原始信号、原文缓存指针和 Agent stub 理解结果。
+    输出：供事件聚合、排序和写作使用的内部证据单元。
+    """
+
     __tablename__ = "evidence_cards"
     __table_args__ = (UniqueConstraint("source_id", "source_item_id", "prompt_version", name="uq_evidence_source_item_prompt"),)
 
@@ -112,6 +147,12 @@ class EvidenceCard(Base, TimestampMixin):
 
 
 class EventCluster(Base, TimestampMixin):
+    """内部事件聚合表。
+
+    输入：EvidenceCard 聚合后的主体、触发点、分数和发布决策。
+    输出：供内容生成和 PublishedEvent 发布使用。
+    """
+
     __tablename__ = "event_clusters"
     __table_args__ = (UniqueConstraint("event_key", name="uq_event_clusters_event_key"),)
 
@@ -146,6 +187,12 @@ class EventCluster(Base, TimestampMixin):
 
 
 class EventClusterCard(Base):
+    """事件与证据卡关联表。
+
+    输入：EventCluster ID、EvidenceCard ID 和合并原因。
+    输出：记录一个事件由哪些证据支撑。
+    """
+
     __tablename__ = "event_cluster_cards"
     __table_args__ = (UniqueConstraint("event_cluster_id", "evidence_card_id", name="uq_cluster_evidence_card"),)
 
@@ -162,6 +209,12 @@ class EventClusterCard(Base):
 
 
 class ContentArtifact(Base, TimestampMixin):
+    """内容产物表。
+
+    输入：事件卡、详情页或 brief item 的生成内容。
+    输出：供发布事件和简报引用的内容版本。
+    """
+
     __tablename__ = "content_artifacts"
 
     content_artifact_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("artifact"))
@@ -185,6 +238,12 @@ class ContentArtifact(Base, TimestampMixin):
 
 
 class QualityGateResult(Base):
+    """质量门禁结果表。
+
+    输入：内容产物的检查结果、失败原因和建议动作。
+    输出：决定内容是否进入 PublishedEvent。
+    """
+
     __tablename__ = "quality_gate_results"
 
     quality_gate_result_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("qg"))
@@ -203,6 +262,12 @@ class QualityGateResult(Base):
 
 
 class PublishedEvent(Base, TimestampMixin):
+    """公开发布事件表。
+
+    输入：通过质量门禁的 card/detail 内容产物。
+    输出：后续 Next.js 前台可查询展示的事件。
+    """
+
     __tablename__ = "published_events"
     __table_args__ = (
         UniqueConstraint("event_cluster_id", name="uq_published_event_cluster"),
@@ -231,6 +296,12 @@ class PublishedEvent(Base, TimestampMixin):
 
 
 class Brief(Base, TimestampMixin):
+    """每日简报主表。
+
+    输入：简报标题、概览、版本和运行批次。
+    输出：简报条目的父记录。
+    """
+
     __tablename__ = "briefs"
     __table_args__ = (UniqueConstraint("brief_date", "version", name="uq_briefs_date_version"),)
 
@@ -246,6 +317,12 @@ class Brief(Base, TimestampMixin):
 
 
 class BriefItem(Base, TimestampMixin):
+    """每日简报条目表。
+
+    输入：简报 ID、已发布事件 ID 和 brief 内容产物 ID。
+    输出：保证每条简报都能关联回 PublishedEvent。
+    """
+
     __tablename__ = "brief_items"
     __table_args__ = (UniqueConstraint("brief_id", "published_event_id", name="uq_brief_published_event"),)
 
@@ -259,6 +336,12 @@ class BriefItem(Base, TimestampMixin):
 
 
 class AdminAction(Base):
+    """管理员操作审计表。
+
+    输入：操作人、动作、目标对象和前后快照。
+    输出：供后续管理页追踪人工操作。
+    """
+
     __tablename__ = "admin_actions"
 
     admin_action_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("admin"))

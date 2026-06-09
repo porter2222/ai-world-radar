@@ -11,6 +11,12 @@ from bs4 import BeautifulSoup
 
 @dataclass(frozen=True)
 class ReadablePage:
+    """网页正文抽取结果。
+
+    输入：HTML 解析后的标题、正文和短摘。
+    输出：供缓存和 EvidenceCard 写入使用的轻量结构。
+    """
+
     title: str
     text: str
     excerpt: str
@@ -18,12 +24,24 @@ class ReadablePage:
 
 @dataclass(frozen=True)
 class CachedPage:
+    """本地缓存写入结果。
+
+    输入：缓存路径和正文 hash。
+    输出：供 EvidenceCard 保存缓存指针。
+    """
+
     cache_path: Path
     text_hash: str
 
 
 @dataclass(frozen=True)
 class PageFetchResult:
+    """原文抓取结果。
+
+    输入：URL 抓取、正文抽取和缓存写入后的状态。
+    输出：供 EvidenceAgentStub 构造证据卡，失败时也保留状态和原因。
+    """
+
     url: str
     page_title: str | None
     page_excerpt: str | None
@@ -35,6 +53,11 @@ class PageFetchResult:
 
 
 def extract_readable_text(html: str) -> ReadablePage:
+    """从 HTML 中抽取可读文本。
+
+    输入：原始 HTML 字符串。
+    输出：`ReadablePage`，包含页面标题、去除脚本样式后的正文和短摘。
+    """
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
@@ -47,17 +70,32 @@ def extract_readable_text(html: str) -> ReadablePage:
 
 
 def build_page_cache_path(runtime_dir: Path, hn_id: str, fetched_date: str | None = None) -> Path:
+    """生成原文缓存路径。
+
+    输入：runtime 根目录、HN item id、可选日期字符串。
+    输出：形如 `runtime/source-pages/YYYY-MM-DD/hn-xxx-page.txt` 的 Path。
+    """
     fetched_date = fetched_date or datetime.now(UTC).date().isoformat()
     return runtime_dir / "source-pages" / fetched_date / f"hn-{hn_id}-page.txt"
 
 
 def write_cached_page(cache_path: Path, text: str) -> CachedPage:
+    """把可读正文写入本地缓存。
+
+    输入：目标缓存路径和正文文本。
+    输出：`CachedPage`，包含缓存路径和 sha256 hash。
+    """
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(text, encoding="utf-8")
     return CachedPage(cache_path=cache_path, text_hash=hashlib.sha256(text.encode("utf-8")).hexdigest())
 
 
 def fetch_and_cache_url(url: str | None, hn_id: str, runtime_dir: Path, timeout: float = 15.0) -> PageFetchResult:
+    """抓取 HN story 的 original_url 并缓存正文。
+
+    输入：原文 URL、HN item id、runtime 根目录、超时时间。
+    输出：`PageFetchResult`；抓取失败不会抛出到 pipeline，而是返回 failed 状态。
+    """
     fetched_at = datetime.now(UTC).isoformat()
     if not url:
         return PageFetchResult(

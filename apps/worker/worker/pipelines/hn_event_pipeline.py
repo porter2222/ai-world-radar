@@ -36,6 +36,12 @@ PageFetcher = Callable[[str | None, str, Path], PageFetchResult]
 
 @dataclass(frozen=True)
 class PipelineResult:
+    """pipeline 运行结果。
+
+    输入：pipeline 运行后的统计、报告路径和错误列表。
+    输出：脚本入口和测试读取的结果对象。
+    """
+
     pipeline_run_id: str
     status: str
     fetched_count: int
@@ -48,12 +54,23 @@ class PipelineResult:
 
 
 class HNEventPipeline:
+    """HN AI 事件生产闭环。
+
+    输入：数据库 Session、runtime 目录和可替换的页面抓取函数。
+    输出：从 HN story 生成 EvidenceCard、EventCluster、PublishedEvent、Brief 和运行报告。
+    """
+
     def __init__(
         self,
         session: Session,
         runtime_dir: Path,
         page_fetcher: PageFetcher = fetch_and_cache_url,
     ) -> None:
+        """初始化 pipeline 依赖。
+
+        输入：数据库 session、runtime_dir、可选 page_fetcher。
+        输出：无返回值；内部创建确定性 Agent stub 实例。
+        """
         self.session = session
         self.runtime_dir = runtime_dir
         self.page_fetcher = page_fetcher
@@ -71,6 +88,11 @@ class HNEventPipeline:
         force: bool = False,
         stories: list[HNStory] | None = None,
     ) -> PipelineResult:
+        """运行一次 HN 事件生产 pipeline。
+
+        输入：时间窗口 days、最大 story 数 limit、force 标记、可选预置 stories。
+        输出：`PipelineResult`，包含写库统计、状态、报告路径和错误列表。
+        """
         pipeline_run = PipelineRun(
             pipeline_run_id=new_id("run"),
             run_type="manual",
@@ -133,6 +155,11 @@ class HNEventPipeline:
         return PipelineResult(**{**result.__dict__, "report_path": report_path})
 
     def _ensure_hn_source(self) -> Source:
+        """确保 `hacker_news` 来源存在。
+
+        输入：无，使用当前数据库 Session。
+        输出：已存在或新建的 `Source` ORM 对象。
+        """
         source = self.session.scalar(select(Source).where(Source.source_id == "hacker_news"))
         if source:
             return source
@@ -160,6 +187,11 @@ class HNEventPipeline:
         pipeline_run_id: str,
         force: bool,
     ) -> tuple[EvidenceCard, dict]:
+        """获取或创建 EvidenceCard。
+
+        输入：HN story、当前 pipeline_run_id、force 是否重生成。
+        输出：EvidenceCard ORM 对象和对应的结构化 evidence dict。
+        """
         existing = self.session.scalar(
             select(EvidenceCard).where(
                 EvidenceCard.source_id == "hacker_news",
@@ -185,6 +217,11 @@ class HNEventPipeline:
         return evidence, payload
 
     def _apply_evidence_payload(self, evidence: EvidenceCard, payload: dict, pipeline_run_id: str) -> None:
+        """把 evidence dict 写入 EvidenceCard ORM 对象。
+
+        输入：目标 EvidenceCard、Agent stub 输出 payload、当前 pipeline_run_id。
+        输出：无返回值；直接修改 ORM 对象字段。
+        """
         evidence.pipeline_run_id = pipeline_run_id
         evidence.source_id = payload["source_id"]
         evidence.source_item_id = payload["source_item_id"]
@@ -219,6 +256,11 @@ class HNEventPipeline:
         evidence.processing_status = payload["processing_status"]
 
     def _get_or_create_cluster(self, evidence_model: EvidenceCard, evidence_payload: dict, pipeline_run_id: str) -> dict:
+        """获取或创建 EventCluster，并维护证据关联。
+
+        输入：EvidenceCard ORM 对象、evidence dict、当前 pipeline_run_id。
+        输出：排序后的 cluster dict，额外包含 `event_cluster_id`。
+        """
         cluster_payload = self.cluster_agent.cluster(evidence_payload)
         ranked = self.ranking_agent.rank(cluster_payload)
         cluster = self.session.scalar(select(EventCluster).where(EventCluster.event_key == ranked["event_key"]))
@@ -281,6 +323,11 @@ class HNEventPipeline:
         pipeline_run_id: str,
         quality_gate_failures: list[str],
     ) -> bool:
+        """在质量门禁通过时发布事件。
+
+        输入：排序后的 cluster、evidence dict、pipeline_run_id、质量失败收集列表。
+        输出：布尔值；本次是否新建 PublishedEvent。
+        """
         existing = self.session.scalar(
             select(PublishedEvent).where(PublishedEvent.event_cluster_id == ranked_cluster["event_cluster_id"])
         )
@@ -365,6 +412,11 @@ class HNEventPipeline:
         return True
 
     def _create_brief(self, pipeline_run_id: str) -> int:
+        """从已发布事件生成本轮简报。
+
+        输入：当前 pipeline_run_id。
+        输出：本轮创建的 BriefItem 数量；没有已发布事件时返回 0。
+        """
         events = list(
             self.session.scalars(
                 select(PublishedEvent)
@@ -436,6 +488,11 @@ class HNEventPipeline:
         return len(brief_payload["items"])
 
     def _next_brief_version(self) -> int:
+        """计算下一份简报版本号。
+
+        输入：无，读取当前数据库中的 Brief version。
+        输出：当前最大版本 + 1。
+        """
         existing_versions = self.session.scalars(select(Brief.version)).all()
         return (max(existing_versions) if existing_versions else 0) + 1
 
@@ -446,6 +503,11 @@ class HNEventPipeline:
         limit: int,
         quality_gate_failures: list[str],
     ) -> Path:
+        """写入 pipeline txt 报告。
+
+        输入：PipelineResult、运行参数和质量门禁失败列表。
+        输出：生成的报告文件路径。
+        """
         report = PipelineReport(
             pipeline_run_id=result.pipeline_run_id,
             status=result.status,
@@ -462,10 +524,20 @@ class HNEventPipeline:
         return PipelineReportWriter(self.runtime_dir / "pipeline-reports").write(report)
 
     def _count(self, model: type) -> int:
+        """统计某个 ORM 表的记录数。
+
+        输入：SQLAlchemy ORM model 类。
+        输出：当前 Session 可见的记录数量。
+        """
         return len(list(self.session.scalars(select(model))))
 
 
 def evidence_model_to_payload(evidence: EvidenceCard) -> dict:
+    """把已存在的 EvidenceCard 还原为 Agent payload。
+
+    输入：EvidenceCard ORM 对象。
+    输出：后续 cluster/ranking/detail stub 可继续使用的 dict。
+    """
     return {
         "source_id": evidence.source_id,
         "source_item_id": evidence.source_item_id,

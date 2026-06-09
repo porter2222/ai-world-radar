@@ -2,7 +2,18 @@ from __future__ import annotations
 
 
 class EventClusterAgentStub:
+    """事件聚合 stub。
+
+    输入：单张 EvidenceCard 字典。
+    输出：一证据卡一事件的 EventCluster 字典，保证第一轮 pipeline 可跑通。
+    """
+
     def cluster(self, evidence: dict) -> dict:
+        """生成 EventCluster 字典。
+
+        输入：EvidenceCard 字典。
+        输出：包含 event_key、主体、事件类型和初始分数的 dict。
+        """
         hn_id = evidence["source_item_id"]
         heat_score = min(1.0, (evidence["points"] + evidence["num_comments"] * 2) / 100)
         return {

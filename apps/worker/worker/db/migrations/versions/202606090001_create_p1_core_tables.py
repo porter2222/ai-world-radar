@@ -16,6 +16,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """创建后端 P1 核心表。
+
+    输入：当前数据库连接。
+    输出：sources、pipeline_runs、evidence_cards 等 11 张核心表。
+    """
     op.create_table(
         "sources",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
@@ -260,6 +265,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """回滚后端 P1 核心表。
+
+    输入：当前数据库连接。
+    输出：按外键依赖倒序删除本次 migration 创建的表。
+    """
     for table_name in [
         "admin_actions",
         "brief_items",

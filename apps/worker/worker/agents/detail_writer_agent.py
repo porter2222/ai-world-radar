@@ -2,7 +2,18 @@ from __future__ import annotations
 
 
 class DetailWriterAgentStub:
+    """详情写作 stub。
+
+    输入：排序后的 cluster 和 evidence。
+    输出：临时 PublishedEvent 详情内容，供 QualityGate 和 PublishService 验证链路。
+    """
+
     def write(self, ranked_cluster: dict, evidence: dict) -> dict:
+        """生成事件详情内容。
+
+        输入：ranked_cluster 字典和 evidence 字典。
+        输出：包含 title、summary、body、source_refs 的详情内容 dict。
+        """
         event_key = ranked_cluster["event_key"]
         title = ranked_cluster["title_hint"]
         excerpt = evidence.get("page_excerpt") or evidence.get("story_text") or evidence["claim_summary"]
