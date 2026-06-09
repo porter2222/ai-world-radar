@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from sqlalchemy import create_engine, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from worker.collectors.hn_algolia import HNStory
 from worker.collectors.page_cache import PageFetchResult
@@ -81,3 +81,30 @@ def test_hn_event_pipeline_writes_core_records_and_is_idempotent(tmp_path):
         assert count(session, PublishedEvent) == 2
         assert count(session, Brief) == 2
         assert count(session, BriefItem) == 4
+
+
+def test_hn_event_pipeline_first_run_creates_brief_with_autoflush_disabled(tmp_path):
+    """验证生产式 autoflush=False 首跑也能生成简报。
+
+    输入：autoflush=False 的 Session、单条 HNStory、fake page fetcher。
+    输出：断言首跑 PublishedEvent、Brief、BriefItem 均入库，且 PipelineRun 计数准确。
+    """
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    stories = [make_story("first-run-1001", 80)]
+
+    with session_factory() as session:
+        pipeline = HNEventPipeline(session=session, runtime_dir=tmp_path, page_fetcher=fake_page_fetcher)
+
+        result = pipeline.run(days=7, limit=1, force=True, stories=stories)
+        pipeline_run = session.get(PipelineRun, result.pipeline_run_id)
+
+        assert result.status == "success"
+        assert count(session, PublishedEvent) == 1
+        assert count(session, Brief) == 1
+        assert count(session, BriefItem) == 1
+        assert result.published_event_count == 1
+        assert result.brief_item_count == 1
+        assert pipeline_run is not None
+        assert pipeline_run.published_event_count == count(session, PublishedEvent)

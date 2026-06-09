@@ -121,7 +121,11 @@ class HNEventPipeline:
                 if created:
                     published_this_run += 1
 
+            # 生产 Session 关闭 autoflush；创建 Brief 前必须显式 flush，确保本轮 PublishedEvent 查询可见。
+            self.session.flush()
             brief_item_count = self._create_brief(pipeline_run.pipeline_run_id)
+            # BriefItem 在 _create_brief 末尾只 add 不查询；写 PipelineRun 计数前再次 flush，保证统计和最终入库一致。
+            self.session.flush()
             pipeline_run.status = "success"
             pipeline_run.finished_at = datetime.now(UTC)
             pipeline_run.source_count = 1
