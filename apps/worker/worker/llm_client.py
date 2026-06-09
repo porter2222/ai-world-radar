@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
+
+if __package__ in {None, ""}:
+    worker_root = Path(__file__).resolve().parents[1]
+    if str(worker_root) not in sys.path:
+        sys.path.insert(0, str(worker_root))
 
 from worker.config import load_settings
 
@@ -138,3 +145,8 @@ def _normalize_messages(message: str | list[ChatMessage], system_prompt: str) ->
             {"role": "user", "content": message},
         ]
     return message
+
+
+if __name__ == "__main__":
+    print("LLMClient module loaded.")
+    print("For local config smoke, run: python scripts/smoke_llm_client.py")
