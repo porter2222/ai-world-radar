@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-world-radar-worker"
+version = "0.1.0"
+description = "AI World Radar Python worker"
+requires-python = ">=3.13"
+dependencies = [
+  "alembic==1.16.1",
+  "beautifulsoup4==4.13.4",
+  "httpx==0.28.1",
+  "openai>=1.0.0,<2.0.0",
+  "psycopg[binary]==3.2.9",
+  "python-dotenv==1.1.0",
+  "SQLAlchemy==2.0.41",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["worker*"]
