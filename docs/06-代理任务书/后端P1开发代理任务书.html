@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar 后端 P1 开发代理任务书</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .content {
+      min-width: 0;
+      padding: 48px min(7vw, 88px) 80px;
+    }
+    .doc { max-width: 980px; margin: 0 auto; }
+    .hero {
+      margin-bottom: 42px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 18px;
+      font-size: clamp(34px, 5vw, 58px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    .summary {
+      max-width: 780px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 4px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #3c4043;
+      font-size: 13px;
+    }
+    section {
+      margin: 0 0 38px;
+      padding: 30px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 24px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 0 0 14px; padding-left: 22px; }
+    li { margin: 4px 0; }
+    blockquote {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      background: var(--accent-soft);
+      color: #133f3a;
+      font-weight: 650;
+    }
+    pre {
+      overflow-x: auto;
+      margin: 16px 0;
+      padding: 16px;
+      border-radius: 8px;
+      background: var(--code);
+      color: #202124;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    code {
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    pre code { padding: 0; background: transparent; }
+    table {
+      width: 100%;
+      margin: 16px 0;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f2f4ef; }
+    .callout {
+      padding: 16px 18px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #133f3a;
+      font-weight: 650;
+    }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .content { padding: 32px 18px 56px; }
+      section { padding: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">AI World Radar</p>
+        <p class="brand-subtitle">后端 P1 开发代理任务书</p>
+      </div>
+      <p class="nav-title">导航</p>
+      <ol class="nav">
+        <li><a href="#purpose">任务目的</a></li>
+        <li><a href="#role">角色定位</a></li>
+        <li><a href="#reading">必读文档</a></li>
+        <li><a href="#goal">本次目标</a></li>
+        <li><a href="#scope">职责边界</a></li>
+        <li><a href="#paths">目录权限</a></li>
+        <li><a href="#forbidden">禁止事项</a></li>
+        <li><a href="#delivery">交付范围</a></li>
+        <li><a href="#stubs">Agent Stub</a></li>
+        <li><a href="#tests">测试要求</a></li>
+        <li><a href="#network">网络测试</a></li>
+        <li><a href="#evidence">测试证据</a></li>
+        <li><a href="#record">测试记录</a></li>
+        <li><a href="#phases">阶段步骤</a></li>
+        <li><a href="#checkpoint">检查点报告</a></li>
+        <li><a href="#acceptance">最终验收</a></li>
+        <li><a href="#commit">提交策略</a></li>
+        <li><a href="#blocked">阻塞处理</a></li>
+        <li><a href="#prompt">启动提示词</a></li>
+      </ol>
+    </aside>
+
+    <main class="content">
+      <article class="doc">
+        <header class="hero">
+          <p class="eyebrow">Backend Agent Brief</p>
+          <h1>后端 P1 开发代理任务书</h1>
+          <p class="summary">本文档是给后端开发代理使用的可执行任务书，定义后端代理在第一轮工程骨架开发中的职责、边界、阶段、测试证据和提交规则。</p>
+          <div class="meta">
+            <span class="pill">版本：v0.1</span>
+            <span class="pill">更新时间：2026-06-09</span>
+            <span class="pill">适用对象：后端开发代理</span>
+          </div>
+        </header>
+
+        <section id="purpose">
+          <h2>1. 任务书目的</h2>
+          <p>后端开发代理拿到本文档后，应能在不重新讨论产品方向的前提下，完成后端 P1 第一轮工程骨架开发，并清楚知道需要先读哪些文档、允许修改哪些目录、禁止做哪些事情、每个阶段交付什么、每个阶段如何验证、测试证据如何展示给用户，以及最终如何提交和交接。</p>
+        </section>
+
+        <section id="role">
+          <h2>2. 后端代理角色定位</h2>
+          <blockquote>负责 AI World Radar 后端 P1 工程底座和 HN 事件生产闭环的工程实现者。</blockquote>
+          <p>后端代理负责把管道搭出来，但不负责设计最终 Agent 智能逻辑。</p>
+          <p>后端代理负责 apps/worker 工程结构、Python 依赖、PostgreSQL / SQLAlchemy / Alembic、HN Algolia collector、去重、热度预排序、original_url 原文抓取与本地缓存、PipelineRun、Agent stub、pipeline 串联、txt 运行报告、本地运行入口和第一轮测试。</p>
+          <p>后端代理不负责真实 Agent prompt 调优、最终智能逻辑、前端页面、FastAPI、部署、产品定位修改和真实性核验系统。</p>
+        </section>
+
+        <section id="reading">
+          <h2>3. 必读文档</h2>
+          <ol>
+            <li><code>docs/README.md</code></li>
+            <li><code>docs/00-项目总览/项目状态.md</code></li>
+            <li><code>docs/00-项目总览/文档索引.md</code></li>
+            <li><code>docs/04-系统设计/Agent系统设计.md</code></li>
+            <li><code>docs/04-系统设计/技术架构与数据模型设计.md</code></li>
+            <li><code>docs/05-实现计划/后端P1实现计划与功能切片拆解.md</code></li>
+            <li><code>docs/03-调研资料/GitHub爬虫精准采集策略补充调研.md</code></li>
+            <li><code>docs/03-调研资料/AI事件重要性与热议度采集策略报告.md</code></li>
+          </ol>
+          <p>读完后，后端代理应先输出当前理解摘要，再开始改代码。</p>
+        </section>
+
+        <section id="goal">
+          <h2>4. 本次目标</h2>
+          <pre><code>HN Algolia API
+-> HN story 采集
+-> original_url 原文缓存
+-> Agent stubs
+-> Pipeline 串联
+-> PostgreSQL 写入
+-> PipelineRun / txt 运行报告</code></pre>
+          <p>第一轮可以使用确定性 Agent stub，不调用真实 LLM。</p>
+        </section>
+
+        <section id="scope">
+          <h2>5. 职责边界</h2>
+          <p>后端代理只做工程底座和管道，不做真实 Agent 智能逻辑。后端代理应提供 Agent 节点接口和 stub，使 pipeline 能跑通。后续 Agent 代理会把 stub 替换为真实 prompt、schema 和 LLM 调用。</p>
+        </section>
+
+        <section id="paths">
+          <h2>6. 允许修改目录</h2>
+          <pre><code>apps/worker/**
+runtime/.gitkeep
+runtime/README.md
+.gitignore
+.env.example
+pyproject.toml
+requirements.txt
+docs/07-验收与运行/**</code></pre>
+          <p>第一轮优先简单可运行，可在 <code>pyproject.toml</code> 和 <code>requirements.txt</code> 之间选择一种依赖管理方式。</p>
+        </section>
+
+        <section id="forbidden">
+          <h2>7. 禁止事项</h2>
+          <pre><code>apps/web/**
+docs/01-产品定义/**
+docs/02-信息源策略/**
+docs/04-系统设计/**
+docs/05-实现计划/**</code></pre>
+          <ul>
+            <li>不得写入真实 API Key，不得提交 <code>.env</code>。</li>
+            <li>不得提交 runtime 真实运行产物。</li>
+            <li>不得引入 FastAPI，不得做前端页面，不得改产品定位。</li>
+            <li>不得做 X / Reddit / YouTube / Facebook 采集。</li>
+            <li>不得做自由上网型 Agent。</li>
+          </ul>
+        </section>
+
+        <section id="delivery">
+          <h2>8. 第一轮交付范围</h2>
+          <pre><code>apps/worker 目录建立
+Python 依赖文件建立
+.env.example 建立
+SQLAlchemy / Alembic 初始化
+P1 核心表 migration 建立
+HN Algolia collector 可运行
+original_url 正文抓取与 runtime/source-pages 缓存可运行
+pipeline_reports txt 报告可生成
+scripts/run_hn_pipeline.py 能跑
+Agent 节点通过确定性 stub 占位
+pytest 测试通过</code></pre>
+          <p>第一轮不要求真实 LLM Agent 完成。</p>
+        </section>
+
+        <section id="stubs">
+          <h2>9. Agent Stub 口径</h2>
+          <pre><code>EvidenceAgentStub
+-> 根据 HN title / page_title 返回简单 EvidenceCard JSON
+
+EventClusterAgentStub
+-> 默认 1 个 EvidenceCard 生成 1 个 EventCluster
+
+RankingAgentStub
+-> 使用 hn_heat_score 生成简单 ranking_score
+
+DetailWriterAgentStub
+-> 用 title + excerpt 拼一个临时详情
+
+BriefWriterAgentStub
+-> 从 top PublishedEvent 拼一个临时 brief
+
+QualityGateAgentStub
+-> 检查字段齐全就 publish</code></pre>
+          <p>stub 必须输出结构化数据，方便后续 Agent 代理替换。</p>
+        </section>
+
+        <section id="tests">
+          <h2>10. 测试要求</h2>
+          <p>后端代理必须写测试。测试不是可选项。</p>
+          <pre><code>HN Algolia 返回结果解析测试
+HN story 去重测试
+hn_heat_score 计算测试
+original_url 缓存路径生成测试
+pipeline report txt 生成测试
+Agent stub 输出结构测试</code></pre>
+          <pre><code>apps/worker/
+  tests/
+    fixtures/
+      hn_algolia_response.json
+      sample_page.html
+
+    test_hn_algolia_collector.py
+    test_hn_scoring.py
+    test_dedupe.py
+    test_page_cache.py
+    test_pipeline_report_writer.py
+    test_agent_stubs.py</code></pre>
+          <pre><code>cd apps/worker
+pytest</code></pre>
+        </section>
+
+        <section id="network">
+          <h2>11. 真实网络测试策略</h2>
+          <p>真实网络测试不禁止，但必须和稳定单元测试分开。</p>
+          <ul>
+            <li>普通单元测试优先使用 fixture / mock，保证稳定。</li>
+            <li>真实网络测试必须使用 <code>pytest</code> marker 标记为 <code>network</code>。</li>
+            <li>真实网络测试可以请求 HN Algolia API。</li>
+            <li>真实网页抓取测试可以少量存在，但必须控制数量和超时。</li>
+            <li>真实 LLM 调用不属于后端代理第一轮测试范围。</li>
+          </ul>
+          <pre><code>pytest
+pytest -m network</code></pre>
+        </section>
+
+        <section id="evidence">
+          <h2>12. 测试证据与可见性要求</h2>
+          <p>后端代理不能只说“测试通过了”。后端代理必须让用户看到测了什么、用什么测试的、测试数据是什么、执行了什么命令、测试结果是什么、哪些没有测试、为什么没有测试。</p>
+          <table>
+            <thead>
+              <tr><th>测试项</th><th>测试文件/命令</th><th>测试数据</th><th>验证什么</th><th>结果</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>HN 解析测试</td><td><code>pytest tests/test_hn_algolia_collector.py</code></td><td><code>fixtures/hn_algolia_response.json</code></td><td>能否解析 HN 返回字段</td><td>通过</td></tr>
+              <tr><td>热度分测试</td><td><code>pytest tests/test_hn_scoring.py</code></td><td>points/comments 样例</td><td>分数是否正确</td><td>通过</td></tr>
+              <tr><td>去重测试</td><td><code>pytest tests/test_dedupe.py</code></td><td>重复 objectID/url 样例</td><td>是否去重</td><td>通过</td></tr>
+              <tr><td>原文缓存测试</td><td><code>pytest tests/test_page_cache.py</code></td><td><code>fixtures/sample_page.html</code></td><td>是否生成缓存路径和 hash</td><td>通过</td></tr>
+              <tr><td>运行报告测试</td><td><code>pytest tests/test_pipeline_report_writer.py</code></td><td>fake pipeline result</td><td>是否生成 txt 报告内容</td><td>通过</td></tr>
+            </tbody>
+          </table>
+          <p>最终报告必须包含测试命令、测试数量、通过数量、失败数量、跳过数量、失败原因和未覆盖范围。</p>
+        </section>
+
+        <section id="record">
+          <h2>13. 后端 P1 测试记录文档要求</h2>
+          <pre><code>docs/07-验收与运行/后端P1测试记录.md</code></pre>
+          <p>后端代理最终应创建或更新该文档，记录测试时间、测试环境、测试命令、测试项表格、network 测试是否运行、本地 pipeline 命令是否运行、生成的 runtime 报告路径、未覆盖范围和后续验收建议。</p>
+          <p>不要把真实 runtime 运行产物写入 docs，只记录路径和摘要。</p>
+        </section>
+
+        <section id="phases">
+          <h2>14. 阶段化开发步骤</h2>
+          <h3>阶段 1：工程脚手架</h3>
+          <p>建立 <code>apps/worker</code>、依赖文件、<code>.env.example</code>、基础配置读取、runtime 目录说明或 <code>.gitkeep</code>。</p>
+          <h3>阶段 2：数据库与迁移</h3>
+          <p>实现 SQLAlchemy session、P1 核心 models、Alembic 初始化和第一版 migration。</p>
+          <h3>阶段 3：HN collector</h3>
+          <p>实现 HN Algolia 请求封装、query profile、7 天时间窗、limit 100、scoring 和 dedupe。</p>
+          <h3>阶段 4：原文抓取与缓存</h3>
+          <p>实现 original_url 可读正文抓取、<code>runtime/source-pages/</code> 写入、hash、excerpt、cache path、超时和失败记录。</p>
+          <h3>阶段 5：Agent stubs 与 pipeline 串联</h3>
+          <p>实现确定性 Agent stubs、串起 HN pipeline、写入数据库和幂等逻辑。</p>
+          <h3>阶段 6：运行报告与最终验收</h3>
+          <p>生成终端报告和 <code>runtime/pipeline-reports/*.txt</code>，更新测试记录文档并运行测试。</p>
+        </section>
+
+        <section id="checkpoint">
+          <h2>15. 每阶段检查点报告格式</h2>
+          <pre><code>阶段名称：
+本阶段完成内容：
+修改文件：
+执行命令：
+测试证据：
+当前风险：
+下一阶段计划：</code></pre>
+          <p>禁止只输出“完成了”。</p>
+        </section>
+
+        <section id="acceptance">
+          <h2>16. 最终验收标准</h2>
+          <ol>
+            <li><code>apps/worker</code> 工程结构存在。</li>
+            <li>依赖文件和 <code>.env.example</code> 存在且无真实 key。</li>
+            <li>Alembic migration 存在。</li>
+            <li>HN collector、scoring、dedupe、original_url 缓存、Agent stubs、pipeline report 都有测试。</li>
+            <li><code>scripts/run_hn_pipeline.py</code> 存在。</li>
+            <li><code>runtime/pipeline-reports/</code> 策略存在。</li>
+            <li><code>docs/07-验收与运行/后端P1测试记录.md</code> 存在。</li>
+            <li>最终回答列出测试证据。</li>
+          </ol>
+        </section>
+
+        <section id="commit">
+          <h2>17. 提交与推送策略</h2>
+          <blockquote>阶段检查点报告 + 最终一次 commit/push。</blockquote>
+          <p>最终提交前必须跑测试、报告测试结果、检查 <code>git status</code>，确认没有提交 <code>.env</code>、runtime 真实产物或 API Key。</p>
+          <pre><code>porter &lt;2037388336@qq.com&gt;</code></pre>
+          <pre><code>feat(worker): 搭建后端P1 HN事件生产骨架</code></pre>
+          <p>如果中途遇到阻塞，不要提交半成品，应输出阻塞原因、已完成内容和当前状态。</p>
+        </section>
+
+        <section id="blocked">
+          <h2>18. 失败和阻塞处理</h2>
+          <p>后端代理遇到问题时，应先自己排查并记录证据。必须明确区分环境问题、依赖安装问题、数据库连接问题、HN 网络问题、网页抓取失败、测试失败和需求不清。</p>
+          <pre><code>阻塞点：
+已尝试：
+命令输出摘要：
+影响范围：
+需要用户决定的问题：</code></pre>
+        </section>
+
+        <section id="prompt">
+          <h2>19. 给后端代理的启动提示词</h2>
+          <pre><code>你是 AI World Radar 项目的后端 P1 开发代理。
+
+项目路径：D:\AI World Radar
+
+请先只读并理解以下文档，不要立刻写代码：
+1. docs/README.md
+2. docs/00-项目总览/项目状态.md
+3. docs/00-项目总览/文档索引.md
+4. docs/04-系统设计/Agent系统设计.md
+5. docs/04-系统设计/技术架构与数据模型设计.md
+6. docs/05-实现计划/后端P1实现计划与功能切片拆解.md
+7. docs/06-代理任务书/后端P1开发代理任务书.md
+
+读完后先输出：
+- 你理解的当前项目阶段
+- 你本次负责什么
+- 你不负责什么
+- 你计划按哪些阶段执行
+- 每个阶段怎么验证
+
+随后严格按 docs/06-代理任务书/后端P1开发代理任务书.md 执行。</code></pre>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
