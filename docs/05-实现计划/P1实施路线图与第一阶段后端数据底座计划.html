@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1 实施路线图与第一阶段后端数据底座计划</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .brand { margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .brand-title { margin: 0 0 6px; font-size: 20px; line-height: 1.2; font-weight: 750; letter-spacing: 0; }
+    .brand-subtitle { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .nav-title { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 10px; color: #3c4043; border-radius: 8px; font-size: 14px; line-height: 1.35; }
+    .nav a:hover { background: var(--accent-soft); color: var(--accent); }
+    .content { min-width: 0; padding: 52px 6vw 80px; }
+    .doc { max-width: 980px; margin: 0 auto; padding: 48px 56px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    h1 { margin: 0 0 12px; font-size: 34px; line-height: 1.2; letter-spacing: 0; }
+    h2 { margin: 44px 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 24px; line-height: 1.3; letter-spacing: 0; }
+    h3 { margin: 30px 0 10px; font-size: 18px; line-height: 1.4; letter-spacing: 0; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 6px 0; }
+    blockquote { margin: 18px 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+    code { padding: 2px 5px; background: var(--code); border-radius: 5px; font-family: Consolas, "SFMono-Regular", monospace; font-size: 0.92em; }
+    pre { overflow-x: auto; margin: 14px 0; padding: 16px; background: #202124; color: #f5f5f5; border-radius: 8px; line-height: 1.55; }
+    pre code { padding: 0; background: transparent; color: inherit; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); vertical-align: top; }
+    th { background: #f1f3ef; text-align: left; }
+    .meta { color: var(--muted); font-size: 14px; }
+    .callout { padding: 14px 16px; border: 1px solid var(--line); background: #fbfbf8; border-radius: 8px; }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar { position: relative; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .content { padding: 28px 18px 52px; }
+      .doc { padding: 30px 22px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1 class="brand-title">AI World Radar</h1>
+        <p class="brand-subtitle">P1 实施路线图与第一阶段后端数据底座计划</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#purpose">为什么先写这份计划</a></li>
+        <li><a href="#roadmap">P1 总路线图</a></li>
+        <li><a href="#scope">P1-1 范围</a></li>
+        <li><a href="#files">文件结构</a></li>
+        <li><a href="#tables">新表清单</a></li>
+        <li><a href="#status">数据状态枚举</a></li>
+        <li><a href="#tasks">任务拆解</a></li>
+        <li><a href="#acceptance">阶段验收标准</a></li>
+        <li><a href="#next">下一步</a></li>
+        <li><a href="#handoff">执行交接</a></li>
+      </ol>
+    </aside>
+    <main class="content">
+      <article class="doc">
+        <h1>P1 实施路线图与第一阶段后端数据底座计划</h1>
+        <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-12 ｜ 阶段：Superpowers implementation plan</p>
+        <blockquote>
+          <p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.</p>
+        </blockquote>
+        <p><strong>Goal:</strong> 将 AI World Radar P1 从旧的 HN 事件闭环骨架，重构为新版“事件档案生产与发布”架构的后端数据底座。</p>
+        <p><strong>Architecture:</strong> 本计划先给出 P1 总路线图，再只执行第一阶段。第一阶段只做 Python Worker 的数据模型、Pydantic schema、Alembic migration、服务层和可见测试证据，不接入真实 Agent，不开发前端，不引入 FastAPI。</p>
+        <p><strong>Tech Stack:</strong> Python 3.13, Pydantic 2.13.4, SQLAlchemy 2.0.41, Alembic 1.16.1, PostgreSQL, pytest 8.4.0. LangGraph 1.2.4 在第二阶段接入。</p>
+
+        <h2 id="purpose">1. 为什么先写这份计划</h2>
+        <p>当前项目已经完成产品需求文档 v2.0、Agent 系统设计 v1.0、技术架构与数据模型设计 v1.0，以及旧后端 P1 工程骨架。问题在于旧后端代码仍围绕 EvidenceCard、EventCluster、ContentArtifact、QualityGateResult、Brief 等早期概念运行，而新版核心链路已经调整为：</p>
+        <pre><code>SourceSignal
+-&gt; EventCandidate
+-&gt; EventDossier
+-&gt; ReviewResult
+-&gt; PublishedEvent</code></pre>
+        <p>因此下一步不能继续堆旧 HN 闭环，也不应该立刻写真实 Agent。正确顺序是先把新版数据底座立住，否则后面的 LangGraph、多 Agent、后台监控和前端页面都会接在错误对象上。</p>
+
+        <h2 id="roadmap">2. P1 总路线图</h2>
+        <table>
+          <thead><tr><th>阶段</th><th>名称</th><th>目标</th><th>交付物</th></tr></thead>
+          <tbody>
+            <tr><td>P1-1</td><td>后端数据底座与 Worker 重构</td><td>建立新版核心表、schema、服务层、测试证据</td><td>本计划执行范围</td></tr>
+            <tr><td>P1-2</td><td>LangGraph 工作流与三 Agent 最小闭环</td><td>用确定性 stub 跑通编辑部式工作流</td><td>下一份计划</td></tr>
+            <tr><td>P1-3</td><td>HN / GitHub 冷启动采集</td><td>把真实来源写入 source_signals</td><td>后端采集计划</td></tr>
+            <tr><td>P1-4</td><td>真实 LLM Agent 节点替换</td><td>值班编辑、研究写作、审稿发布逐个替换</td><td>Agent 计划</td></tr>
+            <tr><td>P1-5</td><td>Next.js 页面与后台</td><td>展示已发布事件和后台运行记录</td><td>前端计划</td></tr>
+            <tr><td>P1-6</td><td>P1 验收与部署准备</td><td>形成可演示、可测试、可迁移的产品闭环</td><td>验收与运行计划</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="scope">3. P1-1 范围</h2>
+        <h3>必须完成</h3>
+        <ul>
+          <li>新增 pydantic 依赖。</li>
+          <li>建立新版 Pydantic schema。</li>
+          <li>重构 SQLAlchemy ORM 为新版核心表。</li>
+          <li>用新的 Alembic migration 替换旧表结构。</li>
+          <li>建立服务层，保证后续 Agent 只能输出结构化建议，数据库写入由 service 执行。</li>
+          <li>建立运行记录、Agent 运行记录和发布快照写入能力。</li>
+          <li>更新测试记录，让人能看到测了什么、用什么测、结果是什么。</li>
+        </ul>
+        <h3>不做</h3>
+        <ul>
+          <li>不写真实 LLM prompt，不接入 LangGraph，不写三类 Agent 的真实逻辑。</li>
+          <li>不开发 Next.js 前端或后台 UI。</li>
+          <li>不引入 FastAPI、Redis、队列、对象存储、向量库。</li>
+          <li>不做完整事实核验，不继续维护旧 BriefWriterAgent 主链路。</li>
+        </ul>
+
+        <h2 id="files">4. 文件结构</h2>
+        <pre><code>apps/worker/pyproject.toml
+apps/worker/worker/db/base.py
+apps/worker/worker/db/models.py
+apps/worker/worker/models/__init__.py
+apps/worker/worker/models/core.py
+apps/worker/worker/schemas/
+apps/worker/worker/services/
+apps/worker/worker/db/migrations/versions/202606120001_create_event_dossier_core_tables.py
+apps/worker/tests/test_dependency_imports.py
+apps/worker/tests/test_schema_contracts.py
+apps/worker/tests/test_v1_models.py
+apps/worker/tests/test_signal_service.py
+apps/worker/tests/test_event_service.py
+apps/worker/tests/test_run_log_service.py
+docs/07-验收与运行/后端P1测试记录.md</code></pre>
+        <p>旧测试 <code>test_agent_stubs.py</code>、<code>test_hn_event_pipeline.py</code>、<code>test_run_hn_pipeline_script.py</code> 应删除或改写，避免旧架构继续约束新实现。</p>
+
+        <h2 id="tables">5. 新表清单</h2>
+        <pre><code>sources
+source_signals
+event_candidates
+event_candidate_signals
+event_dossiers
+review_results
+published_events
+pipeline_runs
+agent_runs
+admin_actions</code></pre>
+        <p>P1-1 不建立 <code>tool_calls</code>、<code>briefs</code>、<code>brief_items</code>。工具调用先进入 <code>agent_runs.trace_json</code>，晨报属于 P1.5。</p>
+
+        <h2 id="status">6. 数据状态枚举</h2>
+        <pre><code>EventCandidate.status:
+new, triaged, merged, drafting, reviewing, ready_to_publish,
+published, manual_review, rejected, failed, hidden
+
+EventDossier.status:
+draft, reviewing, needs_revision, approved, manual_review,
+rejected, published_snapshot
+
+ReviewResult.decision:
+publish, revise, manual_review, reject
+
+PublishedEvent.status:
+published, hidden, archived
+
+PipelineRun.status:
+running, succeeded, partial_failed, failed, cancelled
+
+AgentRun.status:
+running, succeeded, failed</code></pre>
+
+        <h2 id="tasks">7. 任务拆解</h2>
+        <h3>Task 1: 依赖与导入边界</h3>
+        <p>修改 <code>apps/worker/pyproject.toml</code>，新增 <code>pydantic==2.13.4</code>。先写 <code>tests/test_dependency_imports.py</code> 验证 Pydantic 可导入，再运行安装和 pytest。</p>
+        <pre><code>cd "D:\AI World Radar\apps\worker"
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest tests/test_dependency_imports.py -v</code></pre>
+        <p>预期：<code>1 passed</code>。提交信息：<code>chore(worker): add pydantic foundation</code>。</p>
+
+        <h3>Task 2: Pydantic Schema 契约</h3>
+        <p>创建 <code>worker/schemas/common.py</code>、<code>source.py</code>、<code>event.py</code>、<code>run.py</code> 和 <code>__init__.py</code>。测试文件为 <code>tests/test_schema_contracts.py</code>，覆盖 SourceSignal、EventCandidate、EventDossier、ReviewResult、PublishEventCommand、PipelineRun 和 AgentRun。</p>
+        <p>关键 schema 包括：<code>SourceCreate</code>、<code>SourceSignalCreate</code>、<code>EventCandidateDraft</code>、<code>EventDossierDraft</code>、<code>ReviewResultDraft</code>、<code>PublishEventCommand</code>、<code>PipelineRunCreate</code>、<code>AgentRunRecord</code>。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_schema_contracts.py -v</code></pre>
+        <p>预期：<code>8 passed</code>。提交信息：<code>feat(worker): define event dossier schemas</code>。</p>
+
+        <h3>Task 3: SQLAlchemy 新模型</h3>
+        <p>创建 <code>worker/db/base.py</code>、<code>worker/models/core.py</code>、<code>worker/models/__init__.py</code>，并让 <code>worker/db/models.py</code> 只作为兼容 re-export。测试必须断言 10 张新表存在，并且旧主链路表不存在。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_db_models.py tests/test_v1_models.py -v</code></pre>
+        <p>预期：<code>4 passed</code>。提交信息：<code>refactor(worker): replace core data models</code>。</p>
+
+        <h3>Task 4: Alembic Migration 重建</h3>
+        <p>删除旧 migration <code>202606090001_create_p1_core_tables.py</code>，创建新 migration <code>202606120001_create_event_dossier_core_tables.py</code>。修改 <code>env.py</code> 使用 <code>worker.models.Base.metadata</code>。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_migration_metadata.py -v
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m alembic current</code></pre>
+        <p>预期：测试通过，Alembic current 输出 <code>202606120001 (head)</code>。提交信息：<code>refactor(worker): rebuild event dossier migration</code>。</p>
+
+        <h3>Task 5: SignalService 与 RunLogService</h3>
+        <p>创建 <code>SignalService</code> 和 <code>RunLogService</code>。SignalService 负责来源和信号的幂等写入；RunLogService 负责 pipeline run 和 agent run 记录。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_signal_service.py tests/test_run_log_service.py -v</code></pre>
+        <p>预期：<code>2 passed</code>。提交信息：<code>feat(worker): add signal and run log services</code>。</p>
+
+        <h3>Task 6: EventService 与发布幂等</h3>
+        <p>创建 <code>EventService</code>，提供 <code>create_candidate_with_signals</code>、<code>save_dossier</code>、<code>save_review_result</code>、<code>publish_dossier</code>。重复发布同一个 candidate 必须返回同一个 PublishedEvent。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_event_service.py -v</code></pre>
+        <p>预期：<code>1 passed</code>。提交信息：<code>feat(worker): add event dossier service</code>。</p>
+
+        <h3>Task 7: 旧链路隔离与全量测试恢复</h3>
+        <p>旧 HN pipeline 只作为历史参考。旧测试若依赖旧表，应删除或改写，而不是重新引入旧表名。创建 <code>worker/legacy/README.md</code> 说明旧概念不再是实现契约。</p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest -v</code></pre>
+        <p>预期：全量测试通过。提交信息：<code>test(worker): align tests with event dossier architecture</code>。</p>
+
+        <h3>Task 8: 验收记录与人工可见证据</h3>
+        <p>更新 <code>docs/07-验收与运行/后端P1测试记录.md</code>，必须写清楚测试范围、测试数据、测试命令、测试结果和未覆盖范围。</p>
+        <pre><code>cd "D:\AI World Radar"
+git diff --check
+rg "待补充|占位|执行后写入真实输出" docs/07-验收与运行/后端P1测试记录.md</code></pre>
+        <p>预期：<code>git diff --check</code> 无输出，<code>rg</code> 无匹配。提交信息：<code>docs: record p1 data foundation tests</code>。</p>
+
+        <h2 id="acceptance">8. 阶段验收标准</h2>
+        <ul>
+          <li><code>worker.schemas</code> 可以被导入。</li>
+          <li><code>worker.models.Base.metadata.tables</code> 只包含新版 P1 核心表，不包含旧主链路表。</li>
+          <li>新 migration 的 head 是 <code>202606120001</code>。</li>
+          <li><code>SignalService</code> 可以幂等写入来源和信号。</li>
+          <li><code>RunLogService</code> 可以记录 pipeline run 和 agent run。</li>
+          <li><code>EventService</code> 可以完成候选事件、稿件、审稿和发布快照写入。</li>
+          <li>同一个 candidate 重复发布不会产生重复 <code>published_events</code>。</li>
+          <li><code>pytest -v</code> 通过，或失败原因被明确记录且不来自本阶段改动。</li>
+          <li>验收文档写明测了什么、用什么数据测、命令是什么、结果是什么。</li>
+        </ul>
+
+        <h2 id="next">9. 本阶段完成后的下一步</h2>
+        <p>P1-1 完成后进入 P1-2：LangGraph 工作流与三 Agent 最小闭环。P1-2 才引入 <code>langgraph==1.2.4</code>，并把本阶段服务层注册为工程工具。</p>
+        <pre><code>collect_signals
+-&gt; normalize_signals
+-&gt; editorial_triage
+-&gt; merge_and_rank_events
+-&gt; build_research_package
+-&gt; draft_event_dossier
+-&gt; review_event_dossier
+-&gt; revise_if_needed
+-&gt; publish_or_manual_review
+-&gt; record_run</code></pre>
+
+        <h2 id="handoff">10. 执行交接</h2>
+        <div class="callout">
+          <p>Plan complete and saved to <code>docs/05-实现计划/P1实施路线图与第一阶段后端数据底座计划.md</code>. Two execution options:</p>
+          <p><strong>1. Subagent-Driven (recommended)</strong> - dispatch a fresh subagent per task, review between tasks, fast iteration.</p>
+          <p><strong>2. Inline Execution</strong> - execute tasks in this session using executing-plans, batch execution with checkpoints.</p>
+          <p>Recommended choice: <strong>Subagent-Driven</strong>.</p>
+        </div>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
