@@ -206,6 +206,7 @@ running, succeeded, failed</code></pre>
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m pytest tests/test_dependency_imports.py -v</code></pre>
         <p>预期：<code>1 passed</code>。提交信息：<code>chore(worker): add pydantic foundation</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 1 已完成。实际执行时，本机环境因现有 <code>openai</code> 依赖链已安装 <code>pydantic-2.13.4</code>，所以新增测试在修改 <code>pyproject.toml</code> 前直接通过，结果为 <code>1 passed in 0.28s</code>。已按计划仍将 <code>pydantic==2.13.4</code> 写入直接依赖，重新安装后验证结果为 <code>1 passed in 0.20s</code>。</p>
 
         <h3>Task 2: Pydantic Schema 契约</h3>
         <p>创建 <code>worker/schemas/common.py</code>、<code>source.py</code>、<code>event.py</code>、<code>run.py</code> 和 <code>__init__.py</code>。测试文件为 <code>tests/test_schema_contracts.py</code>，覆盖 SourceSignal、EventCandidate、EventDossier、ReviewResult、PublishEventCommand、PipelineRun 和 AgentRun。</p>
