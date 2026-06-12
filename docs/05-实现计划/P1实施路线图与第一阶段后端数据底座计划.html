@@ -253,6 +253,7 @@ running, succeeded, failed</code></pre>
 git diff --check
 rg "待补充|占位|执行后写入真实输出" docs/07-验收与运行/后端P1测试记录.md</code></pre>
         <p>预期：<code>git diff --check</code> 无输出，<code>rg</code> 无匹配。提交信息：<code>docs: record p1 data foundation tests</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 8 已完成。已在 <code>docs/07-验收与运行/后端P1测试记录.md</code> 追加 P1-1 最终验收汇总，覆盖 Task 1 到 Task 8、主要文件改动、测试数据、真实命令输出、失败修复、未覆盖范围和是否可以进入 P1-2。已同步更新 <code>docs/00-项目总览/项目状态.md</code>，将阶段口径改为 P1-1 已完成、可进入 P1-2。最终复验命令包括依赖、schema、ORM/migration、service、legacy 边界、worker 全量测试和文档检查，其中 worker 全量测试为 <code>32 passed in 1.20s</code>；临时标记扫描无匹配。</p>
 
         <h2 id="acceptance">8. 阶段验收标准</h2>
         <ul>
