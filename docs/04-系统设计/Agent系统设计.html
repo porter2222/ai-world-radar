@@ -91,7 +91,7 @@
       padding: 48px min(7vw, 88px) 80px;
     }
     .doc {
-      max-width: 980px;
+      max-width: 1040px;
       margin: 0 auto;
     }
     .hero {
@@ -114,7 +114,7 @@
       letter-spacing: 0;
     }
     .summary {
-      max-width: 780px;
+      max-width: 800px;
       margin: 0;
       color: var(--muted);
       font-size: 18px;
@@ -198,358 +198,269 @@
     <aside class="sidebar">
       <div class="brand">
         <h1 class="brand-title">AI World Radar</h1>
-        <p class="brand-subtitle">Agent 系统设计 v0.2</p>
+        <p class="brand-subtitle">Agent 系统设计 v1.0</p>
       </div>
       <p class="nav-title">导航</p>
       <ul class="nav">
         <li><a href="#purpose">文档目的</a></li>
-        <li><a href="#revision">修订背景</a></li>
-        <li><a href="#position">核心定位</a></li>
-        <li><a href="#boundary">Agent 边界</a></li>
-        <li><a href="#not-do">P1 不做什么</a></li>
+        <li><a href="#conclusion">核心结论</a></li>
+        <li><a href="#business-flow">业务生产流程</a></li>
+        <li><a href="#boundary">职责边界</a></li>
         <li><a href="#architecture">总体架构</a></li>
-        <li><a href="#engineering">工程代码职责</a></li>
-        <li><a href="#agent-role">Agent 职责</a></li>
-        <li><a href="#llmclient">LLMClient 边界</a></li>
+        <li><a href="#main-agents">主 Agent</a></li>
+        <li><a href="#skills">子 Agent / Skill</a></li>
+        <li><a href="#tools">工程 Tool</a></li>
         <li><a href="#langgraph">LangGraph 工作流</a></li>
-        <li><a href="#nodes">Agent 节点</a></li>
-        <li><a href="#tools">受控工具调用</a></li>
-        <li><a href="#evidence">EvidenceCard</a></li>
-        <li><a href="#cluster">EventCluster</a></li>
-        <li><a href="#content">内容生成</a></li>
-        <li><a href="#brief">Brief 生成</a></li>
-        <li><a href="#quality">Quality Gate</a></li>
-        <li><a href="#publish">发布边界</a></li>
-        <li><a href="#slice">HN 功能切片</a></li>
-        <li><a href="#roadmap">演进</a></li>
-        <li><a href="#diff">v0.1 差异</a></li>
+        <li><a href="#data-model">数据模型蓝图</a></li>
+        <li><a href="#states">状态设计</a></li>
+        <li><a href="#publishing">发布与人工干预</a></li>
+        <li><a href="#observability">可观测性</a></li>
+        <li><a href="#engineering-roadmap">工程增强边界</a></li>
+        <li><a href="#llmclient">LLMClient 边界</a></li>
+        <li><a href="#quality">质量门禁</a></li>
+        <li><a href="#roadmap">阶段化路线</a></li>
+        <li><a href="#risks">风险与应对</a></li>
+        <li><a href="#legacy">与旧版关系</a></li>
         <li><a href="#next">下一步</a></li>
       </ul>
     </aside>
     <main class="content">
       <article class="doc">
         <header class="hero">
-          <p class="eyebrow">Agent System Design</p>
+          <p class="eyebrow">System Design</p>
           <h1>AI World Radar Agent 系统设计</h1>
-          <p class="summary">v0.2 明确 P1 采用工程化 LangGraph Agent Workflow：工程代码控制主流程，Agent 负责语义判断、内容生产和质量门禁，复杂节点允许受控工具调用。</p>
+          <p class="summary">终局架构蓝图与阶段化落地口径：用 LangGraph 编排编辑部式 Multi-Agent 工作流，将全球 AI 圈碎片化信号生产成中文事件档案。</p>
         </header>
 
         <section id="purpose">
           <h2>1. 文档目的</h2>
-          <p>本文档用于定义 AI World Radar P1 的 Agent 系统设计 v0.2。它描述 Agent 在后端情报生产链路中的职责、边界、工具调用方式、LangGraph 工作流设计，以及与工程代码、LLMClient、数据库发布链路之间的关系。</p>
-          <div class="callout">核心问题：P1 的 Agent 到底是什么，哪些事情由 Agent 做，哪些事情必须由工程代码控制。</div>
-          <p>本文档不讨论 UI、具体前端页面、具体数据库字段细节、部署方案和 P2 AI 追问助手。</p>
+          <p>本文档定义 AI World Radar 的新版 Agent 系统设计。它描述终局形态下系统如何使用编辑部式 Multi-Agent 工作流，把全球 AI 圈的碎片化公开信号加工成中文用户能理解、可追踪、可修正的事件档案。</p>
+          <p>本文档同时明确 P1 的落地边界：终局蓝图可以完整成熟，但第一阶段实现必须克制，先完成单机可运行的事件生产闭环，再逐步引入队列、缓存、对象存储、向量检索、成本监控等增强能力。</p>
         </section>
 
-        <section id="revision">
-          <h2>2. v0.2 修订背景</h2>
-          <p>v0.1 文档形成于早期 Agent 架构讨论阶段。后续产品和技术设计继续推进，已经确认了新的 P1 口径。</p>
-          <ul>
-            <li>P1 不单独建 <code>RawItem</code> 表。</li>
-            <li>P1 不单独建 <code>CandidateEvent</code> 表。</li>
-            <li>P1 不做真实性核验。</li>
-            <li>P1 使用 LangGraph / LangChain。</li>
-            <li>P1 迁入用户已有 Python LLMClient。</li>
-            <li>P1 复杂节点允许受控 tool-calling。</li>
-            <li>P1 后端第一功能切片是 HN AI 事件生产闭环。</li>
-          </ul>
+        <section id="conclusion">
+          <h2>2. 核心结论</h2>
+          <div class="callout">AI World Radar 的 Agent 系统不是自由上网写新闻的万能 Agent，也不是普通爬虫后面接一个摘要 prompt。它是基于 LangGraph 的编辑部式 Multi-Agent 情报生产系统。</div>
+          <pre><code>终局架构：
+LangGraph 工作流编排
++ 编辑部式主 Agent
++ 能力型子 Agent / Skill
++ 工程 Tool 白名单
++ PostgreSQL 状态与审计记录
++ 后台监控与人工修正
+
+P1 实现：
+单机 Python Worker
++ PostgreSQL
++ 本地文件缓存
++ 同步 pipeline
++ 最小 Agent 闭环
++ 最小运行记录</code></pre>
         </section>
 
-        <section id="position">
-          <h2>3. Agent 系统的核心定位</h2>
-          <p>AI World Radar 的 Agent 不是自由浏览互联网的万能 Agent，而是工程化情报流水线中的多阶段 Agent Workflow。</p>
-          <pre><code>工程代码负责：
-采集、解析、存储、调度、发布、失败控制。
-
-Agent 负责：
-理解、聚合、排序、写作、简报、质量门禁。</code></pre>
-          <p>AI World Radar 的目标不是做普通 AI 新闻聚合站，也不是做一个把网页丢给大模型总结的工具，而是为中文 AI 学习型用户提供全球 AI 圈事件情报雷达。</p>
+        <section id="business-flow">
+          <h2>3. 业务生产流程</h2>
+          <p>P1 的核心产物不是简报，也不是新闻列表，而是事件档案。</p>
+          <pre><code>外部信号
+-> 标准化信号
+-> 判断哪些值得关注
+-> 把重复信号合并成同一事件
+-> 给事件排序
+-> 整理事件资料
+-> 写成中文事件档案
+-> 审稿检查
+-> 发布到前台
+-> 后台可监控、可修改、可隐藏</code></pre>
+          <p>外部信号可以来自 Hacker News、GitHub、Hugging Face、公司官网、AI 新闻站、中文聚合站，以及后续扩展的 X、Reddit、YouTube 等平台。信号刚进入系统时不能直接展示给用户，系统要把它们加工成用户能看懂的事件档案。</p>
         </section>
 
         <section id="boundary">
-          <h2>4. P1 Agent 边界</h2>
-          <p>P1 的 Agent 可以调用工具，但必须受控。</p>
-          <table>
-            <thead><tr><th>允许</th><th>不允许</th></tr></thead>
-            <tbody>
-              <tr><td>在指定节点调用白名单工具</td><td>自由浏览全网</td></tr>
-              <tr><td>使用来源内容和数据库已有证据</td><td>自由决定发布</td></tr>
-              <tr><td>生成结构化结果</td><td>直接修改核心数据库状态</td></tr>
-              <tr><td>参与聚合、生成和质检</td><td>无限循环调用工具</td></tr>
-            </tbody>
-          </table>
-          <div class="callout">Agent 可以提出判断和生成内容，但主流程、数据库写入和发布状态由工程代码控制。</div>
-        </section>
-
-        <section id="not-do">
-          <h2>5. P1 不做什么</h2>
-          <ul>
-            <li>不做自由自治 Agent。</li>
-            <li>不做复杂研究 Agent。</li>
-            <li>不做 AI 追问助手。</li>
-            <li>不做真实性核验。</li>
-            <li>不做用户个性化推荐。</li>
-            <li>不做 embedding 聚合。</li>
-            <li>不做 X、Reddit、YouTube 复杂高热平台采集。</li>
-            <li>不做 <code>RawItem</code> 独立表。</li>
-            <li>不做 <code>CandidateEvent</code> 独立表。</li>
-          </ul>
+          <h2>4. 职责边界</h2>
+          <p>工程代码负责确定性动作：采集、解析、正文缓存、URL 归一化、hash、数据库读写、状态流转、发布写库、重试控制、运行日志和幂等控制。</p>
+          <p>Agent 负责语义判断和内容生产：AI 相关性判断、事件归并、展示价值判断、中文用户价值判断、资料整理、事件卡和详情正文生成、审稿检查和修订。</p>
+          <div class="callout">Agent 可以提出判断、草稿和建议，但不能直接修改核心状态，不能直接发布，不能绕过工程服务。</div>
         </section>
 
         <section id="architecture">
-          <h2>6. 总体架构</h2>
-          <pre><code>工程代码控制主流程
-LangGraph 编排 Agent 工作流
-LangChain 支持模型与工具能力
-LLMClient 提供底层 chat / stream / provider 切换</code></pre>
+          <h2>5. 总体架构</h2>
+          <pre><code>1. Source Layer 信息源层
+2. Workflow Layer 工作流编排层
+3. Agent Layer 编辑部 Agent 层
+4. Tool / Skill Layer 能力层
+5. Product Service Layer 产品服务层</code></pre>
           <pre><code>Source Adapter
--> SourceItem
+-> Source Signal
 -> LangGraph Workflow
-   -> EvidenceAgent
-   -> EventClusterAgent
-   -> RankingAgent
-   -> DetailWriterAgent
-   -> BriefWriterAgent
-   -> QualityGateAgent
--> PublishService
--> PostgreSQL</code></pre>
+   -> On-duty Editor Agent
+   -> Research Writer Agent
+   -> Review Publisher Agent
+-> Publish Service
+-> PostgreSQL
+-> Frontend / Admin Console</code></pre>
+          <p>Source Layer 由工程代码控制采集。Workflow Layer 使用 LangGraph 控制状态机。Agent Layer 模拟真实编辑部岗位。Tool / Skill Layer 区分语义能力和确定性工具。Product Service Layer 负责数据库写入、发布、隐藏、重跑和后台操作记录。</p>
         </section>
 
-        <section id="engineering">
-          <h2>7. 工程代码负责的部分</h2>
-          <ul>
-            <li>信息源配置。</li>
-            <li>HN / GitHub Changelog 采集。</li>
-            <li>URL 归一化。</li>
-            <li>基础字段解析。</li>
-            <li>PostgreSQL 读写。</li>
-            <li>PipelineRun 记录。</li>
-            <li>发布状态写入。</li>
-            <li>失败状态记录。</li>
-            <li>Agent 最大步数限制。</li>
-            <li>工具白名单控制。</li>
-            <li>运行脚本入口。</li>
-          </ul>
+        <section id="main-agents">
+          <h2>6. 编辑部式主 Agent</h2>
+          <h3>值班编辑 Agent</h3>
+          <p>负责回答“这件事值不值得做成一个事件”。职责包括 AI 相关性判断、信号筛选、事件归并、事件类型识别、热度/重要度/中文用户价值判断、优先级和写作角度。</p>
+          <h3>研究写作 Agent</h3>
+          <p>负责回答“怎么把这件事讲清楚”。职责包括整理来源材料、生成 research package、首页事件卡、详情正文、为什么值得关注、后续关注点，并根据审稿意见重写。</p>
+          <h3>审稿发布 Agent</h3>
+          <p>负责回答“这篇事件档案能不能发”。职责包括结构完整性、来源支撑、过度推断、搬运风险、标题党、空泛内容检查，并输出 publish、revise、manual_review 或 reject 建议。</p>
         </section>
 
-        <section id="agent-role">
-          <h2>8. Agent 负责的部分</h2>
-          <ul>
-            <li>判断内容是否与 AI 圈相关。</li>
-            <li>提取 EvidenceCard。</li>
-            <li>判断多个 EvidenceCard 是否属于同一事件。</li>
-            <li>解释事件热度和中文用户价值。</li>
-            <li>生成事件卡片内容。</li>
-            <li>生成事件详情内容。</li>
-            <li>生成今日简报内容。</li>
-            <li>检查内容是否跑题、空泛、夸大、缺来源。</li>
-          </ul>
-          <p>Agent 的结果必须经过结构化解析、质量门禁和工程代码发布。</p>
-        </section>
-
-        <section id="llmclient">
-          <h2>9. LLMClient 的职责边界</h2>
-          <p>用户已有 Python LLMClient 会迁入项目，但它不是 Agent 系统本身。</p>
+        <section id="skills">
+          <h2>7. 能力型子 Agent / Skill</h2>
+          <p>能力型子 Agent / Skill 是主 Agent 可注册、可复用、可替换的智能能力。P1 不要求全部独立实现，可以先把部分 Skill 实现为结构化 LLM 调用，后续再升级为更完整的子 Agent。</p>
           <table>
-            <thead><tr><th>负责</th><th>不负责</th></tr></thead>
+            <thead><tr><th>Skill</th><th>归属主 Agent</th><th>作用</th></tr></thead>
             <tbody>
-              <tr><td>provider / model 切换</td><td>业务 prompt</td></tr>
-              <tr><td>api_key / base_url 配置</td><td>EvidenceCard schema</td></tr>
-              <tr><td>chat / stream_chat</td><td>工具绑定</td></tr>
-              <tr><td>基础 OpenAI-compatible 调用</td><td>Agent 循环、质量门禁、数据库写入</td></tr>
+              <tr><td>AI 相关性判断 Skill</td><td>值班编辑</td><td>判断信号是否属于 AI 圈</td></tr>
+              <tr><td>事件归并 Skill</td><td>值班编辑</td><td>判断多个信号是否是同一事件</td></tr>
+              <tr><td>选题角度 Skill</td><td>值班编辑</td><td>判断解释角度</td></tr>
+              <tr><td>来源摘要 Skill</td><td>研究写作</td><td>将长来源压缩成材料</td></tr>
+              <tr><td>事件卡生成 Skill</td><td>研究写作</td><td>生成首页卡片字段</td></tr>
+              <tr><td>详情正文写作 Skill</td><td>研究写作</td><td>生成自然中文详情正文</td></tr>
+              <tr><td>搬运风险检查 Skill</td><td>审稿发布</td><td>检查是否过度接近原文</td></tr>
+              <tr><td>过度推断检查 Skill</td><td>审稿发布</td><td>检查来源是否支撑结论</td></tr>
             </tbody>
           </table>
-          <div class="callout">LLMClient 是模型调用底座，不是业务 Agent。</div>
-        </section>
-
-        <section id="langgraph">
-          <h2>10. LangGraph 工作流设计</h2>
-          <pre><code>collect_sources
--> build_evidence_cards
--> cluster_events
--> rank_events
--> generate_event_content
--> generate_brief
--> quality_gate
--> publish_results</code></pre>
-          <p>第一版工作流不追求复杂分支，先追求状态清晰、输入输出明确、失败可记录、节点可单独测试，并且可通过本地命令手动触发。</p>
-        </section>
-
-        <section id="nodes">
-          <h2>11. Agent 节点设计</h2>
-          <pre><code>EvidenceAgent
-EventClusterAgent
-RankingAgent
-DetailWriterAgent
-BriefWriterAgent
-QualityGateAgent</code></pre>
-          <p><strong>EvidenceAgent</strong> 从 SourceItem 生成 EvidenceCard，判断 AI 相关性并提取主体、触发点、分类、热度线索和中文用户价值。</p>
-          <p><strong>EventClusterAgent</strong> 判断多个 EvidenceCard 是否属于同一事件，输出合并原因和事件聚合结果。</p>
-          <p><strong>RankingAgent</strong> 根据热度、重要度、中文用户价值给事件排序。</p>
-          <p><strong>DetailWriterAgent</strong> 负责生成事件详情正文，可调用受控工具补充上下文。</p>
-          <p><strong>BriefWriterAgent</strong> 负责从已发布事件中生成今日简报。</p>
-          <p><strong>QualityGateAgent</strong> 检查生成内容质量，输出发布建议。</p>
         </section>
 
         <section id="tools">
-          <h2>12. 受控 Tool-Calling 设计</h2>
-          <pre><code>fetch_url_content(url)
-fetch_hn_comments(item_id)
-extract_page_metadata(url)
-search_existing_evidence(query)
-load_cluster_evidence(cluster_id)</code></pre>
-          <ul>
-            <li>每个 Agent 最多 3-5 步。</li>
-            <li>每个 Agent 最多 2-3 次工具调用。</li>
-            <li>工具只能读数据，不能直接发布。</li>
-            <li>工具不能绕过来源策略自由爬全网。</li>
-            <li>工具调用结果必须进入 Agent 输入上下文。</li>
-          </ul>
+          <h2>8. 工程 Tool</h2>
+          <p>工程 Tool 负责确定性动作，必须白名单管理。示例包括读取来源正文、查询相似候选事件、查询历史已发布事件、计算基础热度分、URL 归一化、生成来源幂等键、读取候选事件支撑信号、保存中间产物和记录 Agent 运行。</p>
+          <p>工具默认只读。发布、隐藏、删除、状态流转不作为 Agent 可直接调用的工具。</p>
         </section>
 
-        <section id="evidence">
-          <h2>13. EvidenceCard 设计口径</h2>
-          <p>P1 不再把 RawItem 作为正式 P1 表。EvidenceCard 是来源信号 + AI 理解结果的统一内部证据单元。</p>
-          <pre><code>来源信息：
-original_title
-original_url
-source_id
-published_at
-raw_summary / raw_excerpt
-raw_heat_metrics
-
-AI 理解结果：
-claim_summary
-normalized_title
-subjects
-event_trigger
-event_type
-category
-heat_clues
-impact_clues
-audience_value_reason
-candidate_score
-merge_key_hint</code></pre>
+        <section id="langgraph">
+          <h2>9. LangGraph 工作流设计</h2>
+          <pre><code>collect_signals
+-> normalize_signals
+-> editorial_triage
+-> merge_and_rank_events
+-> build_research_package
+-> draft_event_dossier
+-> review_event_dossier
+-> revise_if_needed
+-> publish_or_manual_review
+-> record_run</code></pre>
+          <p>修订循环必须有限制：最多修订 2 次，超过 2 次仍不通过，进入 manual_review。</p>
+          <p>Workflow State 至少包含 run_id、source_batch_id、candidate_id、dossier_id、current_node、status、retry_count、revision_count、last_error、agent_outputs 和 review_decision。</p>
         </section>
 
-        <section id="cluster">
-          <h2>14. EventCluster 设计口径</h2>
-          <p>EventCluster 是多个 EvidenceCard 聚合后的内部事件，不等于 PublishedEvent。</p>
-          <pre><code>EventCluster：内部事件
-PublishedEvent：公开展示事件</code></pre>
-          <p>第一版聚合策略是规则合并 + Agent 辅助判断，不使用 embedding。</p>
+        <section id="data-model">
+          <h2>10. 数据模型蓝图</h2>
+          <p>数据库可以按新版生产线推倒重来。核心生产链路为：</p>
+          <pre><code>Signal
+-> EventCandidate
+-> EventDossier
+-> ReviewResult
+-> PublishedEvent</code></pre>
+          <table>
+            <thead><tr><th>表</th><th>用途</th></tr></thead>
+            <tbody>
+              <tr><td>sources</td><td>信息源配置表</td></tr>
+              <tr><td>source_signals</td><td>外部信号标准化结果</td></tr>
+              <tr><td>event_candidates</td><td>多个 signal 归并后的内部候选事件</td></tr>
+              <tr><td>event_candidate_signals</td><td>候选事件和信号关联</td></tr>
+              <tr><td>event_dossiers</td><td>事件档案草稿，支持版本</td></tr>
+              <tr><td>review_results</td><td>审稿发布 Agent 的检查结果</td></tr>
+              <tr><td>published_events</td><td>前台稳定读取的已发布事件快照</td></tr>
+              <tr><td>pipeline_runs</td><td>完整生产任务运行记录</td></tr>
+              <tr><td>agent_runs</td><td>主 Agent、Skill 或 LLM 节点运行记录</td></tr>
+              <tr><td>tool_calls</td><td>终局独立工具调用记录，P1 可先放入 trace_json</td></tr>
+              <tr><td>admin_actions</td><td>后台人工操作记录</td></tr>
+            </tbody>
+          </table>
         </section>
 
-        <section id="content">
-          <h2>15. 内容生成 Agent 设计</h2>
-          <p>内容生成不再是简单摘要，而是事件内容生产。DetailWriterAgent 输入 EventCluster、关联 EvidenceCards、RankingReason、来源链接和可选工具补充结果。</p>
-          <ul>
-            <li>不能直接搬运原文。</li>
-            <li>不能把热议写成事实。</li>
-            <li>不能夸大影响。</li>
-            <li>中文表达要自然。</li>
-            <li>用户阅读时不应看到大量结构化字段堆叠。</li>
-          </ul>
+        <section id="states">
+          <h2>11. 状态设计</h2>
+          <pre><code>event_candidate:
+new / triaged / merged / drafting / reviewing / ready_to_publish /
+published / manual_review / rejected / failed / hidden
+
+event_dossier:
+draft / reviewing / needs_revision / approved / manual_review /
+rejected / published_snapshot
+
+pipeline_run:
+running / succeeded / partial_failed / failed / cancelled</code></pre>
         </section>
 
-        <section id="brief">
-          <h2>16. Brief 生成 Agent 设计</h2>
-          <p>BriefWriterAgent 负责从已发布事件中生成今日简报内容。</p>
-          <ul>
-            <li>简报不是全量事件合集。</li>
-            <li>简报只选 Top 3-5 个重点事件。</li>
-            <li>简报应让用户只看它也能知道今日重点。</li>
-            <li>每条 brief item 必须能跳到事件详情。</li>
-          </ul>
+        <section id="publishing">
+          <h2>12. 发布与人工干预边界</h2>
+          <p>发布必须由工程发布服务执行。Agent 可以输出发布建议、修订建议、风险说明和人工处理建议，但不能直接写 published_events、隐藏内容、删除候选事件或绕过 review_result。</p>
+          <p>自动发布要求 dossier 结构完整、审稿结果为 publish、来源链接存在、未超过风险阈值且幂等检查通过。风险内容进入 manual_review。</p>
+        </section>
+
+        <section id="observability">
+          <h2>13. 运行记录与可观测性</h2>
+          <p>P1 必须记录 pipeline run、Agent run、节点状态、输入摘要、输出结构化结果、错误信息、retry_count、revision_count、发布记录和人工操作记录。</p>
+          <p>终局可增强 tool_calls、token 和成本估算、模型耗时统计、节点成功率、来源成功率、失败原因聚合和告警。</p>
+        </section>
+
+        <section id="engineering-roadmap">
+          <h2>14. 工程增强能力的阶段边界</h2>
+          <p>P1 必须预留 run_id、agent_run_id、状态字段、幂等键、source_hash、content_hash、dossier.version、review_result、manual_review 状态、运行记录和后台操作记录。</p>
+          <p>P1 暂不做 Redis、队列、对象存储、向量数据库、复杂调度、复杂监控大盘、多用户权限、多模型成本路由和全平台社媒采集。</p>
+        </section>
+
+        <section id="llmclient">
+          <h2>15. LLMClient 边界</h2>
+          <p>LLMClient 是模型调用底座，不是业务 Agent。它只负责 provider、model、api_key/base_url、chat、stream_chat 和 OpenAI-compatible 调用。业务 prompt、Agent 状态、工具绑定、结构化 schema、repair 策略、发布状态和数据库写入都不属于 LLMClient。</p>
         </section>
 
         <section id="quality">
-          <h2>17. Quality Gate Agent 设计</h2>
-          <p>P1 Quality Gate 不做真实性核验，只检查生成质量和工程发布安全。</p>
-          <ul>
-            <li>内容是否为空。</li>
-            <li>结构是否可解析。</li>
-            <li>标题和正文是否明显不一致。</li>
-            <li>是否缺少来源链接。</li>
-            <li>是否直接搬运原文。</li>
-            <li>是否过度夸张。</li>
-            <li>event_card 和 event_detail 是否成对存在。</li>
-            <li>brief_item 是否关联 published_event。</li>
-          </ul>
-          <pre><code>publish
-regenerate
-manual_review
-discard</code></pre>
-        </section>
-
-        <section id="publish">
-          <h2>18. 发布与入库边界</h2>
-          <p>Agent 不能直接发布。Agent 输出的是结构化建议和内容草稿，最终由 PublishService 写入数据库。</p>
-          <pre><code>Agent 生成内容
-QualityGate 给建议
-PublishService 决定写入发布表</code></pre>
-        </section>
-
-        <section id="slice">
-          <h2>19. 后端 P1 第一功能切片：HN AI 事件生产闭环</h2>
-          <pre><code>HN Algolia API
--> SourceItem
--> original_url 原文补全
--> EvidenceAgent
--> EventClusterAgent
--> RankingAgent
--> DetailWriterAgent
--> BriefWriterAgent
--> QualityGateAgent
--> PublishService
--> PostgreSQL
--> PipelineRun 报告</code></pre>
-          <p>完成后应能通过本地命令触发：</p>
-          <pre><code>cd apps/worker
-python scripts/run_hn_pipeline.py --days 7 --limit 100</code></pre>
-          <div class="callout">模块是实现单元，功能切片是交付单元。</div>
+          <h2>16. 质量门禁</h2>
+          <p>P1 的质量门禁不是完整真实性核验。P1 只检查内容是否为空、结构是否完整、标题和正文是否一致、是否缺少来源链接、是否搬运原文、是否夸张、是否把不确定内容写成确定事实，以及详情正文是否能让中文用户读懂。</p>
         </section>
 
         <section id="roadmap">
-          <h2>20. P1、P1.5 与 P2 演进</h2>
-          <table>
-            <thead><tr><th>阶段</th><th>范围</th></tr></thead>
-            <tbody>
-              <tr><td>P1</td><td>HN、GitHub Changelog、LangGraph Agent Workflow、受控 tool-calling、PostgreSQL 入库、本机手动命令触发。</td></tr>
-              <tr><td>P1.5</td><td>Reddit、YouTube、GitHub Trending、Hugging Face Trending、embedding 聚合、更强热度信号和失败兜底。</td></tr>
-              <tr><td>P2</td><td>事件级 AI 追问助手、收藏、订阅提醒、个性化、趋势专题和更完整管理后台。</td></tr>
-            </tbody>
-          </table>
+          <h2>17. 阶段化落地路线</h2>
+          <h3>P1：最小硬核闭环</h3>
+          <p>用单机 Python Worker 跑通从外部信号到已发布事件档案的闭环。包含最小数据表、三个主 Agent 的最小实现、最多 2 次修订循环和运行记录。</p>
+          <h3>P1.5：内容组织增强</h3>
+          <p>基于已发布事件生成今日简报，并增强信息源和事件归并能力。</p>
+          <h3>P2：交互与研究增强</h3>
+          <p>事件追问助手、事件追踪时间线、更多来源补充、专题聚合、用户收藏和更成熟后台。</p>
+          <h3>P3：产品化与规模化</h3>
+          <p>个性化订阅、多用户体系、队列化生产、成本监控、对象存储、复杂监控大盘和深度事实核查。</p>
         </section>
 
-        <section id="diff">
-          <h2>21. 与旧版 v0.1 的差异</h2>
+        <section id="risks">
+          <h2>18. 风险与应对</h2>
+          <ul>
+            <li>过度工程化：终局蓝图完整，实现按阶段分批落地。</li>
+            <li>假 Agent 化：主 Agent 对应真实业务岗位，确定性动作保持为 Tool。</li>
+            <li>成本和延迟：限制节点数量、修订次数，预留缓存和模型分层空间。</li>
+            <li>事件归并错误：宁可重复、不乱合并，后台允许人工修正。</li>
+            <li>自动发布风险：风险内容进入 manual_review。</li>
+            <li>数据模型复杂：P1 落核心表和必要字段，复杂记录后续拆出。</li>
+          </ul>
+        </section>
+
+        <section id="legacy">
+          <h2>19. 与旧版架构的关系</h2>
           <table>
-            <thead><tr><th>主题</th><th>v0.1</th><th>v0.2</th></tr></thead>
+            <thead><tr><th>旧概念</th><th>新概念</th></tr></thead>
             <tbody>
-              <tr><td>Raw Item Store</td><td>P1 模块</td><td>不作为正式 P1 表，改为临时 SourceItem</td></tr>
-              <tr><td>Candidate Router Agent</td><td>独立 Agent</td><td>合并进 EvidenceAgent / RankingAgent / PublishService</td></tr>
-              <tr><td>真实性 / 可信度</td><td>有事实型、待核验、可信度权重</td><td>P1 不做真实性核验，只做生成质量门禁</td></tr>
-              <tr><td>写作 Agent 读取材料</td><td>不能读取网页</td><td>不能自由浏览，但可调用白名单工具补充上下文</td></tr>
-              <tr><td>Agent 框架</td><td>抽象 Agent 流水线</td><td>明确使用 LangGraph / LangChain</td></tr>
-              <tr><td>LLMClient</td><td>未明确</td><td>只作为底层模型调用底座</td></tr>
-              <tr><td>开发切片</td><td>未定义</td><td>后端 P1 第一切片为 HN AI 事件生产闭环</td></tr>
+              <tr><td>EvidenceCard</td><td>source_signal + AI 理解结果</td></tr>
+              <tr><td>EventCluster</td><td>event_candidate</td></tr>
+              <tr><td>ContentArtifact</td><td>event_dossier</td></tr>
+              <tr><td>QualityGateResult</td><td>review_result</td></tr>
+              <tr><td>PublishedEvent</td><td>published_event</td></tr>
+              <tr><td>Brief / BriefItem</td><td>P1.5 brief 能力</td></tr>
             </tbody>
           </table>
+          <p>产品形态和 PRD v2.0 不推翻。重构对象是 Agent 架构、数据模型和后续工程路线。</p>
         </section>
 
         <section id="next">
-          <h2>22. 下一步</h2>
-          <p>后端 P1 第一轮工程骨架已经完成并合并进 <code>main</code>。下一步进入 Agent 节点开发讨论与真实 LLM 节点替换方案设计。</p>
-          <ol>
-            <li><code>docs\00-项目总览\项目状态.md</code></li>
-            <li><code>docs\04-系统设计\Agent系统设计.md</code></li>
-            <li><code>docs\04-系统设计\技术架构与数据模型设计.md</code></li>
-            <li><code>docs\05-实现计划\后端P1实现计划与功能切片拆解.md</code></li>
-            <li><code>docs\06-代理任务书\后端P1开发代理任务书.md</code></li>
-            <li><code>docs\07-验收与运行\后端P1测试记录.md</code></li>
-          </ol>
-          <p>后续应先讨论哪些 deterministic Agent stubs 优先替换为真实 LLM 节点。</p>
+          <h2>20. 下一步</h2>
+          <p>在本文档确认后，下一步应更新技术架构与数据模型设计，使其与新版 Agent 系统设计对齐。之后再进入 <code>superpowers:writing-plans</code> 阶段，拆出可执行开发计划。</p>
         </section>
       </article>
     </main>
