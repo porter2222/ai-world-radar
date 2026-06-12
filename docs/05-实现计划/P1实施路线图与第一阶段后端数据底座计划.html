@@ -213,6 +213,7 @@ running, succeeded, failed</code></pre>
         <p>关键 schema 包括：<code>SourceCreate</code>、<code>SourceSignalCreate</code>、<code>EventCandidateDraft</code>、<code>EventDossierDraft</code>、<code>ReviewResultDraft</code>、<code>PublishEventCommand</code>、<code>PipelineRunCreate</code>、<code>AgentRunRecord</code>。</p>
         <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_schema_contracts.py -v</code></pre>
         <p>预期：<code>8 passed</code>。提交信息：<code>feat(worker): define event dossier schemas</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 2 已完成。测试先行阶段真实失败为 <code>ModuleNotFoundError: No module named 'worker.schemas'</code>，<code>1 error during collection</code>。实现 <code>worker/schemas</code> 后重新运行，真实结果为 <code>8 passed in 0.28s</code>。</p>
 
         <h3>Task 3: SQLAlchemy 新模型</h3>
         <p>创建 <code>worker/db/base.py</code>、<code>worker/models/core.py</code>、<code>worker/models/__init__.py</code>，并让 <code>worker/db/models.py</code> 只作为兼容 re-export。测试必须断言 10 张新表存在，并且旧主链路表不存在。</p>
