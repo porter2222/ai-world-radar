@@ -91,7 +91,7 @@
       padding: 48px min(7vw, 88px) 80px;
     }
     .doc {
-      max-width: 980px;
+      max-width: 1040px;
       margin: 0 auto;
     }
     .hero {
@@ -114,105 +114,82 @@
       letter-spacing: 0;
     }
     .summary {
-      max-width: 780px;
+      max-width: 800px;
       margin: 0;
       color: var(--muted);
       font-size: 18px;
     }
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 24px;
-    }
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 4px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: #fff;
-      color: #3c4043;
-      font-size: 13px;
-    }
     section {
-      margin: 0 0 38px;
-      padding: 30px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
+      margin: 38px 0;
+      padding: 0;
     }
     h2 {
-      margin: 0 0 16px;
-      font-size: 24px;
+      margin: 0 0 14px;
+      font-size: 26px;
       line-height: 1.25;
       letter-spacing: 0;
     }
     h3 {
-      margin: 24px 0 10px;
-      font-size: 18px;
-      line-height: 1.3;
+      margin: 28px 0 10px;
+      font-size: 19px;
+      line-height: 1.35;
       letter-spacing: 0;
     }
-    p { margin: 0 0 14px; }
-    ul { margin: 0 0 14px; padding-left: 22px; }
-    li { margin: 4px 0; }
-    blockquote {
+    p { margin: 12px 0; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 6px 0; }
+    .callout {
       margin: 18px 0;
       padding: 16px 18px;
       border-left: 4px solid var(--accent);
-      border-radius: 0 8px 8px 0;
       background: var(--accent-soft);
-      color: #133f3a;
-      font-weight: 650;
-    }
-    pre {
-      overflow-x: auto;
-      margin: 16px 0;
-      padding: 16px;
       border-radius: 8px;
-      background: var(--code);
-      color: #202124;
-      font-size: 14px;
-      line-height: 1.6;
     }
     code {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      padding: 2px 5px;
+      border-radius: 5px;
+      background: var(--code);
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      margin: 14px 0;
+      padding: 16px 18px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--code);
+    }
+    pre code {
+      padding: 0;
+      background: transparent;
+      font-size: 13px;
     }
     table {
       width: 100%;
-      margin: 16px 0 22px;
       border-collapse: collapse;
-      font-size: 14px;
+      margin: 18px 0;
+      background: var(--panel);
+      box-shadow: var(--shadow);
     }
     th, td {
-      padding: 10px 12px;
+      padding: 11px 12px;
       border: 1px solid var(--line);
-      vertical-align: top;
       text-align: left;
+      vertical-align: top;
     }
-    th {
-      background: #f0f1ec;
-      font-weight: 750;
-    }
-    .footer {
-      margin: 44px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      text-align: center;
-    }
-    @media (max-width: 880px) {
+    th { background: #f1f4ef; }
+    @media (max-width: 860px) {
       .layout { display: block; }
       .sidebar {
-        position: static;
+        position: relative;
+        width: 100%;
         height: auto;
         border-right: 0;
         border-bottom: 1px solid var(--line);
       }
-      .content { padding: 32px 18px 56px; }
-      section { padding: 22px; }
+      .content { padding: 34px 20px 56px; }
+      h1 { font-size: 34px; }
     }
   </style>
 </head>
@@ -220,354 +197,193 @@
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <p class="brand-title">AI World Radar</p>
-        <p class="brand-subtitle">技术架构与数据模型 v0.1</p>
+        <h1 class="brand-title">AI World Radar</h1>
+        <p class="brand-subtitle">技术架构与数据模型 v1.0</p>
       </div>
-      <p class="nav-title">目录</p>
-      <ol class="nav">
-        <li><a href="#purpose">1. 文档目的</a></li>
-        <li><a href="#decisions">2. 核心拍板</a></li>
-        <li><a href="#architecture">3. 技术架构</a></li>
-        <li><a href="#modules">4. 模块分工</a></li>
-        <li><a href="#flow">5. 运行链路</a></li>
-        <li><a href="#tables">6. 数据表总览</a></li>
-        <li><a href="#sources">7. sources</a></li>
-        <li><a href="#pipeline-runs">8. pipeline_runs</a></li>
-        <li><a href="#evidence-cards">9. evidence_cards</a></li>
-        <li><a href="#event-clusters">10. event_clusters</a></li>
-        <li><a href="#event-cluster-cards">11. event_cluster_cards</a></li>
-        <li><a href="#content-artifacts">12. content_artifacts</a></li>
-        <li><a href="#quality-gate-results">13. quality_gate_results</a></li>
-        <li><a href="#published-events">14. published_events</a></li>
-        <li><a href="#briefs">15. briefs</a></li>
-        <li><a href="#brief-items">16. brief_items</a></li>
-        <li><a href="#admin-actions">17. admin_actions</a></li>
-        <li><a href="#tradeoffs">18. 关键取舍</a></li>
-        <li><a href="#next">19. 下一步</a></li>
-      </ol>
+      <p class="nav-title">导航</p>
+      <ul class="nav">
+        <li><a href="#purpose">文档目的</a></li>
+        <li><a href="#conclusion">核心结论</a></li>
+        <li><a href="#architecture">总体架构</a></li>
+        <li><a href="#modules">模块职责</a></li>
+        <li><a href="#runtime">P1 运行链路</a></li>
+        <li><a href="#worker">Worker 目录结构</a></li>
+        <li><a href="#pydantic">Pydantic 与 ORM</a></li>
+        <li><a href="#objects">数据流对象</a></li>
+        <li><a href="#tables">核心数据表</a></li>
+        <li><a href="#table-detail">表设计</a></li>
+        <li><a href="#idempotency">幂等与去重</a></li>
+        <li><a href="#content-store">正文缓存</a></li>
+        <li><a href="#fastapi">FastAPI 边界</a></li>
+        <li><a href="#langgraph">LangGraph 集成</a></li>
+        <li><a href="#services">服务层</a></li>
+        <li><a href="#tests">测试策略</a></li>
+        <li><a href="#roadmap">阶段路线</a></li>
+        <li><a href="#legacy">与旧工程关系</a></li>
+        <li><a href="#next">下一步</a></li>
+      </ul>
     </aside>
-
     <main class="content">
       <article class="doc">
         <header class="hero">
-          <p class="eyebrow">P1 MVP Technical Design</p>
+          <p class="eyebrow">Technical Architecture</p>
           <h1>AI World Radar 技术架构与数据模型设计</h1>
-          <p class="summary">定义 P1 MVP 的技术栈、模块分工、运行链路和核心数据表，采用轻量产品化架构，优先保证可落地、可追溯、可管理。</p>
-          <div class="meta">
-            <span class="pill">版本：v0.1</span>
-            <span class="pill">更新时间：2026-06-04</span>
-            <span class="pill">阶段：P1 MVP</span>
-          </div>
+          <p class="summary">终局技术蓝图与 P1 单机落地口径：用 Next.js、Python Worker、PostgreSQL、Pydantic、SQLAlchemy、Alembic 与 LangGraph 支撑编辑部式事件档案生产链路。</p>
         </header>
 
         <section id="purpose">
           <h2>1. 文档目的</h2>
-          <p>本文档用于定义 AI World Radar P1 MVP 的技术架构、模块分工、运行链路和核心数据模型。</p>
-          <p>如果本文档与早期 Agent 系统设计文档存在口径差异，以本文档为最新 P1 技术口径。</p>
+          <p>本文档定义新版技术架构、模块边界、运行链路、Python Worker 内部结构、Pydantic / SQLAlchemy 分层原则、核心数据模型和阶段化工程扩展路径。</p>
+          <p>本文档基于新版 PRD v2.0 与新版 Agent 系统设计 v1.0。若本文档与旧版技术架构、旧版后端 P1 实现计划、旧版 Agent stub 命名存在差异，以本文档和新版 Agent 系统设计为准。</p>
         </section>
 
-        <section id="decisions">
-          <h2>2. 当前核心拍板</h2>
-          <ul>
-            <li>技术栈采用 Next.js + Python Worker + PostgreSQL。</li>
-            <li>P1 暂不引入 FastAPI。</li>
-            <li>P1 不单独建 RawItem 表。</li>
-            <li>P1 不单独建 CandidateEvent 表。</li>
-            <li>P1 不做真实性核验、可信状态标签和事实确认评分。</li>
-            <li>排序采用热度主导 + 重要度兜底 + 中文用户价值修正。</li>
-            <li>所有前台公开展示的事件都必须有详情页。</li>
-            <li>今日简报只从已发布事件中精选。</li>
-          </ul>
+        <section id="conclusion">
+          <h2>2. 核心结论</h2>
+          <pre><code>P1 技术架构：\nNext.js + Python Worker + PostgreSQL\n\nP1 必须使用：\nPydantic / SQLAlchemy / Alembic / LangGraph / LLMClient / pytest\n\nP1 暂不引入：\nFastAPI / Redis / 队列 / 对象存储 / 向量数据库 / 复杂监控</code></pre>
+          <div class="callout">P1 的第一目标是跑通“外部信号 -> Agent 生产事件档案 -> 审稿 -> 发布 -> 前台/后台可查看”的闭环。不要让第一版被三服务架构、队列、缓存和复杂基础设施拖慢。</div>
         </section>
 
         <section id="architecture">
-          <h2>3. P1 技术架构</h2>
-          <pre><code>Next.js Web App
-  -> 前台首页 / 今日简报 / 事件详情页 / 管理页
-  -> 简单 API / Server Action
-
-Python Worker
-  -> Source 采集 / EvidenceCard 生成 / EventCluster 聚合
-  -> ContentArtifact 生成 / QualityGate 检查 / 发布状态写入
-
-PostgreSQL
-  -> 来源配置 / 证据卡 / 事件聚合 / 内容版本
-  -> 发布事件 / 简报 / 运行日志 / 管理操作</code></pre>
-          <p>P1 暂不引入 FastAPI、Redis 队列、微服务拆分、复杂权限系统、embedding 聚类和真实性核验系统。</p>
+          <h2>3. 总体架构</h2>
+          <pre><code>Next.js Web App\n  -> 首页 / 事件雷达页\n  -> 事件详情页\n  -> 后台管理页\n  -> 轻量查询 API / Server Action\n\nPython Worker\n  -> 信息源采集\n  -> 正文缓存\n  -> LangGraph workflow\n  -> 编辑部式 Agent\n  -> Skill / Tool 调用\n  -> Pydantic 结构化校验\n  -> 审稿修订循环\n  -> 发布服务写库\n  -> 运行报告\n\nPostgreSQL\n  -> 业务数据\n  -> 事件状态\n  -> Agent 运行记录\n  -> 后台操作记录</code></pre>
+          <p>Next.js 和 Python Worker 在 P1 阶段不通过 HTTP 服务通信，而是通过 PostgreSQL 协作。P1 不引入 FastAPI，未来复杂任务控制再抽出 FastAPI Agent Service。</p>
         </section>
 
         <section id="modules">
-          <h2>4. 模块分工</h2>
-          <h3>4.1 Next.js</h3>
-          <p>Next.js 负责用户界面和轻量后端接口，包括首页、今日简报、事件详情页、管理页、查询已发布事件、查询简报，以及隐藏、恢复、置顶、排序等管理操作。</p>
-          <h3>4.2 Python Worker</h3>
-          <p>Python Worker 负责后台自动生产链路，包括采集来源、生成 EvidenceCard、聚合 EventCluster、生成 ContentArtifact、执行 Quality Gate、写入 PublishedEvent 和 Brief。</p>
-          <h3>4.3 PostgreSQL</h3>
-          <p>PostgreSQL 是系统唯一主数据存储，保存来源配置、Agent 生产结果、发布状态、简报数据、运行审计和后台操作记录。</p>
+          <h2>4. 模块职责</h2>
+          <h3>Next.js Web App</h3>
+          <p>负责首页、事件详情页、后台管理页、轻量查询 API / Server Action、后台操作写库和重跑请求状态。</p>
+          <h3>Python Worker</h3>
+          <p>负责读取来源、采集和标准化信号、正文缓存、LangGraph workflow、三类主 Agent、Pydantic 校验、审稿修订循环、发布服务写库和本地运行报告。</p>
+          <h3>PostgreSQL</h3>
+          <p>作为系统事实源，保存信息源、信号、候选事件、事件档案、审稿结果、已发布事件、运行记录和后台操作记录。</p>
         </section>
 
-        <section id="flow">
+        <section id="runtime">
           <h2>5. P1 运行链路</h2>
-          <pre><code>Source
--> PipelineRun
--> EvidenceCard
--> EventCluster
--> EventClusterCard
--> ContentArtifact
--> QualityGateResult
--> PublishedEvent
--> Brief / BriefItem</code></pre>
-          <p>管理链路为：Admin Page -> Next.js Action -> 更新 PublishedEvent / ContentArtifact / Brief -> 写入 AdminAction。</p>
+          <pre><code>Source Adapter\n-> source_signals\n-> LangGraph Workflow\n   -> editorial_triage\n   -> merge_and_rank_events\n   -> build_research_package\n   -> draft_event_dossier\n   -> review_event_dossier\n   -> revise_if_needed\n-> Publish Service\n-> published_events\n-> pipeline_runs / agent_runs</code></pre>
+          <pre><code>cd apps/worker\npython scripts/run_event_pipeline.py --source hn --days 7 --limit 100</code></pre>
+        </section>
+
+        <section id="worker">
+          <h2>6. Python Worker 目录结构</h2>
+          <pre><code>apps/worker/worker/\n  config/\n  db/\n  models/\n  schemas/\n  sources/\n  content_store/\n  tools/\n  agents/\n  skills/\n  workflows/\n  services/\n  reports/\n  scripts/\n  tests/</code></pre>
+        </section>
+
+        <section id="pydantic">
+          <h2>7. Pydantic 与 SQLAlchemy 分层</h2>
+          <p>Pydantic 负责 Agent 输入输出、Workflow State、Service DTO、数据库写入前校验和测试 fixture。SQLAlchemy 负责 ORM 模型、字段映射、关系约束、查询和写入。Alembic 负责 migration。</p>
+          <div class="callout">Pydantic schema 不直接等于数据库表；SQLAlchemy model 不直接等于 Agent 输出；Service 层负责把 Pydantic 输出转换成数据库写入。</div>
+        </section>
+
+        <section id="objects">
+          <h2>8. 数据流对象</h2>
+          <pre><code>Source\n-> SourceSignal\n-> EventCandidate\n-> EventDossier\n-> ReviewResult\n-> PublishedEvent</code></pre>
+          <table>
+            <thead><tr><th>旧对象</th><th>新对象</th></tr></thead>
+            <tbody>
+              <tr><td>EvidenceCard</td><td>SourceSignal + AI 理解结果</td></tr>
+              <tr><td>EventCluster</td><td>EventCandidate</td></tr>
+              <tr><td>ContentArtifact</td><td>EventDossier</td></tr>
+              <tr><td>QualityGateResult</td><td>ReviewResult</td></tr>
+              <tr><td>Brief / BriefItem</td><td>P1.5 Brief 能力</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <section id="tables">
-          <h2>6. 数据表总览</h2>
-          <pre><code>sources
-pipeline_runs
-evidence_cards
-event_clusters
-event_cluster_cards
-content_artifacts
-quality_gate_results
-published_events
-briefs
-brief_items
-admin_actions</code></pre>
-          <p>P1 暂不建立 raw_items、candidate_events、raw_snapshots 和 fastapi_jobs。</p>
+          <h2>9. 核心数据表</h2>
+          <pre><code>P1 核心表：\nsources\nsource_signals\nevent_candidates\nevent_candidate_signals\nevent_dossiers\nreview_results\npublished_events\npipeline_runs\nagent_runs\nadmin_actions\n\n终局预留表：\ntool_calls\nbriefs\nbrief_items\nevent_timelines\nuser_subscriptions</code></pre>
+          <p>P1 先不单独建 <code>tool_calls</code>，工具调用记录放入 <code>agent_runs.trace_json</code>。</p>
         </section>
 
-        <section id="sources">
-          <h2>7. sources</h2>
-          <p>记录系统长期采集哪些来源，以及这些来源在发现、热度和重要度上的权重。</p>
+        <section id="table-detail">
+          <h2>10. 表设计</h2>
+          <p>新版表围绕事件生产链路设计，而不是围绕旧 Agent stub 中间产物设计。</p>
           <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>source_id</td><td>来源业务标识，例如 openai_news、github_trending</td></tr>
-            <tr><td>name</td><td>来源名称</td></tr>
-            <tr><td>source_type</td><td>official / platform / newsletter / competitor / community</td></tr>
-            <tr><td>fetch_method</td><td>rss / api / html / github / hn_api</td></tr>
-            <tr><td>url</td><td>来源入口地址</td></tr>
-            <tr><td>enabled</td><td>是否启用</td></tr>
-            <tr><td>discovery_weight</td><td>发现权重</td></tr>
-            <tr><td>heat_signal_weight</td><td>热度信号权重</td></tr>
-            <tr><td>impact_signal_weight</td><td>重要度信号权重</td></tr>
-            <tr><td>capabilities</td><td>来源能力说明，例如是否有发布时间、热度指标、作者、图片</td></tr>
-            <tr><td>last_status</td><td>success / failed / paused / degraded</td></tr>
-          </table>
-          <p>P1 不在 sources 中保存真实性、可信度或事实锚定权重。</p>
-        </section>
-
-        <section id="pipeline-runs">
-          <h2>8. pipeline_runs</h2>
-          <p>记录系统每次自动运行的整体情况。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>pipeline_run_id</td><td>唯一 ID</td></tr>
-            <tr><td>run_type</td><td>scheduled / manual / retry</td></tr>
-            <tr><td>triggered_by</td><td>system / admin</td></tr>
-            <tr><td>status</td><td>running / success / partial_failed / failed</td></tr>
-            <tr><td>started_at / finished_at</td><td>开始与结束时间</td></tr>
-            <tr><td>source_count</td><td>本轮处理来源数</td></tr>
-            <tr><td>evidence_card_count</td><td>生成证据卡数量</td></tr>
-            <tr><td>event_cluster_count</td><td>生成事件聚合数量</td></tr>
-            <tr><td>content_artifact_count</td><td>生成内容产物数量</td></tr>
-            <tr><td>published_event_count</td><td>最终发布事件数量</td></tr>
-            <tr><td>failed_step</td><td>失败步骤</td></tr>
-            <tr><td>error_summary</td><td>错误摘要</td></tr>
+            <thead><tr><th>表</th><th>关键字段方向</th></tr></thead>
+            <tbody>
+              <tr><td>sources</td><td>source_key、source_type、fetch_method、entry_url、enabled、fetch_config、last_status</td></tr>
+              <tr><td>source_signals</td><td>original_title、canonical_url、content_hash、content_cache_path、source_hash、heat_metrics、ai_summary、status</td></tr>
+              <tr><td>event_candidates</td><td>candidate_key、title、category、suggested_angle、heat_score、importance_score、ranking_score、status</td></tr>
+              <tr><td>event_candidate_signals</td><td>candidate_id、signal_id、relation_type、merge_confidence、merge_reason</td></tr>
+              <tr><td>event_dossiers</td><td>candidate_id、version、card_title、card_summary、detail_body、why_it_matters、source_refs、status</td></tr>
+              <tr><td>review_results</td><td>dossier_id、decision、risk_level、issues、revision_instructions、checked_items</td></tr>
+              <tr><td>published_events</td><td>candidate_id、dossier_id、slug、published_title、published_detail_body、status、publish_mode</td></tr>
+              <tr><td>pipeline_runs</td><td>run_key、trigger_type、source_scope、status、counts、summary、error_message</td></tr>
+              <tr><td>agent_runs</td><td>agent_name、agent_role、model_name、input_summary、output_json、trace_json、status</td></tr>
+              <tr><td>admin_actions</td><td>operator、action_type、target_type、target_id、before_snapshot、after_snapshot</td></tr>
+            </tbody>
           </table>
         </section>
 
-        <section id="evidence-cards">
-          <h2>9. evidence_cards</h2>
-          <p>保存来源信号和 AI 理解结果。P1 不单独建 RawItem，因此该表同时保存原始条目摘要和结构化理解。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>evidence_card_id</td><td>唯一 ID</td></tr>
-            <tr><td>pipeline_run_id</td><td>由哪次运行生成</td></tr>
-            <tr><td>source_id</td><td>来自哪个来源</td></tr>
-            <tr><td>original_title / original_url</td><td>原始标题与链接</td></tr>
-            <tr><td>canonical_url</td><td>规范化链接</td></tr>
-            <tr><td>item_type</td><td>article / post / repo / model / video / newsletter_item</td></tr>
-            <tr><td>published_at / discovered_at</td><td>来源发布时间与系统发现时间</td></tr>
-            <tr><td>raw_summary / raw_excerpt</td><td>来源摘要与短摘</td></tr>
-            <tr><td>raw_heat_metrics</td><td>原始热度指标</td></tr>
-            <tr><td>raw_metadata</td><td>来源专属字段</td></tr>
-            <tr><td>claim_summary</td><td>一句话概括内容主张</td></tr>
-            <tr><td>subjects</td><td>涉及主体</td></tr>
-            <tr><td>event_trigger / event_type</td><td>触发点与事件类型</td></tr>
-            <tr><td>heat_clues / impact_clues</td><td>热度与重要度线索</td></tr>
-            <tr><td>suggested_route</td><td>high_heat_candidate / high_impact_candidate / normal_candidate / discarded</td></tr>
-            <tr><td>merge_key_hint</td><td>聚合线索</td></tr>
-            <tr><td>processing_status</td><td>pending / processed / clustered / discarded / failed</td></tr>
-          </table>
-          <p>该表不保存真实性评分、官方确认状态或可信度标签。</p>
+        <section id="idempotency">
+          <h2>11. 幂等与去重</h2>
+          <p>P1 必须保证重复运行不能重复发布同一个事件。建议约束包括 source_key 唯一、source_hash 防重复采集、candidate_key 防重复候选事件、candidate-signal 关联唯一、dossier 版本唯一。</p>
         </section>
 
-        <section id="event-clusters">
-          <h2>10. event_clusters</h2>
-          <p>表示系统内部识别出的事件。</p>
+        <section id="content-store">
+          <h2>12. 正文缓存与对象存储边界</h2>
+          <p>P1 不引入对象存储，先使用本地文件缓存。PostgreSQL 保存 content_hash、content_cache_path、source_hash、摘要和抓取状态。</p>
+          <pre><code>runtime/source-pages/\nruntime/artifacts/\nruntime/pipeline-reports/</code></pre>
+          <p>后续可迁移到 AWS S3、阿里云 OSS、腾讯云 COS、Cloudflare R2 或 MinIO。</p>
+        </section>
+
+        <section id="fastapi">
+          <h2>13. FastAPI 边界</h2>
+          <p>P1 不引入 FastAPI。原因是 P1 不需要 Python 对外提供 HTTP 服务，Next.js 足以承担前台和后台轻量 API，Python Worker 通过 PostgreSQL 协作即可。</p>
+          <p>P1 必须认真设计 Pydantic schema，以便未来 FastAPI 复用。未来需要实时 Agent 服务、任务状态查询、取消任务和重试任务时，再引入 FastAPI。</p>
+        </section>
+
+        <section id="langgraph">
+          <h2>14. LangGraph 与 Agent 集成</h2>
+          <pre><code>collect_signals\nnormalize_signals\neditorial_triage\nmerge_and_rank_events\nbuild_research_package\ndraft_event_dossier\nreview_event_dossier\nrevise_if_needed\npublish_or_manual_review\nrecord_run</code></pre>
+          <p>Workflow State 使用 Pydantic 定义，Agent 输出必须经过 Pydantic 校验。解析失败最多 repair 2 次，仍失败则标记 failed 或 manual_review。</p>
+        </section>
+
+        <section id="services">
+          <h2>15. 服务层设计</h2>
           <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>event_cluster_id</td><td>唯一 ID</td></tr>
-            <tr><td>event_key</td><td>事件业务 key</td></tr>
-            <tr><td>title_hint / summary_hint</td><td>标题与摘要草案</td></tr>
-            <tr><td>primary_subject / subjects</td><td>主要主体与相关主体</td></tr>
-            <tr><td>event_trigger / event_type</td><td>触发点与事件类型</td></tr>
-            <tr><td>category</td><td>展示分类</td></tr>
-            <tr><td>merge_key</td><td>合并 key</td></tr>
-            <tr><td>heat_score / impact_score</td><td>热度分与重要度分</td></tr>
-            <tr><td>audience_value_score</td><td>中文用户价值分</td></tr>
-            <tr><td>ranking_score / ranking_reason</td><td>排序分与排序理由</td></tr>
-            <tr><td>evidence_card_count / source_count</td><td>证据卡数量与来源数量</td></tr>
-            <tr><td>first_seen_at / last_seen_at</td><td>首次发现与最近发现时间</td></tr>
-            <tr><td>cluster_status</td><td>new / ranked / content_pending / content_ready / published / hidden / discarded</td></tr>
-            <tr><td>publish_decision</td><td>publish / hold / discard</td></tr>
-            <tr><td>brief_candidate</td><td>是否建议进入简报候选</td></tr>
+            <thead><tr><th>Service</th><th>职责</th></tr></thead>
+            <tbody>
+              <tr><td>SignalService</td><td>写入和去重 source_signals</td></tr>
+              <tr><td>CandidateService</td><td>创建、更新、归并候选事件</td></tr>
+              <tr><td>DossierService</td><td>保存事件档案版本</td></tr>
+              <tr><td>ReviewService</td><td>保存审稿结果和修订状态</td></tr>
+              <tr><td>PublishService</td><td>将通过审稿的 dossier 发布为 published_event</td></tr>
+              <tr><td>RunLogService</td><td>写入 pipeline_runs 和 agent_runs</td></tr>
+              <tr><td>AdminActionService</td><td>记录后台操作</td></tr>
+            </tbody>
           </table>
         </section>
 
-        <section id="event-cluster-cards">
-          <h2>11. event_cluster_cards</h2>
-          <p>关联 event_clusters 与 evidence_cards，记录一个事件由哪些来源信号组成。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>event_cluster_card_id</td><td>唯一 ID</td></tr>
-            <tr><td>event_cluster_id</td><td>关联事件</td></tr>
-            <tr><td>evidence_card_id</td><td>关联证据卡</td></tr>
-            <tr><td>signal_role</td><td>primary_signal / supporting_signal / heat_signal / duplicate_signal</td></tr>
-            <tr><td>merge_reason</td><td>合并原因</td></tr>
-            <tr><td>added_by</td><td>system / admin</td></tr>
-            <tr><td>is_active</td><td>是否仍然有效</td></tr>
-          </table>
+        <section id="tests">
+          <h2>16. 测试策略</h2>
+          <p>P1 必须有 pytest，覆盖 Pydantic schema、source adapter fixture、content cache、Agent 输出解析、workflow state、service 幂等、pipeline 集成和数据库 migration。网络测试必须用 <code>network</code> marker 标记。</p>
         </section>
 
-        <section id="content-artifacts">
-          <h2>12. content_artifacts</h2>
-          <p>保存 AI 生成出来的内容草稿和历史版本。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>content_artifact_id</td><td>唯一 ID</td></tr>
-            <tr><td>event_cluster_id</td><td>来自哪个事件</td></tr>
-            <tr><td>pipeline_run_id</td><td>由哪次运行生成</td></tr>
-            <tr><td>artifact_type</td><td>event_card / event_detail / brief_item</td></tr>
-            <tr><td>content_version</td><td>内容版本</td></tr>
-            <tr><td>status</td><td>draft / qc_pending / qc_passed / qc_failed / archived</td></tr>
-            <tr><td>title / subtitle / summary</td><td>标题、副标题和短摘要</td></tr>
-            <tr><td>body / body_format</td><td>正文与格式</td></tr>
-            <tr><td>cover_image_url</td><td>封面图</td></tr>
-            <tr><td>evidence_card_ids</td><td>生成依据的证据卡</td></tr>
-            <tr><td>source_refs</td><td>来源引用列表</td></tr>
-            <tr><td>model_name / prompt_version</td><td>生成模型与提示词版本</td></tr>
-          </table>
+        <section id="roadmap">
+          <h2>17. 阶段化工程路线</h2>
+          <h3>P1</h3>
+          <p>Next.js 基础页面、Python Worker 单机命令、PostgreSQL 新核心表、Pydantic、SQLAlchemy、Alembic、LangGraph event pipeline、三类主 Agent 最小实现、本地文件缓存和运行记录。</p>
+          <h3>P1.5</h3>
+          <p>今日简报、更多信息源、embedding 辅助归并、独立 tool_calls 表、更强后台批量操作。</p>
+          <h3>P2</h3>
+          <p>FastAPI Agent Service、任务队列、实时任务状态、事件追问助手、对象存储和更强监控。</p>
+          <h3>P3</h3>
+          <p>个性化订阅、多用户权限、成本监控、复杂告警、深度事实核查和产品级部署。</p>
         </section>
 
-        <section id="quality-gate-results">
-          <h2>13. quality_gate_results</h2>
-          <p>保存内容质检结果。P1 Quality Gate 不做真实性核验，只检查生成质量和工程完整性。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>quality_gate_result_id</td><td>唯一 ID</td></tr>
-            <tr><td>content_artifact_id</td><td>被检查的内容产物</td></tr>
-            <tr><td>event_cluster_id</td><td>对应事件</td></tr>
-            <tr><td>pipeline_run_id</td><td>所属运行</td></tr>
-            <tr><td>gate_version</td><td>质检规则版本</td></tr>
-            <tr><td>status</td><td>passed / warning / failed</td></tr>
-            <tr><td>check_results</td><td>每项检查结果</td></tr>
-            <tr><td>fail_reasons / warning_messages</td><td>失败原因与警告信息</td></tr>
-            <tr><td>recommended_action</td><td>publish / regenerate / manual_review / archive / discard</td></tr>
-            <tr><td>checked_by</td><td>code / llm / mixed</td></tr>
-          </table>
-        </section>
-
-        <section id="published-events">
-          <h2>14. published_events</h2>
-          <p>保存前台当前展示的事件。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>published_event_id</td><td>唯一 ID</td></tr>
-            <tr><td>event_cluster_id</td><td>对应事件</td></tr>
-            <tr><td>card_artifact_id / detail_artifact_id</td><td>当前使用的卡片与详情页内容</td></tr>
-            <tr><td>slug</td><td>前台 URL 标识</td></tr>
-            <tr><td>display_title / display_summary</td><td>前台标题与摘要缓存</td></tr>
-            <tr><td>cover_image_url / category</td><td>封面图与展示分类</td></tr>
-            <tr><td>publish_status</td><td>draft / published / hidden / archived</td></tr>
-            <tr><td>visibility</td><td>public / hidden</td></tr>
-            <tr><td>homepage_rank / ranking_score</td><td>首页排序与排序分</td></tr>
-            <tr><td>is_featured</td><td>是否置顶</td></tr>
-          </table>
-          <p>publish_status = published 的事件必须同时拥有 card_artifact_id 和 detail_artifact_id。</p>
-        </section>
-
-        <section id="briefs">
-          <h2>15. briefs</h2>
-          <p>保存每日简报主信息。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>brief_id</td><td>唯一 ID</td></tr>
-            <tr><td>brief_date</td><td>简报日期</td></tr>
-            <tr><td>title</td><td>简报标题</td></tr>
-            <tr><td>overview</td><td>简报开头概览</td></tr>
-            <tr><td>status</td><td>draft / published / archived</td></tr>
-            <tr><td>item_count</td><td>条目数</td></tr>
-            <tr><td>pipeline_run_id</td><td>由哪次运行生成</td></tr>
-            <tr><td>version</td><td>简报版本</td></tr>
-          </table>
-        </section>
-
-        <section id="brief-items">
-          <h2>16. brief_items</h2>
-          <p>保存简报中的每一条事件。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>brief_item_id</td><td>唯一 ID</td></tr>
-            <tr><td>brief_id</td><td>所属简报</td></tr>
-            <tr><td>published_event_id</td><td>对应已发布事件</td></tr>
-            <tr><td>brief_artifact_id</td><td>对应 artifact_type = brief_item 的内容产物</td></tr>
-            <tr><td>sort_order</td><td>简报内排序</td></tr>
-            <tr><td>section</td><td>简报分区</td></tr>
-            <tr><td>highlight_reason</td><td>入选简报原因</td></tr>
-          </table>
-        </section>
-
-        <section id="admin-actions">
-          <h2>17. admin_actions</h2>
-          <p>记录管理员在可视化后台做过的操作。</p>
-          <table>
-            <tr><th>字段</th><th>含义</th></tr>
-            <tr><td>admin_action_id</td><td>唯一 ID</td></tr>
-            <tr><td>operator</td><td>操作人</td></tr>
-            <tr><td>action_type</td><td>操作类型</td></tr>
-            <tr><td>target_type / target_id</td><td>操作对象类型与 ID</td></tr>
-            <tr><td>reason</td><td>操作原因</td></tr>
-            <tr><td>before_snapshot / after_snapshot</td><td>操作前后快照</td></tr>
-            <tr><td>status</td><td>success / failed</td></tr>
-            <tr><td>related_job_id</td><td>关联异步任务 ID</td></tr>
-          </table>
-        </section>
-
-        <section id="tradeoffs">
-          <h2>18. 关键设计取舍</h2>
-          <ul>
-            <li>P1 不建 RawItem，降低数据模型复杂度。</li>
-            <li>P1 不建 CandidateEvent，候选判断字段放入 evidence_cards。</li>
-            <li>P1 不做真实性系统，Quality Gate 只做生成质量和来源追溯检查。</li>
-            <li>P1 不做 FastAPI，先使用 Next.js + Python Worker + PostgreSQL。</li>
-          </ul>
+        <section id="legacy">
+          <h2>18. 与旧版工程骨架的关系</h2>
+          <p>旧版 <code>apps/worker</code> 工程骨架可参考 HN collector、原文缓存、pytest、pipeline report 和 LLMClient 接入方式，但旧表模型、旧 Agent stub 命名、Brief 优先链路和 EvidenceCard / EventCluster / ContentArtifact 命名需要重构。</p>
         </section>
 
         <section id="next">
           <h2>19. 下一步</h2>
-          <p>技术架构与数据模型确认后，下一阶段建议进入 P1 实现计划与开发任务拆解。</p>
-          <ul>
-            <li>项目目录如何组织。</li>
-            <li>Next.js 与 Python Worker 如何共用数据库。</li>
-            <li>PostgreSQL schema 如何实际落地。</li>
-            <li>Python Worker 第一版先实现哪些 pipeline step。</li>
-            <li>管理页 P1 最小功能如何划分。</li>
-          </ul>
+          <p>本文档确认后，进入 implementation plan 前，应先拆出 P1 技术落地任务：新数据库 migration、Pydantic schema、SQLAlchemy model、LangGraph workflow state、三类主 Agent schema、旧 worker 迁移或重建策略、测试计划与验收记录模板。</p>
         </section>
       </article>
-
-      <p class="footer">AI World Radar 技术架构与数据模型设计 HTML 阅读版</p>
     </main>
   </div>
 </body>
