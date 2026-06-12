@@ -245,6 +245,7 @@ running, succeeded, failed</code></pre>
         <p>旧 HN pipeline 只作为历史参考。旧测试若依赖旧表，应删除或改写，而不是重新引入旧表名。创建 <code>worker/legacy/README.md</code> 说明旧概念不再是实现契约。</p>
         <pre><code>.\.venv\Scripts\python.exe -m pytest -v</code></pre>
         <p>预期：全量测试通过。提交信息：<code>test(worker): align tests with event dossier architecture</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 7 已完成。首次运行 worker 全量测试的真实结果为 <code>collected 31 items / 2 errors</code>，失败文件是 <code>tests/test_hn_event_pipeline.py</code> 与 <code>tests/test_run_hn_pipeline_script.py</code>，共同原因是旧测试或旧脚本导入已移除的 <code>worker.db.models.Brief</code>。处理方式是删除 <code>tests/test_agent_stubs.py</code>、<code>tests/test_hn_event_pipeline.py</code>、<code>tests/test_run_hn_pipeline_script.py</code>，新增 <code>tests/test_legacy_boundaries.py</code> 与 <code>worker/legacy/README.md</code>，将旧 HN pipeline 和旧脚本入口标记为非 P1-1 entrypoints。创建 README 前，legacy 边界测试真实结果为 <code>2 failed</code>，失败原因是 <code>FileNotFoundError: ... worker\legacy\README.md</code>；创建后重跑为 <code>2 passed in 0.05s</code>。最终全量测试为 <code>32 passed in 1.07s</code>。</p>
 
         <h3>Task 8: 验收记录与人工可见证据</h3>
         <p>更新 <code>docs/07-验收与运行/后端P1测试记录.md</code>，必须写清楚测试范围、测试数据、测试命令、测试结果和未覆盖范围。</p>
