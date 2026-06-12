@@ -239,6 +239,7 @@ running, succeeded, failed</code></pre>
         <p>创建 <code>EventService</code>，提供 <code>create_candidate_with_signals</code>、<code>save_dossier</code>、<code>save_review_result</code>、<code>publish_dossier</code>。重复发布同一个 candidate 必须返回同一个 PublishedEvent。</p>
         <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_event_service.py -v</code></pre>
         <p>预期：<code>1 passed</code>。提交信息：<code>feat(worker): add event dossier service</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 6 已完成。测试先行阶段真实失败为 <code>ModuleNotFoundError: No module named 'worker.services.event_service'</code>，<code>1 error during collection</code>。实现 <code>EventService</code> 后重新运行，真实结果为 <code>1 passed in 0.73s</code>。</p>
 
         <h3>Task 7: 旧链路隔离与全量测试恢复</h3>
         <p>旧 HN pipeline 只作为历史参考。旧测试若依赖旧表，应删除或改写，而不是重新引入旧表名。创建 <code>worker/legacy/README.md</code> 说明旧概念不再是实现契约。</p>
