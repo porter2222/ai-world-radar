@@ -1,620 +1,805 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AI World Radar 产品需求文档</title>
+  <title>AI World Radar 产品需求文档 v2.0</title>
   <style>
-    :root {
-      --bg: #f6f7f5;
-      --panel: #ffffff;
-      --text: #202124;
-      --muted: #5f6368;
-      --line: #deded8;
-      --accent: #0f766e;
-      --accent-soft: #e4f4f1;
-      --amber: #9a5b00;
-      --amber-soft: #fff2d6;
-      --blue: #315f86;
-      --blue-soft: #e6f0f8;
-      --code: #f0f1ec;
-      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      margin: 0;
-      color: var(--text);
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
-      line-height: 1.72;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 300px minmax(0, 1fr);
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      padding: 28px 22px;
-      overflow-y: auto;
-      border-right: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.82);
-      backdrop-filter: blur(18px);
-    }
-
-    .brand {
-      margin-bottom: 26px;
-      padding-bottom: 22px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .brand-title {
-      margin: 0 0 6px;
-      font-size: 20px;
-      line-height: 1.2;
-      font-weight: 750;
-      letter-spacing: 0;
-    }
-
-    .brand-subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .nav-title {
-      margin: 0 0 10px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .nav {
-      display: grid;
-      gap: 4px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .nav a {
-      display: block;
-      padding: 8px 10px;
-      color: #3c4043;
-      border-radius: 8px;
-      font-size: 14px;
-      line-height: 1.35;
-    }
-
-    .nav a:hover {
-      color: var(--accent);
-      background: var(--accent-soft);
-    }
-
-    .content {
-      min-width: 0;
-      padding: 48px min(7vw, 88px) 80px;
-    }
-
-    .doc {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .hero {
-      margin-bottom: 32px;
-      padding: 34px 36px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--panel);
-      box-shadow: var(--shadow);
-    }
-
-    .eyebrow {
-      margin: 0 0 10px;
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 750;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    h1 {
-      margin: 0 0 16px;
-      font-size: clamp(30px, 5vw, 50px);
-      line-height: 1.08;
-      letter-spacing: 0;
-    }
-
-    .lead {
-      margin: 0;
-      max-width: 780px;
-      color: #3c4043;
-      font-size: 18px;
-      line-height: 1.75;
-    }
-
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 24px;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 4px 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: #3c4043;
-      background: #fbfbf8;
-      font-size: 13px;
-      line-height: 1.3;
-    }
-
-    section {
-      margin: 0 0 28px;
-      padding: 30px 34px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      background: var(--panel);
-      box-shadow: 0 10px 32px rgba(30, 35, 40, 0.045);
-    }
-
-    h2 {
-      margin: 0 0 16px;
-      font-size: 24px;
-      line-height: 1.25;
-      letter-spacing: 0;
-    }
-
-    h3 {
-      margin: 26px 0 10px;
-      font-size: 18px;
-      line-height: 1.35;
-      letter-spacing: 0;
-    }
-
-    p {
-      margin: 0 0 14px;
-    }
-
-    ul,
-    ol {
-      margin: 0 0 16px;
-      padding-left: 22px;
-    }
-
-    li {
-      margin: 4px 0;
-    }
-
-    blockquote {
-      margin: 18px 0;
-      padding: 16px 18px;
-      border-left: 4px solid var(--accent);
-      border-radius: 8px;
-      background: var(--accent-soft);
-      color: #24413d;
-      font-weight: 650;
-    }
-
-    code {
-      padding: 2px 5px;
-      border-radius: 5px;
-      background: var(--code);
-      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
-      font-size: 0.94em;
-    }
-
-    .note {
-      margin: 16px 0;
-      padding: 14px 16px;
-      border: 1px solid #d7e7e4;
-      border-radius: 10px;
-      background: var(--accent-soft);
-      color: #24413d;
-    }
-
-    .warning {
-      margin: 16px 0;
-      padding: 14px 16px;
-      border: 1px solid #f1d59b;
-      border-radius: 10px;
-      background: var(--amber-soft);
-      color: #5f3a00;
-    }
-
-    .roadmap {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin: 18px 0;
-    }
-
-    .roadmap-card {
-      min-height: 140px;
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fbfbf8;
-    }
-
-    .roadmap-card strong {
-      display: block;
-      margin-bottom: 8px;
-      color: var(--accent);
-      font-size: 15px;
-    }
-
-    .roadmap-card p {
-      margin: 0;
-      color: #3c4043;
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .split {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-      margin: 18px 0 6px;
-    }
-
-    .mini {
-      padding: 16px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fbfbf8;
-    }
-
-    .mini h3 {
-      margin-top: 0;
-    }
-
-    .footer {
-      margin-top: 34px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 13px;
-    }
-
-    @media (max-width: 980px) {
-      .layout {
-        display: block;
-      }
-
-      .sidebar {
-        position: static;
-        height: auto;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .content {
-        padding: 28px 18px 52px;
-      }
-
-      .hero,
-      section {
-        padding: 24px 20px;
-      }
-
-      .roadmap,
-      .split {
-        grid-template-columns: 1fr;
-      }
-    }
+    :root { --bg:#f7f8f6; --panel:#fff; --text:#1f2933; --muted:#60707a; --line:#dde4df; --accent:#0f766e; --accent-soft:#e4f4f1; --code:#f1f3ef; --shadow:0 18px 45px rgba(21,35,45,.08); }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--text); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; line-height:1.72; }
+    a { color:inherit; text-decoration:none; }
+    .layout { display:grid; grid-template-columns:310px minmax(0,1fr); min-height:100vh; }
+    .sidebar { position:sticky; top:0; height:100vh; padding:28px 22px; overflow-y:auto; border-right:1px solid var(--line); background:rgba(255,255,255,.88); backdrop-filter:blur(18px); }
+    .brand { margin-bottom:22px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+    .brand-title { margin:0 0 6px; font-size:20px; line-height:1.25; font-weight:760; letter-spacing:0; }
+    .brand-subtitle { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
+    .nav { display:grid; gap:4px; }
+    .nav-link { display:block; padding:7px 10px; border-radius:7px; color:#374151; font-size:14px; }
+    .nav-link:hover { background:var(--accent-soft); color:var(--accent); }
+    .content { padding:46px min(7vw,84px) 72px; }
+    .doc { max-width:1040px; margin:0 auto; }
+    .hero { padding:34px 36px; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:var(--shadow); }
+    .eyebrow { margin:0 0 10px; color:var(--accent); font-size:13px; font-weight:700; letter-spacing:0; }
+    h1 { margin:0 0 12px; font-size:clamp(30px,4vw,48px); line-height:1.15; letter-spacing:0; }
+    .lead { margin:0; max-width:820px; color:#3f4b53; font-size:17px; }
+    .meta { display:flex; flex-wrap:wrap; gap:10px; margin-top:24px; }
+    .pill { display:inline-flex; align-items:center; min-height:30px; padding:4px 10px; border-radius:7px; background:var(--accent-soft); color:var(--accent); font-size:13px; font-weight:650; }
+    section { margin-top:28px; padding:30px 34px; border:1px solid var(--line); border-radius:8px; background:var(--panel); }
+    h2 { margin:0 0 18px; font-size:25px; line-height:1.3; letter-spacing:0; }
+    h3 { margin:26px 0 10px; font-size:18px; line-height:1.35; letter-spacing:0; }
+    p { margin:10px 0; }
+    ul, ol { margin:10px 0 0; padding-left:22px; }
+    li { margin:6px 0; }
+    blockquote { margin:18px 0; padding:14px 18px; border-left:4px solid var(--accent); border-radius:0 7px 7px 0; background:var(--accent-soft); color:#1f4f4a; font-weight:650; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:14px; }
+    td, th { padding:10px 12px; border:1px solid var(--line); text-align:left; vertical-align:top; }
+    tr:first-child td { background:#eef5f2; color:#213b38; font-weight:700; }
+    code, pre { font-family:"Cascadia Code",Consolas,"Courier New",monospace; background:var(--code); border-radius:6px; }
+    code { padding:2px 5px; }
+    pre { padding:14px 16px; overflow-x:auto; line-height:1.55; white-space:pre-wrap; }
+    .footer { margin:26px 0 0; color:var(--muted); text-align:center; font-size:13px; }
+    @media (max-width:900px) { .layout { grid-template-columns:1fr; } .sidebar { position:static; height:auto; } .content { padding:28px 18px 48px; } .hero, section { padding:24px 20px; } }
   </style>
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">
-        <p class="brand-title">AI World Radar</p>
-        <p class="brand-subtitle">产品需求文档 v0.1<br>P1 MVP 产品需求确认版</p>
+        <p class="brand-title">AI World Radar PRD</p>
+        <p class="brand-subtitle">v2.0 · 事件档案生产与发布优先版</p>
       </div>
-
-      <p class="nav-title">目录</p>
-      <ol class="nav">
-        <li><a href="#purpose">文档目的</a></li>
-        <li><a href="#position">产品定位</a></li>
-        <li><a href="#users">目标用户</a></li>
-        <li><a href="#stories">用户故事</a></li>
-        <li><a href="#paths">用户路径</a></li>
-        <li><a href="#scope">P1 范围</a></li>
-        <li><a href="#pages">核心页面</a></li>
-        <li><a href="#agent">Agent 链路</a></li>
-        <li><a href="#admin">管理页</a></li>
-        <li><a href="#quality">内容质量</a></li>
-        <li><a href="#fallback">失败保护</a></li>
-        <li><a href="#acceptance">验收标准</a></li>
-        <li><a href="#risks">风险约束</a></li>
-        <li><a href="#roadmap">迭代路线</a></li>
-        <li><a href="#conclusion">阶段结论</a></li>
-      </ol>
+      <nav class="nav">
+        <a class="nav-link" href="#sec-1">1. 文档信息</a>
+        <a class="nav-link" href="#sec-2">2. 产品一句话定位</a>
+        <a class="nav-link" href="#sec-3">3. 背景与问题</a>
+        <a class="nav-link" href="#sec-4">4. 目标用户</a>
+        <a class="nav-link" href="#sec-5">5. 产品目标与非目标</a>
+        <a class="nav-link" href="#sec-6">6. P1 范围</a>
+        <a class="nav-link" href="#sec-7">7. 核心概念定义</a>
+        <a class="nav-link" href="#sec-8">8. 用户故事</a>
+        <a class="nav-link" href="#sec-9">9. 页面与功能范围</a>
+        <a class="nav-link" href="#sec-10">10. 首页需求</a>
+        <a class="nav-link" href="#sec-11">11. 事件详情页需求</a>
+        <a class="nav-link" href="#sec-12">12. 后台管理需求</a>
+        <a class="nav-link" href="#sec-13">13. 内容生产规则</a>
+        <a class="nav-link" href="#sec-14">14. 排序与推荐规则</a>
+        <a class="nav-link" href="#sec-15">15. 异常与兜底规则</a>
+        <a class="nav-link" href="#sec-16">16. P1 验收标准</a>
+        <a class="nav-link" href="#sec-17">17. 后续版本规划</a>
+        <a class="nav-link" href="#sec-18">18. 当前阶段结论</a>
+      </nav>
     </aside>
-
     <main class="content">
       <article class="doc">
         <header class="hero">
-          <p class="eyebrow">Product Requirements Document</p>
+          <p class="eyebrow">产品需求文档 · 2026-06-12</p>
           <h1>AI World Radar 产品需求文档</h1>
-          <p class="lead">P1 MVP 的目标是把全球 AI 圈碎片化信息整理成中文用户能快速理解、可以追溯来源、方便继续了解的 AI 事件情报。</p>
+          <p class="lead">面向中文用户的全球 AI 圈事件雷达，把外网和中文公开信息源中的碎片化 AI 信息整理成可快速理解、可追踪、可修正的中文事件档案。</p>
           <div class="meta">
-            <span class="pill">版本：v0.1</span>
-            <span class="pill">更新时间：2026-06-02</span>
-            <span class="pill">阶段：P1 MVP</span>
+            <span class="pill">版本 v2.0</span>
+            <span class="pill">P1：事件档案生产与发布</span>
+            <span class="pill">简报后置到 P1.5</span>
           </div>
         </header>
-
-        <section id="purpose">
-          <h2>1. 文档目的</h2>
-          <p>本文档用于定义 AI World Radar P1 MVP 的产品需求边界、核心用户故事、页面形态、内容形态、Agent 自动生产链路、管理页能力、验收标准与后续迭代路线。</p>
-          <p>本文档只描述产品层面的需求，不进入具体 UI 视觉设计、技术架构、数据模型、Agent 编排方案和部署方案。后续阶段将基于本 PRD 继续拆解信息源策略、Agent 系统设计、技术架构和实现计划。</p>
+        <section>
+        <p>版本：v2.0</p>
+        <p>更新时间：2026-06-12</p>
+        <p>阶段：产品需求重构确认版</p>
+        <p>适用范围：P1 事件档案生产与发布系统</p>
         </section>
-
-        <section id="position">
-          <h2>2. 产品定位</h2>
-          <p>AI World Radar 是一个面向中文 AI 学习型用户的全球 AI 圈事件情报雷达。</p>
-          <p>P1 MVP 的目标不是做“最全 AI 新闻聚合站”，也不是做 AI 工具导航、GitHub Trending 中文版或通用 AI 搜索助手，而是把全球 AI 圈的碎片化信息整理成中文用户能快速理解、可以追溯来源、方便继续了解的 AI 事件情报。</p>
-          <blockquote>用户每天打开 AI World Radar 后，能够在 5 分钟内了解最近全球 AI 圈最值得关注的事件，并知道这些事件为什么值得看、信息来自哪里、哪些内容仍然存在不确定性。</blockquote>
+        <section id="sec-1">
+        <h2>1. 文档信息</h2>
+        <p>本文档用于明确 AI World Radar 的产品定位、目标用户、P1 功能边界、页面范围、内容生产规则、后台管理能力与验收标准，为后续 Agent 系统设计、技术架构设计和工程开发提供需求依据。</p>
+        <p>本版本 PRD 以“事件档案生产与发布”为 P1 核心，不再以“每日简报生成”为 P1 第一目标。简报能力保留，但作为基于已发布事件的后续内容形态，进入 P1.5 规划。</p>
+        <p>本文档只描述产品层需求，不展开具体 UI 视觉设计、数据库表结构、Agent 编排细节、部署方案和代码实现。</p>
         </section>
-
-        <section id="users">
-          <h2>3. 目标用户</h2>
-          <p>P1 主要服务中文 AI 学习型用户，包括 AI 初学者、初级 Agent / LLM 应用开发者、学生、产品新人、独立开发者、AI 爱好者，以及想了解外网 AI 圈动态但不想长期刷外网信息源的人。</p>
-          <p>这类用户的共同特点不是身份，而是需求：想了解全球 AI 圈正在发生什么，想拓宽视野，但没有能力、时间或意愿长期刷 X、YouTube、GitHub、Hacker News、英文 Newsletter 和海外媒体。</p>
-          <p>P1 不优先服务专业投研人员、资深研究员、机构分析师，也不以娱乐化 AI 新闻消费为主要方向。</p>
+        <section id="sec-2">
+        <h2>2. 产品一句话定位</h2>
+        <p>AI World Radar 是一个面向中文用户的全球 AI 圈事件雷达，它从外网和中文公开信息源中发现 AI 圈热点与重要事件，并将碎片化信息整理成中文用户能快速理解、可追踪、可修正的事件档案。</p>
+        <p>关键词：</p>
+        <ul>
+        <li>面向中文用户。</li>
+        <li>全球 AI 圈。</li>
+        <li>事件雷达。</li>
+        <li>碎片化信息整理。</li>
+        <li>快速理解。</li>
+        <li>可追踪。</li>
+        <li>可修正。</li>
+        </ul>
+        <p>AI World Radar 不是普通 AI 新闻聚合站，不是 AI 工具导航站，也不是通用搜索助手。P1 的核心价值是帮助用户发现并理解 AI 圈事件。</p>
         </section>
-
-        <section id="stories">
-          <h2>4. 用户故事</h2>
-          <h3>核心用户故事</h3>
-          <p>作为一个中文 AI 学习型用户，我希望每天打开 AI World Radar 后，能在 5 分钟内看到全球 AI 圈最值得关注的事件，并知道这些事件的来源、基本背景、讨论焦点和为什么值得关注，从而不用自己长期刷外网信息源，也能保持对 AI 圈的基本认知。</p>
-
-          <div class="split">
-            <div class="mini">
-              <h3>快速浏览首页</h3>
-              <p>用户通过封面式事件卡快速扫过最近 AI 圈的重要事件，判断哪些值得点进去看。</p>
-            </div>
-            <div class="mini">
-              <h3>阅读今日简报</h3>
-              <p>用户只阅读今日简报，也能基本理解当天全球 AI 圈的重点事件。</p>
-            </div>
-            <div class="mini">
-              <h3>理解单个事件</h3>
-              <p>用户点击某个事件后，可以看到更完整的背景、发展脉络、讨论焦点、来源和后续关注点。</p>
-            </div>
-            <div class="mini">
-              <h3>维护者人工兜底</h3>
-              <p>维护者可以在 Agent 自动发布后修改、隐藏、恢复、补来源、换图或重新生成某条事件。</p>
-            </div>
-          </div>
+        <section id="sec-3">
+        <h2>3. 背景与问题</h2>
+        <p>全球 AI 圈的信息更新速度很快，重要事件往往分散在公司官网、技术博客、Hacker News、GitHub、X、Reddit、YouTube、AI 新闻站、中文聚合站等多个渠道。对中文用户来说，持续追踪这些来源存在明显成本：信息分散、英文阅读成本高、热点真假和重要性难以判断、同一事件经常被多个平台重复报道，而且普通新闻聚合站通常只提供标题和摘要，较少帮助用户理解事件背景、影响和后续关注点。</p>
+        <p>AI World Radar 希望解决的不是“有没有新闻可看”，而是“用户能不能快速知道近期 AI 圈发生了哪些值得关注的事，并理解这些事为什么值得看”。</p>
+        <p>用户痛点：</p>
+        <ol>
+        <li>信息源太分散：用户很难长期同时关注 HN、GitHub、X、Reddit、YouTube、AI 新闻站等渠道。</li>
+        <li>英文阅读成本高：即使看到原文，也需要额外理解背景和上下文。</li>
+        <li>热点重复且碎片化：同一事件可能出现在多个平台，但用户需要自己拼接完整图景。</li>
+        <li>普通聚合站偏搬运：很多内容只是标题、摘要和翻译，缺少面向中文用户的解释。</li>
+        <li>用户缺少判断入口：不知道哪些事件只是噪音，哪些事件值得深入关注。</li>
+        </ol>
         </section>
-
-        <section id="paths">
-          <h2>5. 用户路径</h2>
-          <ul>
-            <li>首页雷达主路径：打开首页 -> 浏览首页事件雷达 -> 查看事件卡 -> 点击事件详情 -> 阅读事件上下文与信息来源。</li>
-            <li>今日简报路径：打开首页 -> 进入今日简报 -> 阅读当天重点事件 -> 对感兴趣事件点击详情。</li>
-            <li>轻量分类路径：打开首页 -> 点击分类入口 -> 浏览该分类下的事件 -> 点击详情。</li>
-            <li>维护者路径：Agent 自动发布 -> 维护者进入管理页 -> 修改 / 隐藏 / 恢复 / 调整优先级 / 补来源 / 换图 / 重新生成 -> 前台同步更新。</li>
-          </ul>
+        <section id="sec-4">
+        <h2>4. 目标用户</h2>
+        <p>AI World Radar 的目标用户是希望持续了解全球 AI 圈动态，但没有时间或能力长期追踪外网信息源的中文用户。</p>
+        <h3>4.1 中文 AI 学习者</h3>
+        <p>他们正在学习 AI、Agent、LLM、AI 编程、开源项目等内容，希望知道全球 AI 圈正在发生什么，但不想每天主动翻 HN、GitHub、X、Reddit、YouTube 和英文新闻站。</p>
+        <h3>4.2 初级 AI / Agent 开发者</h3>
+        <p>他们具备一定编程基础，想通过真实热点事件了解技术趋势、开源项目、新工具和行业动态，为学习、项目选题和简历积累提供参考。</p>
+        <h3>4.3 AI 产品、运营、投资和行业关注者</h3>
+        <p>他们更关注 AI 公司动态、产品发布、融资上市、模型更新、产业竞争等事件，希望快速扫到重要变化。</p>
+        <p>P1 优先服务中文 AI 学习者和初级 AI / Agent 开发者，兼顾 AI 行业关注者。</p>
         </section>
-
-        <section id="scope">
-          <h2>6. P1 产品范围</h2>
-          <div class="split">
-            <div class="mini">
-              <h3>P1 包含</h3>
-              <ul>
-                <li>匿名公开首页。</li>
-                <li>最近 24 小时滚动事件雷达。</li>
-                <li>封面式首页事件卡。</li>
-                <li>今日简报与事件详情页。</li>
-                <li>图文混排与信息来源展示。</li>
-                <li>Agent 自动内容生产与自动发布。</li>
-                <li>维护者管理页。</li>
-              </ul>
-            </div>
-            <div class="mini">
-              <h3>P1 不包含</h3>
-              <ul>
-                <li>普通用户登录、收藏、订阅、提醒。</li>
-                <li>评论区、社区互动、个性化推荐。</li>
-                <li>AI 追问助手、复杂知识图谱。</li>
-                <li>完整新闻搜索引擎、分钟级实时热榜。</li>
-                <li>多角色审核流、复杂事实核查系统。</li>
-              </ul>
-            </div>
-          </div>
+        <section id="sec-5">
+        <h2>5. 产品目标与非目标</h2>
+        <h3>5.1 产品目标</h3>
+        <ol>
+        <li>发现 AI 圈值得关注的事件</li>
+        </ol>
+        <p>从多个公开信息源中收集 AI 相关信号，识别其中具有热度、重要度或中文用户价值的事件。</p>
+        <ol>
+        <li>将碎片信息合并成事件</li>
+        </ol>
+        <p>把来自不同来源、但指向同一件事的信息合并成一个事件，避免用户看到大量重复内容。</p>
+        <ol>
+        <li>生成中文事件档案</li>
+        </ol>
+        <p>为每个值得展示的事件生成标题、摘要、正文解释、来源链接、后续关注点等内容，让中文用户快速理解。</p>
+        <ol>
+        <li>支持人工修正和发布控制</li>
+        </ol>
+        <p>管理员可以查看、修改、隐藏、退回、重新生成或发布事件，避免完全依赖 AI 自动输出。</p>
+        <ol>
+        <li>保留来源和生产过程记录</li>
+        </ol>
+        <p>事件内容需要保留来源链接和 Agent 运行记录，方便后续追踪、调试和修正。</p>
+        <h3>5.2 产品非目标</h3>
+        <ol>
+        <li>P1 不做通用新闻站。</li>
+        </ol>
+        <p>AI World Radar 只关注 AI 圈相关事件，不扩展到泛科技、财经、社会新闻等通用领域。</p>
+        <ol>
+        <li>P1 不做完整真实性核验系统。</li>
+        </ol>
+        <p>系统会保留来源链接，并避免无来源支撑的确定性表达，但不承诺像专业媒体一样完成深度事实核查。</p>
+        <ol>
+        <li>P1 不做全平台社媒大爬虫。</li>
+        </ol>
+        <p>X、Reddit、YouTube、Facebook 等平台重要，但 P1 可先使用更容易冷启动的信息源，后续再扩展。</p>
+        <ol>
+        <li>P1 不做追问助手。</li>
+        </ol>
+        <p>事件追问助手是有价值的后续能力，但不进入 P1 核心闭环。</p>
+        <ol>
+        <li>P1 不以每日简报为第一核心。</li>
+        </ol>
+        <p>简报能力保留，但应基于已发布事件生成，不作为 P1 第一优先级。</p>
+        <ol>
+        <li>P1 不追求完全自动无人值守。</li>
+        </ol>
+        <p>系统以 AI 自动生产为主，但保留人工后台干预能力。</p>
         </section>
-
-        <section id="pages">
-          <h2>7. 核心页面需求</h2>
-          <h3>首页事件雷达</h3>
-          <p>首页默认展示最近 24 小时滚动窗口内的重点 AI 事件。首页不按“必看 / 可看 / 观察”做硬分区，而是采用混合事件流。系统内部可以保留优先级判断，但前台不把页面切成多个强分区。</p>
-          <p>首页默认展示 Top 12 事件，并支持加载更多。Top 12 不是固定凑满数量；当有效内容不足时，允许展示更少事件，不强行生成低质量内容。</p>
-          <p>首页提供轻量分类入口。分类入口不是固定频道承诺，而是动态浏览辅助；当前窗口内有对应内容时才展示，不展示空分类。</p>
-
-          <h3>首页事件卡</h3>
-          <p>首页事件卡是封面式视觉入口，不承担完整解释任务。事件卡应帮助用户快速判断这是什么事件、大概属于什么方向、是否值得点进去。</p>
-          <ul>
-            <li>标题：14-28 字。</li>
-            <li>辅助说明：0-35 字。</li>
-            <li>建议内容：封面图、标题、可选辅助说明、分类标签、热度或优先级提示、弱化展示的来源或时间提示。</li>
-          </ul>
-
-          <h3>今日简报</h3>
-          <p>今日简报是由事件卡派生出的完整阅读版日报。它不是独立内容源，但需要具备独立阅读价值。用户只阅读今日简报，也应能理解当天全球 AI 圈的主要事件。</p>
-          <p>今日简报使用中国自然日维度，而首页雷达使用最近 24 小时滚动窗口。单事件建议长度为 180-320 字。</p>
-
-          <h3>事件详情页</h3>
-          <p>事件详情页不是简报的加长版，也不是深度文章，而是事件上下文档案。它用于承载简报没有提供的背景、来源、讨论分歧、事件发酵过程和后续关注点。</p>
-          <div class="note">详情页采用“结构化生成，非结构化阅读”的原则：Agent 可以按结构化字段组织素材，但前台不把字段模板、元信息块或表格式结构直接展示给用户。</div>
-          <p>详情页固定包含标题、事件正文和信息来源。详情页可按事件情况条件性包含外网讨论分歧、事件时间线和后续关注。详情页正文建议长度为 500-800 字。</p>
-
-          <h3>图文混排</h3>
-          <p>P1 支持简报和详情页图文混排，但图片是理解增强项，不是装饰封面。优先使用官方发布图、产品截图、GitHub 仓库预览、论文图、YouTube 缩略图、X / 社区热帖截图、公司或项目公开图。没有合适图片时可以纯文本展示。</p>
-
-          <h3>信息来源</h3>
-          <p>P1 的来源展示原则是：轻量可见，详情可追溯，不做显眼来源状态块。首页事件卡不放完整来源列表；今日简报中关键事实可以自然内嵌来源链接；事件详情页底部固定展示“信息来源”，列出 2-5 个可点击来源。</p>
-          <p>竞品网站可以作为线索来源、热度参考源、分类参考源和冷启动补充源，但不能作为正文事实的唯一依据，也不能直接搬运或洗稿竞品正文。</p>
+        <section id="sec-6">
+        <h2>6. P1 范围</h2>
+        <p>P1 的核心目标是跑通“从外部信息信号到已发布事件档案”的完整生产链路。</p>
+        <h3>6.1 P1 包含</h3>
+        <ol>
+        <li>信息源采集</li>
+        </ol>
+        <p>至少接入 1-2 个冷启动信息源，例如 Hacker News Algolia API、GitHub Trending 或少量中文/英文 AI 新闻源。</p>
+        <ol>
+        <li>信号入库</li>
+        </ol>
+        <p>将采集到的外部信息保存为内部信号，记录标题、链接、来源、发布时间、热度数据、正文内容或正文抓取结果。</p>
+        <ol>
+        <li>事件发现与归并</li>
+        </ol>
+        <p>从信号中识别 AI 相关内容，并将指向同一事件的信息合并为一个事件。</p>
+        <ol>
+        <li>事件排序</li>
+        </ol>
+        <p>按热度、重要度、中文用户价值对候选事件排序。</p>
+        <ol>
+        <li>事件档案生成</li>
+        </ol>
+        <p>为候选事件生成面向用户阅读的事件卡和详情内容。</p>
+        <ol>
+        <li>审稿与发布</li>
+        </ol>
+        <p>对生成内容进行基础质量检查，通过后发布到前台；不通过则进入待处理状态。</p>
+        <ol>
+        <li>首页展示</li>
+        </ol>
+        <p>展示已发布事件卡片，支持点击进入详情。</p>
+        <ol>
+        <li>事件详情页</li>
+        </ol>
+        <p>展示事件标题、摘要、正文解释、来源链接、后续关注点等内容。</p>
+        <ol>
+        <li>后台管理</li>
+        </ol>
+        <p>支持查看事件、修改内容、隐藏事件、重新生成、手动发布或退回。</p>
+        <ol>
+        <li>运行记录</li>
+        </ol>
+        <p>记录采集、生成、审稿、发布等关键运行过程，便于调试和后续优化。</p>
+        <h3>6.2 P1 不包含</h3>
+        <ul>
+        <li>完整晨报系统。</li>
+        <li>追问助手。</li>
+        <li>个性化推荐。</li>
+        <li>用户登录与订阅。</li>
+        <li>多用户权限体系。</li>
+        <li>完整事实核查系统。</li>
+        <li>大规模社媒抓取。</li>
+        <li>移动端专项适配。</li>
+        </ul>
+        <p>P1 的完成标志是：用户能打开网站，看到 AI 事件卡，点进去能读懂事件，管理员能在后台控制内容。</p>
         </section>
-
-        <section id="agent">
-          <h2>8. Agent 自动生产链路</h2>
-          <p>P1 系统以 Agent 自动生产为主。Agent 需要完成从碎片信息到中文事件情报的完整生产链路，而不是只做摘要生成。</p>
-          <ol>
-            <li>从多个来源发现候选信息。</li>
-            <li>合并重复信息为同一个事件。</li>
-            <li>判断事件热度、时效性、来源质量和重要性。</li>
-            <li>生成首页事件卡内容。</li>
-            <li>生成今日简报内容。</li>
-            <li>生成事件详情正文。</li>
-            <li>选择或补充相关图片。</li>
-            <li>整理信息来源。</li>
-            <li>自动发布到前台。</li>
-            <li>暴露异常、失败或低置信提示给管理页。</li>
-          </ol>
-          <div class="warning">P1 允许 Agent 自动发布内容，不设置人工前置审核。人工维护不是默认审核流程，而是事后校正机制。</div>
+        <section id="sec-7">
+        <h2>7. 核心概念定义</h2>
+        <h3>7.1 信号 Signal</h3>
+        <p>信号是系统从外部信息源采集到的一条原始或半原始信息。</p>
+        <p>例如：</p>
+        <ul>
+        <li>Hacker News 上的一条热门链接。</li>
+        <li>GitHub Trending 上的一个新项目。</li>
+        <li>AI 新闻站上的一篇新闻。</li>
+        <li>公司官网上的一篇模型发布公告。</li>
+        <li>后续 X / Reddit / YouTube 上的高热讨论。</li>
+        </ul>
+        <p>信号本身不一定能直接展示给用户。它只是系统发现事件的原材料。</p>
+        <h3>7.2 事件 Event</h3>
+        <p>事件是由一个或多个信号归并后形成的一件 AI 圈事情。</p>
+        <p>例如：</p>
+        <ul>
+        <li>OpenAI 发布新模型。</li>
+        <li>Anthropic 更新 Claude Code。</li>
+        <li>某个 AI Agent 开源项目在 GitHub 爆火。</li>
+        <li>NVIDIA 发布新芯片或财报数据。</li>
+        <li>某个 AI 公司融资、上市、收购或核心人物变动。</li>
+        </ul>
+        <p>事件是系统的核心生产单位。</p>
+        <h3>7.3 事件档案 Event Dossier</h3>
+        <p>事件档案是面向用户阅读的事件内容成品。</p>
+        <p>它不是简单摘要，而是对一个事件的中文解释，包括：</p>
+        <ul>
+        <li>标题。</li>
+        <li>一句话总结。</li>
+        <li>首页卡片摘要。</li>
+        <li>详情页正文。</li>
+        <li>为什么值得关注。</li>
+        <li>后续关注点。</li>
+        <li>来源链接。</li>
+        <li>更新时间。</li>
+        </ul>
+        <p>P1 的核心产物就是事件档案。</p>
+        <h3>7.4 已发布事件 Published Event</h3>
+        <p>已发布事件是通过审稿或人工确认后，可以展示在前台首页和详情页的事件档案。</p>
+        <p>不是所有事件都会发布。有些事件会被丢弃、合并、退回重写或暂存。</p>
+        <h3>7.5 简报 Brief</h3>
+        <p>简报是基于一批已发布事件生成的每日或阶段性总结。</p>
+        <p>简报不是 P1 的第一核心。它依赖已发布事件，因此更适合放到 P1.5。</p>
+        <h3>7.6 管理后台 Admin Console</h3>
+        <p>管理后台是维护者管理内容生产结果和监控 Agent 运行链路的地方。</p>
+        <p>管理员可以：</p>
+        <ul>
+        <li>查看候选事件。</li>
+        <li>查看已发布事件。</li>
+        <li>修改标题和正文。</li>
+        <li>隐藏事件。</li>
+        <li>重新生成内容。</li>
+        <li>手动发布。</li>
+        <li>查看运行记录。</li>
+        </ul>
+        <p>系统不是直接把信号展示给用户，而是把信号加工成事件，再把事件加工成事件档案，最终发布给用户。</p>
         </section>
-
-        <section id="admin">
-          <h2>9. 管理页需求</h2>
-          <p>P1 提供面向维护者的管理页，不面向普通用户。管理页目标不是成为完整 CMS，而是为 Agent 自动发布提供最小纠错能力。管理页需要有基础访问保护。</p>
-          <ul>
-            <li>查看今日已发布事件。</li>
-            <li>查看 Agent 生成失败、低置信或异常提示。</li>
-            <li>修改事件标题、首页卡片辅助说明、今日简报内容和事件详情正文。</li>
-            <li>修改或替换图片，修改信息来源链接。</li>
-            <li>隐藏事件、恢复事件、手动调整优先级。</li>
-            <li>触发单条事件重新生成。</li>
-          </ul>
+        <section id="sec-8">
+        <h2>8. 用户故事</h2>
+        <h3>8.1 普通用户故事</h3>
+        <ol>
+        <li>作为中文 AI 关注者，我想在首页看到今天或近期 AI 圈值得关注的事件，从而不用自己翻多个外网来源。</li>
+        <li>作为中文 AI 关注者，我想通过事件卡快速判断这件事是否值得点进去看，从而节省筛选信息的时间。</li>
+        <li>作为中文 AI 关注者，我想点进事件详情后看到中文解释，而不是只看到原文链接或机器翻译摘要。</li>
+        </ol>
+        <h3>8.2 学习型用户故事</h3>
+        <ol>
+        <li>作为 AI 学习者，我想知道某个技术事件为什么重要，从而判断它是否值得我继续学习或关注。</li>
+        <li>作为初级 Agent 开发者，我想看到热门开源项目、工具和技术趋势，从而获得项目选题和学习方向。</li>
+        <li>作为 AI 学习者，我想看到事件来源链接，从而在感兴趣时继续阅读原文。</li>
+        </ol>
+        <h3>8.3 管理员用户故事</h3>
+        <ol>
+        <li>作为维护者，我想查看系统自动生成的候选事件，从而判断哪些内容适合发布。</li>
+        <li>作为维护者，我想修改 AI 生成的标题、摘要和正文，从而避免表达不准或观感不好。</li>
+        <li>作为维护者，我想隐藏、退回或重新生成某个事件，从而控制前台内容质量。</li>
+        <li>作为维护者，我想查看某个事件的来源和生成记录，从而排查内容为什么这样生成。</li>
+        </ol>
+        <p>P1 核心用户故事可以压缩为：</p>
+        <blockquote>用户打开 AI World Radar，能看到值得关注的 AI 事件；点进去后，能用中文快速理解这件事；维护者可以在后台控制这些事件是否发布和如何展示。</blockquote>
         </section>
-
-        <section id="quality">
-          <h2>10. 内容质量标准</h2>
-          <p>P1 内容应以高信息密度、低阅读负担、谨慎表达为原则。</p>
-          <ul>
-            <li>标题不做震惊体，不使用“炸裂”“彻底变天”“史诗级”“全网沸腾”等夸张词。</li>
-            <li>摘要不只复述标题，必须交代一个新增信息点。</li>
-            <li>今日简报必须说明“发生了什么”和“为什么值得看”。</li>
-            <li>详情正文必须补充背景、讨论焦点或不确定性，不能只是把简报扩写。</li>
-            <li>对未确认消息，不能写成确定事实。</li>
-            <li>不把竞品网站正文洗稿成自己的正文。</li>
-            <li>不生成不存在的来源链接、数据、截图或人物言论。</li>
-            <li>不把每件事都拔高成行业趋势。</li>
-            <li>中文表达要像人工编辑整理，不要像模板化 AI 总结。</li>
-          </ul>
+        <section id="sec-9">
+        <h2>9. 页面与功能范围</h2>
+        <p>P1 只保留三个核心页面，避免一开始铺得过大。</p>
+        <h3>9.1 首页 / 事件雷达页</h3>
+        <p>面向普通用户。展示已发布事件卡片，让用户快速扫到近期 AI 圈事件。</p>
+        <p>P1 功能：</p>
+        <ul>
+        <li>查看事件卡列表。</li>
+        <li>按默认排序展示事件。</li>
+        <li>显示事件标题、辅助说明、主分类、信号标签、来源提示、时间提示和可选封面图。</li>
+        <li>点击事件卡进入详情页。</li>
+        <li>展示空状态和加载失败状态。</li>
+        </ul>
+        <h3>9.2 事件详情页</h3>
+        <p>面向普通用户和学习型用户。帮助用户理解某个事件。</p>
+        <p>P1 功能：</p>
+        <ul>
+        <li>查看事件标题。</li>
+        <li>查看一句话总结。</li>
+        <li>查看正文解释。</li>
+        <li>查看为什么值得关注。</li>
+        <li>查看后续关注点。</li>
+        <li>查看来源链接。</li>
+        <li>查看更新时间。</li>
+        </ul>
+        <h3>9.3 后台管理页</h3>
+        <p>面向维护者。用于管理候选事件、已发布事件和 AI 生成内容，同时监控 Agent 生产链路。</p>
+        <p>P1 功能：</p>
+        <ul>
+        <li>查看事件列表。</li>
+        <li>查看事件详情和来源。</li>
+        <li>修改标题、摘要、正文。</li>
+        <li>发布事件。</li>
+        <li>隐藏事件。</li>
+        <li>退回重写。</li>
+        <li>重新生成内容。</li>
+        <li>查看 Agent / 任务运行记录。</li>
+        </ul>
+        <h3>9.4 今日简报页</h3>
+        <p>今日简报页进入 P1.5。简报基于已发布事件生成，不直接从原始信号生成。</p>
         </section>
-
-        <section id="fallback">
-          <h2>11. 最小失败保护</h2>
-          <p>P1 不展开完整工程化候选池与兜底发布机制，但必须具备最小失败保护。</p>
-          <ul>
-            <li>Agent 没有产出有效候选时，不硬生成假内容。</li>
-            <li>生成失败时记录失败原因。</li>
-            <li>管理页能看到失败或低质量提示。</li>
-            <li>维护者可以手动触发重新生成。</li>
-            <li>当天内容不足时，允许首页展示更少事件，而不是强凑 12 条。</li>
-          </ul>
-          <p>工程化候选池、规则爬虫、热度评分、失败重试、发布前异常拦截等能力进入 P1.5。</p>
+        <section id="sec-10">
+        <h2>10. 首页需求</h2>
+        <p>首页的核心目标是让用户在 1-3 分钟内知道近期 AI 圈有哪些值得关注的事件，并判断哪些事件值得点进去看。</p>
+        <p>首页不是文章列表，也不是传统新闻流。它应该更像“AI 事件雷达”。</p>
+        <p>P1 首页只展示已发布事件，不展示原始信号。</p>
+        <h3>10.1 首页事件卡</h3>
+        <p>首页事件卡承担“吸引用户判断是否点开”的职责，不承担完整解释事件的职责。完整解释放在事件详情页。</p>
+        <p>P1 默认采用“平衡版”事件卡结构：</p>
+        <table><tbody>
+        <tr><td>字段</td><td>是否展示</td><td>说明</td></tr>
+        <tr><td>主分类</td><td>展示</td><td>1 个中文主分类</td></tr>
+        <tr><td>事件标题</td><td>展示</td><td>14-28 个中文字符，事件化表达，不照搬原文标题</td></tr>
+        <tr><td>辅助说明</td><td>展示</td><td>20-35 个中文字符，补充一个判断信息点</td></tr>
+        <tr><td>时间提示</td><td>展示</td><td>发布时间、发现时间或更新时间的轻提示</td></tr>
+        <tr><td>来源提示</td><td>展示</td><td>1 个主来源或“等 N 源”，不放完整列表</td></tr>
+        <tr><td>信号标签</td><td>展示</td><td>最多 1 个，如官方更新、多源提及、高热讨论</td></tr>
+        <tr><td>封面图</td><td>可选</td><td>有清晰、相关、可信图片时展示</td></tr>
+        <tr><td>热度/重要度数字</td><td>不展示</td><td>用内部排序和语义标签替代</td></tr>
+        <tr><td>完整来源链</td><td>不展示</td><td>放详情页</td></tr>
+        <tr><td>详细背景/后续关注</td><td>不展示</td><td>放详情页</td></tr>
+        </tbody></table>
+        <p>推荐卡片字段 payload：</p>
+        <pre><code>{
+  &quot;title&quot;: &quot;事件化标题，14-28 个中文字符&quot;,
+  &quot;summary&quot;: &quot;辅助说明，20-35 个中文字符&quot;,
+  &quot;category&quot;: &quot;模型与产品&quot;,
+  &quot;time_hint&quot;: &quot;3 小时前&quot;,
+  &quot;source_hint&quot;: &quot;OpenAI News 等 2 源&quot;,
+  &quot;signal_label&quot;: &quot;官方更新&quot;,
+  &quot;cover_image_url&quot;: &quot;可选，必须来源清晰且事件相关&quot;,
+  &quot;detail_slug&quot;: &quot;点击进入详情页&quot;
+}</code></pre>
+        <p>首页信息层级：</p>
+        <ol>
+        <li>标题：最大权重。</li>
+        <li>辅助说明：第二权重。</li>
+        <li>主分类 + 信号标签：用于扫读筛选。</li>
+        <li>来源提示 + 时间提示：小号弱化展示。</li>
+        <li>图片：有则增强，无则不影响卡片成立。</li>
+        </ol>
+        <p>不建议把热度、来源、时间做得比标题和辅助说明更抢眼。</p>
+        <h3>10.2 首页排序</h3>
+        <p>首页默认按照综合排序展示。综合排序优先考虑热度，同时兼顾重要度和中文用户价值。</p>
+        <p>排序口径：</p>
+        <ol>
+        <li>高热事件优先。</li>
+        <li>官方重磅事件优先。</li>
+        <li>对中文 AI 学习者/开发者有价值的事件优先。</li>
+        <li>重复、低质量、来源不足的事件不进入前台。</li>
+        </ol>
+        <p>P1 不建议在前台展示具体 ranking_score、heat_score、impact_score 等复杂分数。相关分数可用于内部排序和后台排查。</p>
+        <h3>10.3 首页交互与状态</h3>
+        <p>P1 首页交互：</p>
+        <ul>
+        <li>点击事件卡进入事件详情页。</li>
+        <li>P1 可以不做复杂筛选。</li>
+        <li>P1 可以保留分类标签，但不强制做分类筛选。</li>
+        <li>P1 可以不做搜索。</li>
+        </ul>
+        <p>异常状态：</p>
+        <ul>
+        <li>没有事件时，显示空状态，例如“今天还没有生成可发布事件，请稍后再看”。</li>
+        <li>加载失败时，显示错误状态，例如“事件加载失败，请刷新重试”。</li>
+        <li>事件数量少时，不强行补垃圾内容。</li>
+        </ul>
         </section>
-
-        <section id="acceptance">
-          <h2>12. P1 验收标准</h2>
-          <h3>用户侧验收</h3>
-          <ul>
-            <li>用户打开首页后，可以看到最近 24 小时内的 AI 圈重点事件。</li>
-            <li>首页默认展示 12 条以内的封面式事件卡。</li>
-            <li>用户可以点击事件卡进入详情页。</li>
-            <li>用户可以阅读今日简报，并在不点详情的情况下理解当天重点事件。</li>
-            <li>普通用户无需登录即可浏览。</li>
-          </ul>
-          <h3>内容侧验收</h3>
-          <ul>
-            <li>每条事件至少包含标题、分类、时间、详情正文和信息来源。</li>
-            <li>今日简报由事件内容派生，不是独立随笔。</li>
-            <li>详情页正文不是字段堆叠，而是自然语言事件上下文。</li>
-            <li>信息来源必须可点击。</li>
-            <li>对来源不足或未确认内容，不写成确定事实。</li>
-          </ul>
-          <h3>Agent 与管理侧验收</h3>
-          <ul>
-            <li>Agent 可以自动发现候选信息、合并重复信息、排序、生成内容并自动发布。</li>
-            <li>Agent 失败时应保留错误信息或低置信提示，供后台查看。</li>
-            <li>维护者可以编辑标题、摘要、简报、详情、图片和来源。</li>
-            <li>维护者可以隐藏或恢复事件，调整事件优先级，触发单条内容重新生成。</li>
-          </ul>
+        <section id="sec-11">
+        <h2>11. 事件详情页需求</h2>
+        <p>详情页的核心目标是让用户点进一个事件后，不只是看到更长摘要，而是真的理解这件事。</p>
+        <p>详情页展示对象是一个已发布事件档案。</p>
+        <p>详情页建议包含：</p>
+        <ol>
+        <li>事件标题</li>
+        </ol>
+        <p>清楚说明事件本身。</p>
+        <ol>
+        <li>一句话总结</li>
+        </ol>
+        <p>用一句话告诉用户发生了什么。</p>
+        <ol>
+        <li>正文解释</li>
+        </ol>
+        <p>用自然中文解释事件背景、关键信息和可能影响。不要求强结构化排版，但内容生成时可以先按结构化策略组织。</p>
+        <ol>
+        <li>为什么值得关注</li>
+        </ol>
+        <p>说明这个事件对 AI 圈、开发者、产品、行业或学习者的意义。</p>
+        <ol>
+        <li>后续关注</li>
+        </ol>
+        <p>用于说明接下来值得观察的变化，例如是否开源、是否开放 API、是否影响价格、是否被社区采用。</p>
+        <ol>
+        <li>来源链接</li>
+        </ol>
+        <p>展示支撑该事件的来源链接。链接可以来自原始网站、HN、GitHub、官网、竞品新闻站等。</p>
+        <ol>
+        <li>更新时间</li>
+        </ol>
+        <p>告诉用户内容最后更新的时间。</p>
+        <p>详情正文建议控制在 400-800 中文字左右。太短会和首页卡片差不多，用户点进去没有增量；太长会变成资讯长文，生产成本和阅读成本都高。</p>
+        <p>详情页内容原则：</p>
+        <ul>
+        <li>不直接搬运竞品正文。</li>
+        <li>不把单一来源说成确定事实。</li>
+        <li>不做过度预测。</li>
+        <li>面向中文用户解释背景。</li>
+        <li>保留来源链接。</li>
+        <li>有争议或不确定内容要降低确定性表达。</li>
+        </ul>
+        <p>详情页 P1 不做：</p>
+        <ul>
+        <li>追问助手。</li>
+        <li>评论区。</li>
+        <li>收藏。</li>
+        <li>用户登录。</li>
+        <li>个性化推荐。</li>
+        </ul>
         </section>
-
-        <section id="risks">
-          <h2>13. 风险与约束</h2>
-          <ul>
-            <li>内容真实性风险：P1 不承诺事实核查，只要求来源可追溯、未确认内容谨慎表达。</li>
-            <li>信息源覆盖风险：P1 不能保证覆盖全球 AI 圈所有重要事件。</li>
-            <li>版权与转载风险：不直接搬运竞品网站正文，不把竞品文章洗稿成自己的正文。</li>
-            <li>Agent 稳定性风险：P1 只做最小失败保护，工程化候选池放到 P1.5。</li>
-            <li>阅读体验风险：卡片轻、简报中等、详情补上下文，不把结构化字段直接展示给用户。</li>
-            <li>成本风险：P1 以每日和滚动更新为主，不做分钟级实时热榜。</li>
-            <li>定位漂移风险：避免滑向普通 AI 新闻聚合站、工具导航站或 AI 搜索助手。</li>
-          </ul>
+        <section id="sec-12">
+        <h2>12. 后台管理需求</h2>
+        <p>后台管理页是 P1 必须有的，因为这个产品不能完全依赖 AI 自动发布。后台不仅是内容管理工具，也是 Agent 生产链路的监控台。</p>
+        <p>后台的核心目标是让维护者可以看见、控制、修正 AI 生产的事件内容。</p>
+        <h3>12.1 后台管理对象</h3>
+        <ul>
+        <li>候选事件。</li>
+        <li>已发布事件。</li>
+        <li>被隐藏事件。</li>
+        <li>生成失败或待人工处理事件。</li>
+        <li>Agent / 任务运行记录。</li>
+        </ul>
+        <h3>12.2 后台 P1 功能</h3>
+        <ol>
+        <li>查看事件列表</li>
+        </ol>
+        <p>可以看到事件标题、状态、来源数量、生成时间、更新时间。</p>
+        <ol>
+        <li>查看事件详情</li>
+        </ol>
+        <p>可以看到事件内容、来源链接、生成记录。</p>
+        <ol>
+        <li>编辑事件内容</li>
+        </ol>
+        <p>支持修改标题、首页摘要、详情正文、为什么值得关注、后续关注等字段。</p>
+        <ol>
+        <li>发布事件</li>
+        </ol>
+        <p>将通过检查或人工确认的事件发布到前台。</p>
+        <ol>
+        <li>隐藏事件</li>
+        </ol>
+        <p>将不适合展示的事件从前台移除。</p>
+        <ol>
+        <li>退回重写</li>
+        </ol>
+        <p>对质量不好的事件重新进入生成流程。</p>
+        <ol>
+        <li>重新生成内容</li>
+        </ol>
+        <p>调用 Agent 或 LLM 重新生成事件档案内容。</p>
+        <ol>
+        <li>查看运行记录</li>
+        </ol>
+        <p>查看采集、事件归并、内容生成、审稿、发布等关键步骤的运行状态和错误信息。</p>
+        <h3>12.3 运行记录与 Agent 监控</h3>
+        <p>由于 Agent 可能不稳定，P1 后台必须提供运行记录能力。</p>
+        <p>后台运行记录包括：</p>
+        <ol>
+        <li>采集运行记录</li>
+        </ol>
+        <p>记录本次采集来源、数量、成功数、失败数、耗时。</p>
+        <ol>
+        <li>事件归并记录</li>
+        </ol>
+        <p>记录哪些信号被合并成了同一个事件。</p>
+        <ol>
+        <li>Agent 运行记录</li>
+        </ol>
+        <p>记录 Agent 名称、输入摘要、输出结果、状态、错误信息、耗时。</p>
+        <ol>
+        <li>内容生成记录</li>
+        </ol>
+        <p>记录事件卡、详情正文、审稿结果的生成状态。</p>
+        <ol>
+        <li>发布记录</li>
+        </ol>
+        <p>记录事件是自动发布还是人工发布。</p>
+        <ol>
+        <li>人工操作记录</li>
+        </ol>
+        <p>记录管理员修改、隐藏、重新生成、退回、发布等操作。</p>
+        <h3>12.4 事件状态</h3>
+        <p>P1 事件状态建议：</p>
+        <pre><code>candidate：候选事件
+draft：内容草稿
+reviewing：待审稿
+published：已发布
+hidden：已隐藏
+rejected：已拒绝
+failed：生成失败</code></pre>
+        <p>P1 不做多用户权限体系，默认只有维护者自己使用。</p>
+        <p>P1 允许系统自动发布通过审稿 Agent 检查的事件，同时后台保留人工改动和隐藏能力。</p>
         </section>
-
-        <section id="roadmap">
-          <h2>14. 迭代路线</h2>
-          <div class="roadmap">
-            <div class="roadmap-card">
-              <strong>P1</strong>
-              <p>AI 情报雷达 MVP，完成生产和消费闭环。</p>
-            </div>
-            <div class="roadmap-card">
-              <strong>P1.5</strong>
-              <p>工程化候选池与兜底机制，让产品从能跑变得更稳定。</p>
-            </div>
-            <div class="roadmap-card">
-              <strong>P2</strong>
-              <p>事件 AI 追问助手，形成差异化，不只是新闻聚合。</p>
-            </div>
-            <div class="roadmap-card">
-              <strong>P3</strong>
-              <p>个人化与持续关注，包括收藏、订阅、后续提醒。</p>
-            </div>
-          </div>
+        <section id="sec-13">
+        <h2>13. 内容生产规则</h2>
+        <p>AI World Radar 的内容生产目标不是搬运原文，也不是简单翻译，而是基于来源信息生成面向中文用户的事件解释。</p>
+        <p>P1 内容规则：</p>
+        <ol>
+        <li>不直接搬运竞品正文。</li>
+        </ol>
+        <p>可以参考竞品作为信号来源，但不能复制正文，也不能做简单改写搬运。</p>
+        <ol>
+        <li>必须保留来源链接。</li>
+        </ol>
+        <p>每个发布事件都应该能追溯到至少一个来源链接。</p>
+        <ol>
+        <li>标题要清楚，不做夸张标题党。</li>
+        </ol>
+        <p>可以有吸引力，但不能制造来源中没有的信息。</p>
+        <ol>
+        <li>摘要要回答“发生了什么”。</li>
+        </ol>
+        <p>首页摘要或一句话总结应优先说明事件本身，而不是空泛评价。</p>
+        <ol>
+        <li>正文要回答“为什么值得看”。</li>
+        </ol>
+        <p>详情正文需要解释背景、核心变化、对用户可能有什么意义。</p>
+        <ol>
+        <li>不做超出来源支撑的确定性判断。</li>
+        </ol>
+        <p>如果来源只是传闻、爆料、社区讨论，表达上要使用“据称”“有社区讨论认为”“目前仍需观察”等措辞。</p>
+        <ol>
+        <li>允许展示高热争议事件。</li>
+        </ol>
+        <p>即使事件真实性或结论未完全确定，只要有明显热度，也可以进入候选，但表达必须标明不确定性。</p>
+        <ol>
+        <li>面向中文用户改写。</li>
+        </ol>
+        <p>不是逐句翻译英文，而是用中文用户熟悉的表达解释上下文。</p>
+        <ol>
+        <li>详情页内容不必强结构化展示。</li>
+        </ol>
+        <p>可以用结构化策略生成，但最终阅读体验应接近自然文章，而不是表格报告。</p>
+        <p>内容产物分为三类：</p>
+        <ul>
+        <li>首页卡片内容：负责让用户快速判断是否点击。</li>
+        <li>事件详情内容：负责让用户理解事件。</li>
+        <li>后台审稿信息：负责让维护者判断内容是否可靠、是否需要人工处理。</li>
+        </ul>
         </section>
-
-        <section id="conclusion">
-          <h2>15. 当前阶段结论</h2>
-          <p>P1 的核心不是“生成一份 AI 日报”，而是完成一个 Agent 驱动的信息生产与发布闭环。</p>
-          <blockquote>多源信息发现 -> 事件聚合 -> 中文理解生成 -> 图文内容展示 -> 来源可追溯 -> 自动发布 -> 管理页人工兜底。</blockquote>
-          <p>P1 做到这一步后，AI World Radar 就不再只是一个爬虫或新闻列表，而是一个具备真实业务价值、工程闭环和后续差异化空间的 Agent 产品。</p>
+        <section id="sec-14">
+        <h2>14. 排序与推荐规则</h2>
+        <p>P1 默认使用综合排序。综合排序不是单纯按发布时间，也不是单纯按热度，而是综合考虑热度、重要度和中文用户价值。</p>
+        <h3>14.1 排序因素</h3>
+        <ol>
+        <li>热度</li>
+        </ol>
+        <p>事件在外部平台的讨论度、点赞、评论、转发、star、上榜情况等。P1 初期可以来自 HN points/comments、GitHub Trending、来源出现频次等。</p>
+        <ol>
+        <li>重要度</li>
+        </ol>
+        <p>事件本身是否来自重要机构、重要人物或关键产品变化。例如 OpenAI、Anthropic、Google DeepMind、Meta AI、NVIDIA、Hugging Face 等官方发布的重大更新，即使社媒热度暂时不高，也应获得较高优先级。</p>
+        <ol>
+        <li>中文用户价值</li>
+        </ol>
+        <p>事件是否对中文 AI 学习者、开发者、产品关注者有理解或行动价值。例如热门开源项目、Agent 工具、AI 编程产品、模型 API 更新等。</p>
+        <h3>14.2 排序规则</h3>
+        <ol>
+        <li>高热事件优先。</li>
+        <li>官方重大事件优先。</li>
+        <li>对中文用户有学习、开发或行业价值的事件优先。</li>
+        <li>多来源重复出现的事件优先。</li>
+        <li>明显低质量、标题党、纯广告、无正文支撑的内容降权。</li>
+        <li>内容重复的事件合并，不重复展示。</li>
+        </ol>
+        <p>P1 可以在后台保留 heat_score、importance_score、audience_value_score 等分数，但前台不直接展示复杂分数。</p>
+        <p>前台如果要体现排序原因，建议使用轻量标签：</p>
+        <ul>
+        <li>高热讨论。</li>
+        <li>官方更新。</li>
+        <li>开发者关注。</li>
+        <li>多源提及。</li>
+        <li>重大影响。</li>
+        <li>观察中。</li>
+        </ul>
         </section>
-
-        <p class="footer">AI World Radar PRD v0.1 · 2026-06-02</p>
+        <section id="sec-15">
+        <h2>15. 异常与兜底规则</h2>
+        <p>P1 优先保证链路可追踪、失败可定位、内容可人工修正，而不是追求每一步都完全自动正确。</p>
+        <h3>15.1 信息源抓取失败</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>记录失败来源、错误信息和时间。</li>
+        <li>不影响其他来源继续运行。</li>
+        <li>后台运行记录中可查看。</li>
+        </ul>
+        <h3>15.2 正文解析失败</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>保留标题、链接和来源信息。</li>
+        <li>标记为正文缺失。</li>
+        <li>可进入候选，但生成内容时降低优先级。</li>
+        </ul>
+        <h3>15.3 事件归并失败</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>宁可生成多个候选事件，也不要错误合并不相关事件。</li>
+        <li>后台允许人工合并或隐藏。</li>
+        </ul>
+        <h3>15.4 Agent 生成失败</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>记录 Agent 输入摘要、错误信息、失败节点。</li>
+        <li>最多自动重试固定次数。</li>
+        <li>多次失败后进入 failed 状态，等待人工处理。</li>
+        </ul>
+        <h3>15.5 生成内容质量差</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>审稿 Agent 可退回重写。</li>
+        <li>管理员可手动编辑。</li>
+        <li>管理员可重新生成。</li>
+        </ul>
+        <h3>15.6 没有足够可发布事件</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>首页展示空状态或少量事件。</li>
+        <li>不强行发布低质量内容。</li>
+        </ul>
+        <h3>15.7 重复事件</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>系统优先合并为同一事件。</li>
+        <li>已发布后发现重复，后台可隐藏其中一个。</li>
+        </ul>
+        <h3>15.8 管理员没有时间审核</h3>
+        <p>处理方式：</p>
+        <ul>
+        <li>允许通过审稿 Agent 的事件自动发布。</li>
+        <li>后台保留隐藏和修改能力。</li>
+        </ul>
+        </section>
+        <section id="sec-16">
+        <h2>16. P1 验收标准</h2>
+        <h3>16.1 信息采集验收</h3>
+        <ul>
+        <li>系统至少接入 1 个可稳定运行的冷启动信息源。</li>
+        <li>可以采集 AI 相关候选信号。</li>
+        <li>采集结果包含标题、链接、来源、发布时间或采集时间。</li>
+        <li>采集失败不会导致整个流程崩溃。</li>
+        <li>后台或运行记录中可以看到采集成功数、失败数和错误信息。</li>
+        </ul>
+        <p>如果 P1 时间允许，目标可以提升到至少接入 2 个信息源。</p>
+        <h3>16.2 事件生产验收</h3>
+        <ul>
+        <li>系统可以从采集信号中生成候选事件。</li>
+        <li>可以将明显重复或相关的信号合并为同一事件。</li>
+        <li>可以为候选事件生成事件标题、摘要和详情内容。</li>
+        <li>每个事件至少保留一个来源链接。</li>
+        <li>事件可以进入 candidate、draft、reviewing、published、hidden、failed 等状态。</li>
+        </ul>
+        <h3>16.3 内容质量验收</h3>
+        <ul>
+        <li>首页事件卡能让用户看懂这是什么事。</li>
+        <li>详情页能提供比首页更多的信息增量。</li>
+        <li>正文不是原文搬运，也不是简单机器翻译。</li>
+        <li>内容中不出现明显无来源支撑的严重断言。</li>
+        <li>争议或不确定信息使用相对谨慎的表达。</li>
+        </ul>
+        <h3>16.4 发布链路验收</h3>
+        <ul>
+        <li>通过审稿 Agent 检查的事件可以自动发布。</li>
+        <li>管理员可以手动发布事件。</li>
+        <li>管理员可以隐藏已发布事件。</li>
+        <li>被隐藏事件不再出现在前台首页。</li>
+        <li>发布记录可追踪。</li>
+        </ul>
+        <h3>16.5 前台页面验收</h3>
+        <ul>
+        <li>用户可以打开首页看到已发布事件列表。</li>
+        <li>用户可以点击事件卡进入详情页。</li>
+        <li>首页事件卡默认包含标题、20-35 字辅助说明、主分类、来源提示、时间提示、1 个信号标签和可选封面图。</li>
+        <li>详情页可以展示标题、摘要、正文、来源链接、更新时间等信息。</li>
+        <li>首页没有事件时有合理空状态。</li>
+        <li>加载失败时有基础错误提示。</li>
+        </ul>
+        <h3>16.6 后台管理验收</h3>
+        <ul>
+        <li>管理员可以查看候选事件和已发布事件。</li>
+        <li>管理员可以查看事件来源。</li>
+        <li>管理员可以编辑事件标题、摘要、正文。</li>
+        <li>管理员可以发布、隐藏、退回或重新生成事件。</li>
+        <li>管理员可以查看采集、Agent 生成、审稿、发布等运行记录。</li>
+        </ul>
+        <h3>16.7 工程与测试验收</h3>
+        <ul>
+        <li>核心链路有可重复运行的本地命令或脚本。</li>
+        <li>关键流程有测试覆盖。</li>
+        <li>测试记录需要写入验收文档。</li>
+        <li>测试报告要说明测试了什么、用什么数据测、结果是什么。</li>
+        <li>失败场景需要有记录，不允许静默失败。</li>
+        </ul>
+        <p>P1 最终验收一句话：</p>
+        <blockquote>用户能在网站首页看到 AI 事件，点进详情后能读懂事件；系统能从外部来源自动生产事件内容并发布；管理员能在后台查看、修正、隐藏和监控整个生产链路。</blockquote>
+        </section>
+        <section id="sec-17">
+        <h2>17. 后续版本规划</h2>
+        <h3>17.1 P1.5：今日简报</h3>
+        <p>基于已发布事件生成每日简报。简报不直接从原始信号生成，而是从当天或近期已发布事件中筛选和组织。</p>
+        <p>能力包括：</p>
+        <ul>
+        <li>今日重点事件总结。</li>
+        <li>按主题组织事件。</li>
+        <li>生成简报正文。</li>
+        <li>支持后台编辑和发布。</li>
+        </ul>
+        <h3>17.2 P2：事件追问助手</h3>
+        <p>用户进入事件详情页后，可以向内置助手追问该事件。助手基于事件档案、来源材料和相关背景回答，而不是通用聊天。</p>
+        <h3>17.3 P2：更多信息源</h3>
+        <p>扩展 X、Reddit、YouTube、Facebook、更多 GitHub 和 AI 新闻站来源。</p>
+        <h3>17.4 P2：事件追踪</h3>
+        <p>同一个事件后续有新进展时，可以更新事件档案，而不是新发一篇孤立内容。</p>
+        <h3>17.5 P2：更强后台</h3>
+        <p>支持事件合并、人工加来源、人工调整排序、批量发布、批量隐藏。</p>
+        <h3>17.6 P3：个性化与订阅</h3>
+        <p>用户可以订阅自己关心的方向，例如 Agent、AI 编程、开源项目、模型发布、公司动态等。</p>
+        <h3>17.7 P3：深度真实性核验</h3>
+        <p>对重要事件引入更严格的来源交叉验证、官方来源追溯和事实核查标记。</p>
+        <p>版本演进顺序：</p>
+        <blockquote>先做好事件生产，再做好简报组织，再做好追问助手，最后再做个性化和深度核验。</blockquote>
+        </section>
+        <section id="sec-18">
+        <h2>18. 当前阶段结论</h2>
+        <p>AI World Radar P1 的核心不是“生成一份 AI 日报”，而是完成一个 Agent 驱动的事件生产与发布闭环：</p>
+        <blockquote>多源信息发现 -&gt; 事件归并 -&gt; 编辑判断 -&gt; 资料整理 -&gt; 中文事件档案生成 -&gt; 审稿发布 -&gt; 首页与详情页展示 -&gt; 后台监控与人工修正。</blockquote>
+        <p>P1 做到这一步后，AI World Radar 就不再只是一个爬虫或新闻列表，而是一个具备真实业务价值、工程闭环和后续差异化空间的 Agent 产品。</p>
+        </section>
+        <p class="footer">AI World Radar PRD v2.0 · 2026-06-12</p>
       </article>
     </main>
   </div>
