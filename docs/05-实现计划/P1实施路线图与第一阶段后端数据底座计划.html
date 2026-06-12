@@ -227,6 +227,7 @@ running, succeeded, failed</code></pre>
 .\.venv\Scripts\python.exe -m alembic upgrade head
 .\.venv\Scripts\python.exe -m alembic current</code></pre>
         <p>预期：测试通过，Alembic current 输出 <code>202606120001 (head)</code>。提交信息：<code>refactor(worker): rebuild event dossier migration</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 4 已完成。测试先行阶段真实失败为 <code>AttributeError: module 'alembic.context' has no attribute 'config'</code>，<code>1 error during collection</code>。初版 migration 又暴露 SQLite 不支持后置追加外键约束，错误为 <code>No support for ALTER of constraints in SQLite dialect</code>。最终保留 <code>agent_runs.dossier_id</code> 字符串字段但不加数据库级 FK，避免循环外键；重跑结果为 <code>1 passed in 0.80s</code>，Alembic current 输出 <code>202606120001 (head)</code>。</p>
 
         <h3>Task 5: SignalService 与 RunLogService</h3>
         <p>创建 <code>SignalService</code> 和 <code>RunLogService</code>。SignalService 负责来源和信号的幂等写入；RunLogService 负责 pipeline run 和 agent run 记录。</p>

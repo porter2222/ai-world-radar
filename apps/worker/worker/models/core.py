@@ -237,7 +237,7 @@ class AgentRun(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: new_id("arun"))
     pipeline_run_id: Mapped[str] = mapped_column(ForeignKey("pipeline_runs.id"), nullable=False)
     candidate_id: Mapped[str | None] = mapped_column(ForeignKey("event_candidates.id"))
-    dossier_id: Mapped[str | None] = mapped_column(ForeignKey("event_dossiers.id"))
+    dossier_id: Mapped[str | None] = mapped_column(String(64))
     agent_name: Mapped[str] = mapped_column(String(128), nullable=False)
     agent_role: Mapped[str] = mapped_column(String(64), nullable=False)
     model_provider: Mapped[str | None] = mapped_column(String(64))
