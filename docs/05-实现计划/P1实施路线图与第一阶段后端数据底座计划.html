@@ -219,6 +219,7 @@ running, succeeded, failed</code></pre>
         <p>创建 <code>worker/db/base.py</code>、<code>worker/models/core.py</code>、<code>worker/models/__init__.py</code>，并让 <code>worker/db/models.py</code> 只作为兼容 re-export。测试必须断言 10 张新表存在，并且旧主链路表不存在。</p>
         <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_db_models.py tests/test_v1_models.py -v</code></pre>
         <p>预期：<code>4 passed</code>。提交信息：<code>refactor(worker): replace core data models</code>。</p>
+        <p><strong>执行记录（2026-06-12）：</strong>Task 3 已完成。测试先行阶段真实失败为 <code>ModuleNotFoundError: No module named 'worker.models'</code>，<code>2 errors during collection</code>。实现新版 10 张核心表后重新运行，真实结果为 <code>3 passed in 0.46s</code>。偏差说明：计划中的测试代码实际包含 3 个测试函数，<code>4 passed</code> 是示例计数偏差。</p>
 
         <h3>Task 4: Alembic Migration 重建</h3>
         <p>删除旧 migration <code>202606090001_create_p1_core_tables.py</code>，创建新 migration <code>202606120001_create_event_dossier_core_tables.py</code>。修改 <code>env.py</code> 使用 <code>worker.models.Base.metadata</code>。</p>
