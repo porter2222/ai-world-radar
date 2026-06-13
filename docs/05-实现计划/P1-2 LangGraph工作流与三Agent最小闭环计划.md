@@ -485,7 +485,7 @@ git commit -m "feat(worker): add event pipeline agent stubs"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_event_pipeline_tools.py`:
 
@@ -558,7 +558,7 @@ def test_tools_create_publish_flow_and_update_run_counts():
     assert finished_run.failed_count == 0
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -572,7 +572,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.tools'
 ```
 
-- [ ] **Step 3: Implement tools**
+- [x] **Step 3: Implement tools**
 
 Create `EventPipelineTools` with these exact public methods:
 
@@ -587,7 +587,7 @@ Create `EventPipelineTools` with these exact public methods:
 
 Implementation must call P1-1 services rather than writing ORM objects directly, except for final count queries that read current database state.
 
-- [ ] **Step 4: Run test to verify GREEN**
+- [x] **Step 4: Run test to verify GREEN**
 
 Run:
 
@@ -601,7 +601,9 @@ Expected:
 1 passed
 ```
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 4 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_tools.py -v`，真实结果为 `0 items / 1 error`，失败原因是 `ModuleNotFoundError: No module named 'worker.tools'`，RED 成立。新增 `worker/tools/event_pipeline_tools.py` 和 `worker/tools/__init__.py` 后重新运行同一测试，真实结果为 `1 passed in 0.63s`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 

@@ -1,0 +1,282 @@
+from __future__ import annotations
+
+from typing import Any, Literal
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from worker.agents.event_pipeline_agents import (
+    OnDutyEditorAgentStub,
+    ResearchWriterAgentStub,
+    ReviewPublisherAgentStub,
+)
+from worker.models import EventCandidate, EventDossier, PipelineRun, PublishedEvent, SourceSignal
+from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand
+from worker.schemas.run import AgentRunRecord, PipelineRunCreate
+from worker.services.event_service import EventService
+from worker.services.run_log_service import RunLogService
+
+
+class EventPipelineTools:
+    """事件工作流工程工具集合。
+
+    输入：SQLAlchemy Session 和可选三 Agent stub。
+    输出：供 LangGraph 节点调用的受控数据库写入能力。
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        editor: OnDutyEditorAgentStub | None = None,
+        writer: ResearchWriterAgentStub | None = None,
+        reviewer: ReviewPublisherAgentStub | None = None,
+    ):
+        """初始化 tool 适配层。
+
+        输入：调用方管理事务的 Session，以及可替换的确定性 Agent stub。
+        输出：绑定服务层和 Agent stub 的 EventPipelineTools 实例。
+        """
+        self.session = session
+        self.event_service = EventService(session)
+        self.run_log_service = RunLogService(session)
+        self.editor = editor or OnDutyEditorAgentStub()
+        self.writer = writer or ResearchWriterAgentStub()
+        self.reviewer = reviewer or ReviewPublisherAgentStub()
+        self.current_run_id: str | None = None
+
+    def start_run(self, run_key: str, source_scope: dict[str, Any]) -> PipelineRun:
+        """创建本轮 pipeline run。
+
+        输入：run_key 和来源范围快照。
+        输出：已 flush 的 PipelineRun，并把 run_id 保存为后续 tool 默认上下文。
+        """
+        run = self.run_log_service.start_pipeline_run(
+            PipelineRunCreate(
+                run_key=run_key,
+                trigger_type="manual",
+                source_scope=source_scope,
+                status="running",
+                config_snapshot={"pipeline": "p1-2-event-pipeline"},
+            )
+        )
+        self.current_run_id = run.id
+        return run
+
+    def load_signals(self, signal_ids: list[str]) -> list[dict[str, Any]]:
+        """读取并标准化来源信号。
+
+        输入：SourceSignal ID 列表。
+        输出：供 Agent stub 使用的信号 dict 列表；任一 ID 不存在时抛出 ValueError。
+        """
+        signals: list[dict[str, Any]] = []
+        for signal_id in signal_ids:
+            signal = self.session.get(SourceSignal, signal_id)
+            if signal is None:
+                raise ValueError(f"SourceSignal not found for id={signal_id}")
+            if self.current_run_id is not None:
+                signal.pipeline_run_id = self.current_run_id
+            signals.append(self._signal_to_dict(signal))
+        self.session.flush()
+        return signals
+
+    def create_candidate(self, signals: list[dict[str, Any]]) -> EventCandidate:
+        """通过值班编辑 stub 和 EventService 创建候选事件。
+
+        输入：已标准化的来源信号 dict 列表。
+        输出：已写入数据库并关联来源信号的 EventCandidate。
+        """
+        draft = self.editor.triage(signals)
+        candidate = self.event_service.create_candidate_with_signals(
+            draft,
+            signal_ids=[str(signal["id"]) for signal in signals],
+            merge_reason=draft.merge_reason or "",
+        )
+        if self.current_run_id is not None:
+            candidate.created_by_run_id = self.current_run_id
+            self.session.flush()
+        return candidate
+
+    def create_dossier(
+        self,
+        candidate: EventCandidate,
+        signals: list[dict[str, Any]],
+        revision_instructions: str = "",
+    ) -> EventDossier:
+        """通过研究写作 stub 和 EventService 创建事件档案。
+
+        输入：候选事件 ORM、来源信号 dict 列表和可选修订说明。
+        输出：已写入数据库的 EventDossier。
+        """
+        draft = self.writer.draft(self._candidate_to_draft(candidate), signals, revision_instructions)
+        dossier = self.event_service.save_dossier(candidate.id, draft)
+        if self.current_run_id is not None:
+            dossier.generated_by_run_id = self.current_run_id
+            self.session.flush()
+        return dossier
+
+    def review_dossier(self, dossier: EventDossier, revision_count: int = 0):
+        """通过审稿发布 stub 和 EventService 保存审稿结果。
+
+        输入：事件档案 ORM 和当前修订次数。
+        输出：已写入数据库的 ReviewResult。
+        """
+        draft = self.reviewer.review(self._dossier_to_draft(dossier), revision_count=revision_count)
+        review = self.event_service.save_review_result(dossier.id, draft)
+        if self.current_run_id is not None:
+            review.pipeline_run_id = self.current_run_id
+            self.session.flush()
+        return review
+
+    def publish_if_approved(
+        self,
+        candidate_id: str,
+        dossier_id: str,
+        decision: str,
+    ) -> PublishedEvent | None:
+        """按审稿决策发布事件。
+
+        输入：candidate_id、dossier_id 和审稿 decision。
+        输出：当 decision 为 publish 时返回 PublishedEvent，否则返回 None。
+        """
+        if decision != "publish":
+            return None
+        return self.event_service.publish_dossier(
+            PublishEventCommand(candidate_id=candidate_id, dossier_id=dossier_id, publish_mode="auto")
+        )
+
+    def record_agent_result(
+        self,
+        run_id: str,
+        agent_name: str,
+        agent_role: Literal["editor", "writer", "reviewer", "skill"],
+        input_summary: str,
+        output_json: dict[str, Any],
+        candidate_id: str | None = None,
+        dossier_id: str | None = None,
+        retry_count: int = 0,
+    ):
+        """记录一次 Agent stub 输出。
+
+        输入：run_id、Agent 名称/角色、输入摘要、输出 JSON 和可选业务对象 ID。
+        输出：已写入数据库的 AgentRun。
+        """
+        return self.run_log_service.record_agent_run(
+            AgentRunRecord(
+                pipeline_run_id=run_id,
+                candidate_id=candidate_id,
+                dossier_id=dossier_id,
+                agent_name=agent_name,
+                agent_role=agent_role,
+                input_summary=input_summary,
+                output_json=output_json,
+                trace_json={"pipeline": "p1-2-event-pipeline"},
+                status="succeeded",
+                retry_count=retry_count,
+            )
+        )
+
+    def finish_run_with_counts(
+        self,
+        run_id: str,
+        status: str,
+        summary: str,
+        error_message: str | None = None,
+    ) -> PipelineRun:
+        """按最终数据库结果回填并结束 pipeline run。
+
+        输入：run_id、最终状态、摘要和可选错误信息。
+        输出：计数字段与最终入库结果一致的 PipelineRun。
+        """
+        run = self.session.get(PipelineRun, run_id)
+        if run is None:
+            raise ValueError(f"PipelineRun not found for id={run_id}")
+
+        run.signals_count = self._count(SourceSignal.id, SourceSignal.pipeline_run_id == run_id)
+        run.candidates_count = self._count(EventCandidate.id, EventCandidate.created_by_run_id == run_id)
+        run.dossiers_count = self._count(EventDossier.id, EventDossier.generated_by_run_id == run_id)
+        run.published_count = self.session.scalar(
+            select(func.count(PublishedEvent.id))
+            .join(EventDossier, PublishedEvent.dossier_id == EventDossier.id)
+            .where(EventDossier.generated_by_run_id == run_id)
+        ) or 0
+        run.failed_count = 0 if status in {"succeeded", "manual_review"} else 1
+        self.session.flush()
+        return self.run_log_service.finish_pipeline_run(
+            run_id,
+            status=status,
+            summary=summary,
+            error_message=error_message,
+        )
+
+    def _signal_to_dict(self, signal: SourceSignal) -> dict[str, Any]:
+        """把 SourceSignal ORM 转为 Agent 输入。
+
+        输入：SourceSignal ORM 对象。
+        输出：包含来源 key、标题、URL、摘要和热度指标的 dict。
+        """
+        return {
+            "id": signal.id,
+            "source_key": signal.source.source_key,
+            "source_item_id": signal.source_item_id,
+            "original_title": signal.original_title,
+            "original_url": signal.original_url,
+            "canonical_url": signal.canonical_url,
+            "raw_summary": signal.raw_summary,
+            "content_excerpt": signal.content_excerpt,
+            "heat_metrics": signal.heat_metrics,
+            "metadata": signal.metadata_json,
+        }
+
+    def _candidate_to_draft(self, candidate: EventCandidate) -> EventCandidateDraft:
+        """把 EventCandidate ORM 还原为写作 stub 输入。
+
+        输入：EventCandidate ORM 对象。
+        输出：EventCandidateDraft。
+        """
+        return EventCandidateDraft(
+            candidate_key=candidate.candidate_key,
+            title=candidate.title,
+            event_type=candidate.event_type,
+            category=candidate.category,
+            primary_subject=candidate.primary_subject,
+            suggested_angle=candidate.suggested_angle,
+            heat_score=candidate.heat_score,
+            importance_score=candidate.importance_score,
+            audience_value_score=candidate.audience_value_score,
+            ranking_score=candidate.ranking_score,
+            ranking_reason=candidate.ranking_reason or "P1-2 workflow candidate",
+            merge_reason=candidate.merge_reason,
+        )
+
+    def _dossier_to_draft(self, dossier: EventDossier) -> EventDossierDraft:
+        """把 EventDossier ORM 还原为审稿 stub 输入。
+
+        输入：EventDossier ORM 对象。
+        输出：EventDossierDraft。
+        """
+        candidate = self.session.get(EventCandidate, dossier.candidate_id)
+        if candidate is None:
+            raise ValueError(f"EventCandidate not found for id={dossier.candidate_id}")
+        return EventDossierDraft(
+            candidate_key=candidate.candidate_key,
+            card_title=dossier.card_title,
+            card_summary=dossier.card_summary,
+            category=dossier.category,
+            signal_label=dossier.signal_label,
+            cover_image_url=dossier.cover_image_url,
+            detail_title=dossier.detail_title,
+            detail_summary=dossier.detail_summary,
+            detail_body=dossier.detail_body,
+            why_it_matters=dossier.why_it_matters,
+            follow_up_points=dossier.follow_up_points,
+            source_refs=dossier.source_refs,
+            status=dossier.status,
+        )
+
+    def _count(self, column: Any, condition: Any) -> int:
+        """执行简单计数查询。
+
+        输入：计数字段和 where 条件。
+        输出：匹配条件的行数。
+        """
+        return self.session.scalar(select(func.count(column)).where(condition)) or 0
