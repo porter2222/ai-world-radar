@@ -14,7 +14,7 @@ class ReadablePage:
     """网页正文抽取结果。
 
     输入：HTML 解析后的标题、正文和短摘。
-    输出：供缓存和 EvidenceCard 写入使用的轻量结构。
+    输出：供采集层缓存和 SourceSignal 构造使用的轻量结构。
     """
 
     title: str
@@ -27,7 +27,7 @@ class CachedPage:
     """本地缓存写入结果。
 
     输入：缓存路径和正文 hash。
-    输出：供 EvidenceCard 保存缓存指针。
+    输出：供 SourceSignal 保存缓存指针。
     """
 
     cache_path: Path
@@ -39,7 +39,7 @@ class PageFetchResult:
     """原文抓取结果。
 
     输入：URL 抓取、正文抽取和缓存写入后的状态。
-    输出：供 EvidenceAgentStub 构造证据卡，失败时也保留状态和原因。
+    输出：供采集层构造 SourceSignal，失败时也保留状态和原因。
     """
 
     url: str
