@@ -1009,7 +1009,7 @@ git commit -m "chore(worker): guard legacy hn entrypoint"
 - Modify: `docs/00-项目总览/项目状态.md`
 - Modify: `docs/00-项目总览/文档索引.md`
 
-- [ ] **Step 1: Run final verification**
+- [x] **Step 1: Run final verification**
 
 Run:
 
@@ -1033,7 +1033,9 @@ git diff --check has no output
 
 Use the real command output in the docs. Do not write expected-only results.
 
-- [ ] **Step 2: Update test record**
+执行记录：2026-06-13 在 P1-2 Task 8 重新运行最终验收命令。worker 全量测试命令 `.\.venv\Scripts\python.exe -m pytest -v` 的真实结果为 `collected 42 items`，全部测试 `PASSED`，最终 `42 passed in 4.24s`。全新 SQLite smoke 命令 `.\.venv\Scripts\python.exe scripts/run_event_pipeline.py --database-url "sqlite+pysqlite:///scratch/p1_2_final_smoke.sqlite" --create-schema-for-smoke --seed-demo-signal --run-key "manual-p1-2-final-smoke"` 的真实 stdout 为 `{"candidates_count": 1, "dossiers_count": 1, "published_count": 1, "published_event_id": "pub_d93dd4d96833423d8a0fa2fbc9cbdf7b", "run_id": "run_640d994bd08b47de8853396a4388a32b", "signals_count": 1, "status": "succeeded"}`。临时 smoke DB 已删除；`git diff --check` 无输出。
+
+- [x] **Step 2: Update test record**
 
 `docs/07-验收与运行/后端P1测试记录.md` must answer:
 
@@ -1048,7 +1050,9 @@ Use the real command output in the docs. Do not write expected-only results.
 - 哪些范围没有测试。
 - 当前是否可以进入 P1-3。
 
-- [ ] **Step 3: Update plan, status and index**
+执行记录：已在 `docs/07-验收与运行/后端P1测试记录.md` 追加 P1-2 Task 8 最终验收记录，覆盖本次阶段、代码模块、测试数据、真实命令输出、失败修复总览、未覆盖范围和是否可以进入 P1-3。
+
+- [x] **Step 3: Update plan, status and index**
 
 Update:
 
@@ -1062,11 +1066,15 @@ Update:
   - 下一步建议。
 - `docs/00-项目总览/文档索引.md` with the new Markdown and HTML plan.
 
-- [ ] **Step 4: Update HTML reading version**
+执行记录：已将本计划 Task 8 勾选为完成，并更新 `docs/05-实现计划/README.md`、`docs/00-项目总览/项目状态.md`、`docs/00-项目总览/文档索引.md` 的阶段口径。P1-2 当前完成度记录为已完成，下一步建议进入 P1-3 真实 HN / GitHub 采集接入新版 `source_signals`。
+
+- [x] **Step 4: Update HTML reading version**
 
 Update `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.html` so it reflects final status and links to the task sections.
 
-- [ ] **Step 5: Commit final docs**
+执行记录：已更新 `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.html`，HTML 阅读版显示 P1-2 已完成、最终全量测试 `42 passed in 4.24s`，最终 smoke `status=succeeded / published_count=1`。
+
+- [x] **Step 5: Commit final docs**
 
 Commit:
 
@@ -1074,6 +1082,8 @@ Commit:
 git add docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.html docs/05-实现计划/README.md docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md
 git commit -m "docs: record p1-2 workflow acceptance"
 ```
+
+执行记录：Task 8 文档 commit 使用 `docs: record p1-2 workflow acceptance`。提交前复验 `git diff --check` 无输出。
 
 ## 13. 阶段验收标准
 
@@ -1099,11 +1109,13 @@ P1-2 完成时必须满足：
 - 真实 LLM Agent 和 prompt。
 - 复杂事实核验。
 - 前端首页、详情页和后台管理。
-- PostgreSQL 真实临时库 smoke，除非执行代理在 Task 8 额外补充。
+- PostgreSQL 真实临时库 smoke；Task 8 最终 smoke 使用 SQLite 全新临时库。
 - 线上部署和定时调度。
 
 ## 15. 执行交接
 
-执行代理必须从 Task 1 开始按顺序推进。每个 task 都要先写测试、运行 RED 或记录本机已满足原因、再实现、再运行 GREEN、更新文档、单独 commit。
+P1-2 已完成。后续代理应把本文档作为 LangGraph 最小闭环的实现与验收记录，不要从 Task 1 重做，也不要恢复旧 `EvidenceCard / EventCluster / Brief` 主链路。
 
-Plan complete and saved to `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`.
+下一阶段建议进入 P1-3：真实 HN / GitHub 采集接入新版 `source_signals`，再复用 P1-2 的 `scripts/run_event_pipeline.py` 产出 `PublishedEvent`。P1-3 开始前应新增独立实施计划，并继续遵循测试先行、真实命令输出入档、单 task 单提交的流程。
+
+Plan complete and accepted in `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`.
