@@ -347,7 +347,7 @@ git commit -m "feat(worker): define event workflow state"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_event_pipeline_agent_stubs.py`:
 
@@ -419,7 +419,7 @@ def test_reviewer_stub_returns_publish_review_for_complete_dossier():
     assert result.risk_level == "low"
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -433,7 +433,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.agents.event_pipeline_agents'
 ```
 
-- [ ] **Step 3: Implement stubs**
+- [x] **Step 3: Implement stubs**
 
 Implement `apps/worker/worker/agents/event_pipeline_agents.py` with:
 
@@ -450,7 +450,7 @@ Implementation rules:
 - Review returns `revise` when body or source refs are incomplete and `revision_count < 2`。
 - Review returns `manual_review` when incomplete and `revision_count >= 2`。
 
-- [ ] **Step 4: Run test to verify GREEN**
+- [x] **Step 4: Run test to verify GREEN**
 
 Run:
 
@@ -464,7 +464,9 @@ Expected:
 3 passed
 ```
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 3 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_agent_stubs.py -v`，真实结果为 `0 items / 1 error`，失败原因是 `ModuleNotFoundError: No module named 'worker.agents.event_pipeline_agents'`，RED 成立。新增 `worker/agents/event_pipeline_agents.py` 并更新 `worker/agents/__init__.py` 后重新运行同一测试，真实结果为 `3 passed in 0.10s`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 
