@@ -16,3 +16,16 @@ def test_pydantic_is_available():
         name: str
 
     assert SmokeModel(name="ai-world-radar").name == "ai-world-radar"
+
+
+def test_langgraph_is_available():
+    """验证 LangGraph 依赖可以在 worker 环境导入。
+
+    输入：本地 worker 虚拟环境。
+    输出：可以导入 StateGraph，并能创建一个最小 graph builder。
+    """
+    from langgraph.graph import StateGraph
+
+    graph = StateGraph(dict)
+
+    assert graph is not None

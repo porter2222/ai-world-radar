@@ -98,7 +98,7 @@ docs/00-项目总览/文档索引.md
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 在 `apps/worker/tests/test_dependency_imports.py` 追加：
 
@@ -116,7 +116,7 @@ def test_langgraph_is_available():
     assert graph is not None
 ```
 
-- [ ] **Step 2: Run test to verify RED or local pre-satisfied**
+- [x] **Step 2: Run test to verify RED or local pre-satisfied**
 
 Run:
 
@@ -133,7 +133,7 @@ ModuleNotFoundError: No module named 'langgraph'
 
 If this machine already has LangGraph through another dependency path, record the real `passed` output and still add the direct dependency to make migration reproducible.
 
-- [ ] **Step 3: Add dependency**
+- [x] **Step 3: Add dependency**
 
 Modify `apps/worker/pyproject.toml`:
 
@@ -160,7 +160,7 @@ pydantic==2.13.4
 
 `requirements.txt` 中其他已有依赖保持原样，只补齐 P1-1/P1-2 直接依赖，避免不同安装路径得到不同环境。
 
-- [ ] **Step 4: Install and verify GREEN**
+- [x] **Step 4: Install and verify GREEN**
 
 Run:
 
@@ -176,7 +176,9 @@ Expected:
 2 passed
 ```
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 1 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_dependency_imports.py -v`，真实结果为 `1 failed, 1 passed in 0.35s`，失败点是 `test_langgraph_is_available` 抛出 `ModuleNotFoundError: No module named 'langgraph'`，RED 成立。写入 `langgraph==1.2.4` 到 `pyproject.toml` 和 `requirements.txt` 后执行 `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"`，安装日志包含 `Successfully installed ... langgraph-1.2.4 ...`；随后重新运行同一测试，真实结果为 `2 passed in 0.64s`。
+
+- [x] **Step 5: Record and commit**
 
 Update `docs/07-验收与运行/后端P1测试记录.md` with:
 
