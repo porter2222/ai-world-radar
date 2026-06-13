@@ -894,7 +894,7 @@ git commit -m "feat(worker): add event pipeline script"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_legacy_entrypoints.py`:
 
@@ -923,7 +923,7 @@ def test_old_hn_pipeline_entrypoint_fails_fast_with_legacy_message():
     assert "run_event_pipeline.py" in output
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -939,7 +939,7 @@ AssertionError
 
 or an import error from old `worker.pipelines.hn_event_pipeline` because old models no longer exist. Either is valid RED if the script does not yet provide the explicit legacy message.
 
-- [ ] **Step 3: Implement guard**
+- [x] **Step 3: Implement guard**
 
 Rewrite `apps/worker/scripts/run_hn_pipeline.py` as a small fail-fast script:
 
@@ -969,7 +969,7 @@ if __name__ == "__main__":
 
 Update `worker/legacy/README.md` to state that old HN pipeline is historical reference only.
 
-- [ ] **Step 4: Run test and full worker suite**
+- [x] **Step 4: Run test and full worker suite**
 
 Run:
 
@@ -987,7 +987,9 @@ all worker tests passed
 
 Record the exact collected count and duration in `docs/07-验收与运行/后端P1测试记录.md`.
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 7 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_legacy_entrypoints.py -v`，真实结果为 `1 failed in 1.43s`；旧脚本返回非 0，但 stderr 是旧模型 `ImportError: cannot import name 'Brief' from 'worker.db.models'`，没有明确 `legacy` 和 `run_event_pipeline.py` 提示，RED 成立。将 `scripts/run_hn_pipeline.py` 改为 fail-fast legacy guard 并更新 `worker/legacy/README.md` 后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_legacy_boundaries.py tests/test_legacy_entrypoints.py -v`，真实结果为 `3 passed in 0.22s`。随后第一次全量测试为 `1 failed, 41 passed in 4.72s`，失败原因是 legacy README 改写时移除了旧测试要求的精确短语 `not P1-1 entrypoints`；保留该短语并补充 P1-2 说明后，最终全量测试为 `42 passed in 4.37s`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 
