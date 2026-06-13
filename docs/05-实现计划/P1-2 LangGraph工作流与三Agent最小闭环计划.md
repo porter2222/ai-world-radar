@@ -779,7 +779,7 @@ git commit -m "feat(worker): add langgraph event pipeline"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_run_event_pipeline_script.py`:
 
@@ -818,7 +818,7 @@ def test_run_event_pipeline_script_smoke(tmp_path):
     assert summary["published_count"] == 1
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -833,7 +833,7 @@ can't open file
 run_event_pipeline.py
 ```
 
-- [ ] **Step 3: Implement script**
+- [x] **Step 3: Implement script**
 
 Script requirements:
 
@@ -850,7 +850,7 @@ Script requirements:
   - `dossiers_count`
   - `published_count`
 
-- [ ] **Step 4: Run test and manual smoke**
+- [x] **Step 4: Run test and manual smoke**
 
 Run:
 
@@ -873,7 +873,9 @@ Expected smoke stdout:
 
 The exact JSON can contain more keys. Record the real stdout in the test record.
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 6 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`，真实结果为 `1 failed in 0.35s`，失败原因是脚本文件不存在，stderr 包含 `can't open file ... scripts\run_event_pipeline.py`。新增 `scripts/run_event_pipeline.py` 后重新运行同一测试，真实结果为 `1 passed in 2.28s`。随后手动 smoke 运行 `.\.venv\Scripts\python.exe scripts/run_event_pipeline.py --database-url "sqlite+pysqlite:///scratch/p1_2_smoke.sqlite" --create-schema-for-smoke --seed-demo-signal --run-key "manual-p1-2-smoke"`，真实 stdout 为 `{"candidates_count": 1, "dossiers_count": 1, "published_count": 1, "published_event_id": "pub_048cfba2a56843c095a71bb7a9d4bf45", "run_id": "run_b5633712541748b9800f54c603534b66", "signals_count": 1, "status": "succeeded"}`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 
