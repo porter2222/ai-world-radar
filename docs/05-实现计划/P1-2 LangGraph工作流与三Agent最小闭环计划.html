@@ -90,7 +90,7 @@
       <article class="doc">
         <h1>P1-2 LangGraph 工作流与三 Agent 最小闭环计划</h1>
         <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-13 ｜ 阶段：P1-2 implementation plan</p>
-        <p class="meta">当前执行状态：Task 1 至 Task 4 已完成；Task 4 RED 为 <code>ModuleNotFoundError: No module named 'worker.tools'</code>，GREEN 为 <code>1 passed in 0.63s</code>。</p>
+        <p class="meta">当前执行状态：Task 1 至 Task 5 已完成；Task 5 RED 为 <code>ModuleNotFoundError: No module named 'worker.workflows'</code>，GREEN 为 <code>1 passed in 1.14s</code>。</p>
         <blockquote>
           <p><strong>Goal:</strong> 在 P1-1 新版数据底座之上，用 LangGraph 和确定性三 Agent stub 跑通事件档案生产与发布的最小工作流闭环。</p>
         </blockquote>
@@ -144,7 +144,7 @@ apps/worker/tests/test_legacy_entrypoints.py</code></pre>
             <tr><td>Task 2</td><td>Workflow state schema</td><td><code>pytest tests/test_workflow_state.py -v</code></td><td>已完成</td><td><code>feat(worker): define event workflow state</code></td></tr>
             <tr><td>Task 3</td><td>三 Agent 确定性 stub</td><td><code>pytest tests/test_event_pipeline_agent_stubs.py -v</code></td><td>已完成</td><td><code>feat(worker): add event pipeline agent stubs</code></td></tr>
             <tr><td>Task 4</td><td>工程 tool 适配层</td><td><code>pytest tests/test_event_pipeline_tools.py -v</code></td><td>已完成</td><td><code>feat(worker): add event pipeline tools</code></td></tr>
-            <tr><td>Task 5</td><td>LangGraph event pipeline</td><td><code>pytest tests/test_event_pipeline_workflow.py -v</code></td><td>未开始</td><td><code>feat(worker): add langgraph event pipeline</code></td></tr>
+            <tr><td>Task 5</td><td>LangGraph event pipeline</td><td><code>pytest tests/test_event_pipeline_workflow.py -v</code></td><td>已完成</td><td><code>feat(worker): add langgraph event pipeline</code></td></tr>
             <tr><td>Task 6</td><td>新版脚本入口与 smoke</td><td><code>pytest tests/test_run_event_pipeline_script.py -v</code></td><td>未开始</td><td><code>feat(worker): add event pipeline script</code></td></tr>
             <tr><td>Task 7</td><td>旧入口 guard 与全量测试恢复</td><td><code>pytest -v</code></td><td>未开始</td><td><code>chore(worker): guard legacy hn entrypoint</code></td></tr>
             <tr><td>Task 8</td><td>最终验收文档与阶段状态</td><td><code>git diff --check</code></td><td>未开始</td><td><code>docs: record p1-2 workflow acceptance</code></td></tr>

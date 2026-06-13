@@ -622,7 +622,7 @@ git commit -m "feat(worker): add event pipeline tools"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_event_pipeline_workflow.py`:
 
@@ -699,7 +699,7 @@ def test_langgraph_pipeline_publishes_event_and_records_counts():
     assert run.failed_count == 0
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -713,7 +713,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.workflows'
 ```
 
-- [ ] **Step 3: Implement workflow**
+- [x] **Step 3: Implement workflow**
 
 Implement `run_event_pipeline(session, signal_ids, run_key, source_scope=None) -> EventPipelineState`.
 
@@ -745,7 +745,7 @@ P1-2 node behavior:
 - `publish_or_manual_review`：当审稿为 `publish` 时调用 `EventService.publish_dossier`，否则进入 `manual_review`。
 - `record_run`：以最终数据库结果更新 `pipeline_runs` 计数并结束 run。
 
-- [ ] **Step 4: Run test to verify GREEN**
+- [x] **Step 4: Run test to verify GREEN**
 
 Run:
 
@@ -759,7 +759,9 @@ Expected:
 1 passed
 ```
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 5 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_workflow.py -v`，真实结果为 `0 items / 1 error`，失败原因是 `ModuleNotFoundError: No module named 'worker.workflows'`，RED 成立。新增 `worker/workflows/event_pipeline.py` 和 `worker/workflows/__init__.py` 后重新运行同一测试，真实结果为 `1 passed in 1.14s`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 
