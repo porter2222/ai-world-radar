@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-2 LangGraph 工作流与三 Agent 最小闭环计划</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout { display: grid; grid-template-columns: 292px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .brand { margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .brand-title { margin: 0 0 6px; font-size: 20px; line-height: 1.2; font-weight: 750; letter-spacing: 0; }
+    .brand-subtitle { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .nav-title { margin: 0 0 10px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 10px; color: #3c4043; border-radius: 8px; font-size: 14px; line-height: 1.35; }
+    .nav a:hover { background: var(--accent-soft); color: var(--accent); }
+    .content { min-width: 0; padding: 52px 6vw 80px; }
+    .doc { max-width: 980px; margin: 0 auto; padding: 48px 56px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    h1 { margin: 0 0 12px; font-size: 34px; line-height: 1.2; letter-spacing: 0; }
+    h2 { margin: 44px 0 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 24px; line-height: 1.3; letter-spacing: 0; }
+    h3 { margin: 30px 0 10px; font-size: 18px; line-height: 1.4; letter-spacing: 0; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 6px 0; }
+    blockquote { margin: 18px 0; padding: 14px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; }
+    code { padding: 2px 5px; background: var(--code); border-radius: 5px; font-family: Consolas, "SFMono-Regular", monospace; font-size: 0.92em; }
+    pre { overflow-x: auto; margin: 14px 0; padding: 16px; background: #202124; color: #f5f5f5; border-radius: 8px; line-height: 1.55; }
+    pre code { padding: 0; background: transparent; color: inherit; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+    th, td { padding: 10px 12px; border: 1px solid var(--line); vertical-align: top; }
+    th { background: #f1f3ef; text-align: left; }
+    .meta { color: var(--muted); font-size: 14px; }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar { position: relative; width: 100%; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      .content { padding: 28px 18px 52px; }
+      .doc { padding: 30px 22px; }
+      h1 { font-size: 28px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1 class="brand-title">AI World Radar</h1>
+        <p class="brand-subtitle">P1-2 LangGraph 工作流与三 Agent 最小闭环计划</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#stage">当前阶段</a></li>
+        <li><a href="#scope">阶段边界</a></li>
+        <li><a href="#files">文件结构</a></li>
+        <li><a href="#tasks">任务拆解</a></li>
+        <li><a href="#acceptance">验收标准</a></li>
+        <li><a href="#handoff">执行交接</a></li>
+      </ol>
+    </aside>
+    <main class="content">
+      <article class="doc">
+        <h1>P1-2 LangGraph 工作流与三 Agent 最小闭环计划</h1>
+        <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-13 ｜ 阶段：P1-2 implementation plan</p>
+        <blockquote>
+          <p><strong>Goal:</strong> 在 P1-1 新版数据底座之上，用 LangGraph 和确定性三 Agent stub 跑通事件档案生产与发布的最小工作流闭环。</p>
+        </blockquote>
+
+        <h2 id="stage">1. 当前阶段</h2>
+        <p>P1-1 已完成新版后端数据底座。P1-2 不恢复旧 HN pipeline，也不直接接真实 LLM，而是把 P1-1 的数据底座放进可运行的 LangGraph 工作流骨架里。</p>
+        <pre><code>SourceSignal
+-&gt; EventCandidate
+-&gt; EventDossier
+-&gt; ReviewResult
+-&gt; PublishedEvent</code></pre>
+
+        <h2 id="scope">2. 阶段边界</h2>
+        <h3>负责</h3>
+        <ul>
+          <li>引入 <code>langgraph==1.2.4</code>。</li>
+          <li>定义 workflow state schema。</li>
+          <li>新增值班编辑、研究写作、审稿发布三类确定性 Agent stub。</li>
+          <li>建立工程 tool 适配层，封装 P1-1 服务层。</li>
+          <li>实现 LangGraph event pipeline 和新版脚本入口。</li>
+          <li>对旧 <code>run_hn_pipeline.py</code> 做 legacy guard。</li>
+          <li>更新测试记录、项目状态、文档索引和 HTML 阅读版。</li>
+        </ul>
+        <h3>不负责</h3>
+        <ul>
+          <li>不接真实 LLM Agent、prompt、repair prompt 或 tool-calling。</li>
+          <li>不做 HN / GitHub 真实采集接入，这属于 P1-3。</li>
+          <li>不开发 FastAPI、Next.js 前端、后台 UI、Redis、队列、对象存储、向量数据库。</li>
+          <li>不恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</li>
+        </ul>
+
+        <h2 id="files">3. 文件结构</h2>
+        <pre><code>apps/worker/worker/schemas/workflow.py
+apps/worker/worker/agents/event_pipeline_agents.py
+apps/worker/worker/tools/event_pipeline_tools.py
+apps/worker/worker/workflows/event_pipeline.py
+apps/worker/scripts/run_event_pipeline.py
+apps/worker/scripts/run_hn_pipeline.py
+apps/worker/tests/test_workflow_state.py
+apps/worker/tests/test_event_pipeline_agent_stubs.py
+apps/worker/tests/test_event_pipeline_tools.py
+apps/worker/tests/test_event_pipeline_workflow.py
+apps/worker/tests/test_run_event_pipeline_script.py
+apps/worker/tests/test_legacy_entrypoints.py</code></pre>
+
+        <h2 id="tasks">4. 任务拆解</h2>
+        <table>
+          <thead><tr><th>Task</th><th>目标</th><th>核心验证</th><th>提交</th></tr></thead>
+          <tbody>
+            <tr><td>Task 1</td><td>LangGraph 依赖与导入边界</td><td><code>pytest tests/test_dependency_imports.py -v</code></td><td><code>chore(worker): add langgraph dependency</code></td></tr>
+            <tr><td>Task 2</td><td>Workflow state schema</td><td><code>pytest tests/test_workflow_state.py -v</code></td><td><code>feat(worker): define event workflow state</code></td></tr>
+            <tr><td>Task 3</td><td>三 Agent 确定性 stub</td><td><code>pytest tests/test_event_pipeline_agent_stubs.py -v</code></td><td><code>feat(worker): add event pipeline agent stubs</code></td></tr>
+            <tr><td>Task 4</td><td>工程 tool 适配层</td><td><code>pytest tests/test_event_pipeline_tools.py -v</code></td><td><code>feat(worker): add event pipeline tools</code></td></tr>
+            <tr><td>Task 5</td><td>LangGraph event pipeline</td><td><code>pytest tests/test_event_pipeline_workflow.py -v</code></td><td><code>feat(worker): add langgraph event pipeline</code></td></tr>
+            <tr><td>Task 6</td><td>新版脚本入口与 smoke</td><td><code>pytest tests/test_run_event_pipeline_script.py -v</code></td><td><code>feat(worker): add event pipeline script</code></td></tr>
+            <tr><td>Task 7</td><td>旧入口 guard 与全量测试恢复</td><td><code>pytest -v</code></td><td><code>chore(worker): guard legacy hn entrypoint</code></td></tr>
+            <tr><td>Task 8</td><td>最终验收文档与阶段状态</td><td><code>git diff --check</code></td><td><code>docs: record p1-2 workflow acceptance</code></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="acceptance">5. 验收标准</h2>
+        <ul>
+          <li><code>langgraph==1.2.4</code> 是 worker 直接依赖。</li>
+          <li><code>EventPipelineState</code> 能表达 run、signals、candidate、dossier、review、published event、当前节点、修订次数和最终状态。</li>
+          <li>三 Agent stub 输出 P1-1 schema 兼容 payload。</li>
+          <li>LangGraph workflow 首跑可以从预置 <code>SourceSignal</code> 生成 <code>PublishedEvent</code>。</li>
+          <li><code>pipeline_runs</code> 计数字段与最终入库结果一致。</li>
+          <li><code>agent_runs</code> 至少记录 editor、writer、reviewer 三类 stub 调用。</li>
+          <li>新脚本入口是 <code>scripts/run_event_pipeline.py</code>，旧入口有明确 legacy guard。</li>
+          <li>worker 全量 pytest 通过，测试记录写清真实命令、真实输出、测试数据、失败修复和未覆盖范围。</li>
+        </ul>
+
+        <h2 id="handoff">6. 执行交接</h2>
+        <p>执行代理必须从 Task 1 开始按顺序推进。每个 task 都要先写测试、运行 RED 或记录本机已满足原因、再实现、再运行 GREEN、更新文档、单独 commit。</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
