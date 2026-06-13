@@ -204,7 +204,7 @@ git commit -m "chore(worker): add langgraph dependency"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/worker/tests/test_workflow_state.py`:
 
@@ -251,7 +251,7 @@ def test_workflow_state_rejects_unknown_fields():
         EventPipelineState(unexpected=True)
 ```
 
-- [ ] **Step 2: Run test to verify RED**
+- [x] **Step 2: Run test to verify RED**
 
 Run:
 
@@ -265,7 +265,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.schemas.workflow'
 ```
 
-- [ ] **Step 3: Implement schema**
+- [x] **Step 3: Implement schema**
 
 Create `apps/worker/worker/schemas/workflow.py`:
 
@@ -312,7 +312,7 @@ Modify `apps/worker/worker/schemas/__init__.py` to export:
 from worker.schemas.workflow import EventPipelineState, EventPipelineStatus
 ```
 
-- [ ] **Step 4: Run test to verify GREEN**
+- [x] **Step 4: Run test to verify GREEN**
 
 Run:
 
@@ -326,7 +326,9 @@ Expected:
 2 passed
 ```
 
-- [ ] **Step 5: Record and commit**
+执行记录：2026-06-13 在 P1-2 Task 2 首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_workflow_state.py -v`，真实结果为 `0 items / 1 error`，失败原因是 `ModuleNotFoundError: No module named 'worker.schemas.workflow'`，RED 成立。新增 `worker/schemas/workflow.py` 并在 `worker/schemas/__init__.py` 导出后重新运行同一测试，真实结果为 `2 passed in 0.10s`。
+
+- [x] **Step 5: Record and commit**
 
 Commit:
 

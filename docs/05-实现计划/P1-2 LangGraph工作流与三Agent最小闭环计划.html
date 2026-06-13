@@ -90,7 +90,7 @@
       <article class="doc">
         <h1>P1-2 LangGraph 工作流与三 Agent 最小闭环计划</h1>
         <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-13 ｜ 阶段：P1-2 implementation plan</p>
-        <p class="meta">当前执行状态：Task 1 LangGraph 依赖与导入边界已完成；RED 为 <code>ModuleNotFoundError: No module named 'langgraph'</code>，GREEN 为 <code>2 passed in 0.64s</code>。</p>
+        <p class="meta">当前执行状态：Task 1 和 Task 2 已完成；Task 2 RED 为 <code>ModuleNotFoundError: No module named 'worker.schemas.workflow'</code>，GREEN 为 <code>2 passed in 0.10s</code>。</p>
         <blockquote>
           <p><strong>Goal:</strong> 在 P1-1 新版数据底座之上，用 LangGraph 和确定性三 Agent stub 跑通事件档案生产与发布的最小工作流闭环。</p>
         </blockquote>
@@ -141,7 +141,7 @@ apps/worker/tests/test_legacy_entrypoints.py</code></pre>
           <thead><tr><th>Task</th><th>目标</th><th>核心验证</th><th>状态</th><th>提交</th></tr></thead>
           <tbody>
             <tr><td>Task 1</td><td>LangGraph 依赖与导入边界</td><td><code>pytest tests/test_dependency_imports.py -v</code></td><td>已完成</td><td><code>chore(worker): add langgraph dependency</code></td></tr>
-            <tr><td>Task 2</td><td>Workflow state schema</td><td><code>pytest tests/test_workflow_state.py -v</code></td><td>未开始</td><td><code>feat(worker): define event workflow state</code></td></tr>
+            <tr><td>Task 2</td><td>Workflow state schema</td><td><code>pytest tests/test_workflow_state.py -v</code></td><td>已完成</td><td><code>feat(worker): define event workflow state</code></td></tr>
             <tr><td>Task 3</td><td>三 Agent 确定性 stub</td><td><code>pytest tests/test_event_pipeline_agent_stubs.py -v</code></td><td>未开始</td><td><code>feat(worker): add event pipeline agent stubs</code></td></tr>
             <tr><td>Task 4</td><td>工程 tool 适配层</td><td><code>pytest tests/test_event_pipeline_tools.py -v</code></td><td>未开始</td><td><code>feat(worker): add event pipeline tools</code></td></tr>
             <tr><td>Task 5</td><td>LangGraph event pipeline</td><td><code>pytest tests/test_event_pipeline_workflow.py -v</code></td><td>未开始</td><td><code>feat(worker): add langgraph event pipeline</code></td></tr>
