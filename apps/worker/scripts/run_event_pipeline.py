@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from worker.db.session import create_worker_engine
-from worker.models import Base, PipelineRun
+from worker.models import Base, PipelineRun, Source, SourceSignal
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
@@ -25,6 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-key", default=None, help="本轮 pipeline run key。")
     parser.add_argument("--create-schema-for-smoke", action="store_true", help="仅本地 smoke 使用：直接 create_all。")
     parser.add_argument("--seed-demo-signal", action="store_true", help="写入一条 demo SourceSignal 后运行。")
+    parser.add_argument("--source-key", default=None, help="从已入库 source_signals 中按 source_key 选择信号。")
+    parser.add_argument("--limit", type=int, default=1, help="按 source_key 选择信号时的最大数量。")
     return parser.parse_args()
 
 
@@ -42,15 +44,22 @@ def main() -> int:
     session_factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     session = session_factory()
     try:
-        signal_ids = seed_demo_signal(session) if args.seed_demo_signal else []
+        signal_ids = []
+        source_scope = {"source": "manual"}
+        if args.seed_demo_signal:
+            signal_ids.extend(seed_demo_signal(session))
+            source_scope = {"source": "demo"}
+        if args.source_key:
+            signal_ids.extend(load_signal_ids_by_source_key(session, source_key=args.source_key, limit=args.limit))
+            source_scope = {"source": args.source_key}
         if not signal_ids:
-            raise ValueError("No signal_ids available. Use --seed-demo-signal for local smoke.")
+            raise ValueError("No signal_ids available. Use --seed-demo-signal or --source-key.")
         run_key = args.run_key or f"manual-p1-2-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
         state = run_event_pipeline(
             session,
             signal_ids=signal_ids,
             run_key=run_key,
-            source_scope={"source": "demo" if args.seed_demo_signal else "manual"},
+            source_scope=source_scope,
         )
         session.commit()
 
@@ -103,6 +112,22 @@ def seed_demo_signal(session) -> list[str]:
         )
     )
     return [signal.id]
+
+
+def load_signal_ids_by_source_key(session, *, source_key: str, limit: int) -> list[str]:
+    """按来源 key 读取已入库的 SourceSignal ID。
+
+    输入：调用方管理事务的 SQLAlchemy Session、source_key 和最大数量。
+    输出：按 created_at 倒序排列、可传给 workflow 的 SourceSignal ID 列表。
+    """
+    statement = (
+        select(SourceSignal.id)
+        .join(Source, Source.id == SourceSignal.source_id)
+        .where(Source.source_key == source_key)
+        .order_by(SourceSignal.created_at.desc(), SourceSignal.id.desc())
+        .limit(limit)
+    )
+    return list(session.scalars(statement).all())
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -136,7 +136,7 @@
             <tr><td>Task 1</td><td>HN SourceSignal adapter</td><td>RED: <code>ModuleNotFoundError: No module named 'worker.sources'</code>；GREEN: <code>3 passed in 0.13s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 2</td><td>GitHub releases collector and adapter</td><td>RED: <code>ModuleNotFoundError: No module named 'worker.collectors.github_releases'</code>；GREEN: <code>3 passed in 0.39s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 3</td><td>Collection script writes SourceSignal only</td><td>RED: <code>can't open file 'scripts/collect_source_signals.py'</code>；GREEN: <code>2 passed in 4.00s</code></td><td>已完成，已提交</td></tr>
-            <tr><td>Task 4</td><td>Event pipeline consumes collected signals</td><td><code>pytest tests/test_run_event_pipeline_script.py -v</code></td><td>未开始</td></tr>
+            <tr><td>Task 4</td><td>Event pipeline consumes collected signals</td><td>RED: <code>unrecognized arguments: --source-key hn_algolia --limit 1</code>；GREEN: <code>2 passed in 6.75s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 5</td><td>P1-3 smoke, docs, and phase handoff</td><td><code>pytest -v</code>；采集 + pipeline SQLite smoke</td><td>未开始</td></tr>
           </tbody>
         </table>

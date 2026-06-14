@@ -1,4 +1,4 @@
-# P1-3 HN 与 GitHub 采集接入新版链路计划 Implementation Plan
+﻿# P1-3 HN 与 GitHub 采集接入新版链路计划 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:test-driven-development` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 每个 task 必须先写测试、运行 RED、再写实现、运行 GREEN、更新文档并单独提交。
 
@@ -440,7 +440,7 @@ git commit -m "feat(worker): add source signal collection script"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`
 
-- [ ] **Step 1: Write failing script test**
+- [x] **Step 1: Write failing script test**
 
 Add test proving:
 
@@ -448,7 +448,9 @@ Add test proving:
 - Run script with `--source-key hn_algolia --limit 1`.
 - Script returns `published_count=1`.
 
-- [ ] **Step 2: Run RED**
+执行记录：已修改 `apps/worker/tests/test_run_event_pipeline_script.py`，新增 `seed_hn_signal` 测试 helper 和 `test_run_event_pipeline_script_consumes_collected_source_signals`，用临时 SQLite 预置 `hn_algolia` SourceSignal，再通过 `--source-key hn_algolia --limit 1` 调用脚本。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -462,7 +464,9 @@ Expected:
 argparse rejects --source-key
 ```
 
-- [ ] **Step 3: Implement source selection**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`，真实结果为 `1 failed, 1 passed`；新增测试失败原因为 `run_event_pipeline.py: error: unrecognized arguments: --source-key hn_algolia --limit 1`，RED 成立。
+
+- [x] **Step 3: Implement source selection**
 
 `run_event_pipeline.py` must add:
 
@@ -479,7 +483,9 @@ select SourceSignal joined with Source by source_key, sorted by created_at desc,
 
 If no signals exist, return JSON failure explaining no signal ids are available.
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已修改 `apps/worker/scripts/run_event_pipeline.py`，新增 `--source-key` 和 `--limit` 参数，并新增 `load_signal_ids_by_source_key`，按 `Source.source_key` join `SourceSignal` 后按 `created_at desc, id desc` 取信号 ID；未找到信号时返回 JSON failure。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -493,12 +499,16 @@ Expected:
 2 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`，真实结果为 `collected 2 items`，2 个测试均 `PASSED`，最终 `2 passed in 6.75s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_hn_source_signal_adapter.py tests/test_github_releases_collector.py tests/test_collect_source_signals_script.py tests/test_run_event_pipeline_script.py -v`，真实结果为 `10 passed in 10.11s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/scripts/run_event_pipeline.py apps/worker/tests/test_run_event_pipeline_script.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3*
 git commit -m "feat(worker): run event pipeline from collected signals"
 ```
+
+执行记录：已提交 `feat(worker): run event pipeline from collected signals`。
 
 ### Task 5: P1-3 smoke, docs, and phase handoff
 
