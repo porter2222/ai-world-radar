@@ -49,7 +49,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环，以及 P1-3 HN / GitHub 采集接入新版链路。P1-4 真实 LLM Agent 节点替换计划已经建立，后续实现应按该计划的 task 顺序推进。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路，以及 P1-4 真实 LLM Agent 节点替换。P1-4 已支持 `stub|llm` 模式切换、三类真实 LLM Agent、fake LLM 首跑发布、`agent_runs` metadata 和失败记录；真实 provider smoke 已执行，但本机缺少 `DEEPSEEK_API_KEY`，需配置 key 后补跑复验。
 
 最新产品基线已经调整为：
 
@@ -59,4 +59,4 @@
 
 下一步建议进入：
 
-> 按 `05-实现计划/P1-4 真实LLM Agent节点替换计划.md` 执行 P1-4：在既有 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路上，逐步替换值班编辑、研究写作、审稿发布三个确定性 stub。
+> P1-5 工程准备：在保留 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路和默认 `AGENT_MODE=stub` 的前提下，先配置 provider key 补跑真实 LLM smoke，再推进下一阶段产品/API/前端或发布前验收任务。

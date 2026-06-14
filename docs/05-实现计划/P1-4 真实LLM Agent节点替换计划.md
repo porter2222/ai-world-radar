@@ -787,6 +787,7 @@ git commit -m "feat(worker): record llm agent run metadata"
 **Files:**
 
 - Create: `apps/worker/scripts/smoke_llm_event_pipeline.py`
+- Create: `apps/worker/tests/test_smoke_llm_event_pipeline_script.py`
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.html`
@@ -795,7 +796,7 @@ git commit -m "feat(worker): record llm agent run metadata"
 - Modify: `docs/00-项目总览/文档索引.md`
 - Modify: `docs/README.md`
 
-- [ ] **Step 1: Add smoke helper**
+- [x] **Step 1: Add smoke helper**
 
 新增脚本：
 
@@ -806,7 +807,9 @@ git commit -m "feat(worker): record llm agent run metadata"
 
 `--fixture-mode` 使用 fake LLM，不访问网络；`--call-real-provider` 使用 `.env` 中 provider 配置，真实调用失败时必须原文记录错误。
 
-- [ ] **Step 2: Run full worker pytest**
+执行记录：先新增 `apps/worker/tests/test_smoke_llm_event_pipeline_script.py`，运行 `.\.venv\Scripts\python.exe -m pytest tests/test_smoke_llm_event_pipeline_script.py -v`，真实结果为 `1 failed in 0.35s`，失败原因是 `scripts/smoke_llm_event_pipeline.py` 文件不存在，RED 成立。随后新增 `apps/worker/scripts/smoke_llm_event_pipeline.py`，支持 `--fixture-mode` 和 `--call-real-provider`；fixture 模式使用 fake LLM，不访问真实 provider；real provider 模式使用 `.env` / 环境变量配置。重新运行同一测试，真实结果为 `1 passed in 2.66s`。
+
+- [x] **Step 2: Run full worker pytest**
 
 Run:
 
@@ -820,7 +823,9 @@ Expected:
 all tests passed
 ```
 
-- [ ] **Step 3: Run fake LLM smoke**
+执行记录：运行 `.\.venv\Scripts\python.exe -m pytest -v`，真实结果为 `66 passed in 16.65s`。
+
+- [x] **Step 3: Run fake LLM smoke**
 
 Run:
 
@@ -836,7 +841,9 @@ agent_mode=llm
 published_count=1
 ```
 
-- [ ] **Step 4: Run optional real provider smoke**
+执行记录：运行 `.\.venv\Scripts\python.exe scripts\smoke_llm_event_pipeline.py --fixture-mode`，真实 stdout JSON 为 `status=succeeded`、`agent_mode=llm`、`mode=fixture`、`published_count=1`、`agent_runs_count=3`、`failed_agent_runs_count=0`，数据库 URL 为 `sqlite+pysqlite:///C:\Users\admin\.config\superpowers\worktrees\AI World Radar\p1-data-foundation\runtime\p1-4-smoke\llm-event-pipeline-20260614122849.sqlite`。
+
+- [x] **Step 4: Run optional real provider smoke**
 
 Run:
 
@@ -851,7 +858,9 @@ Expected:
 若 provider/gateway 失败，记录真实错误，且不把失败伪装为通过。
 ```
 
-- [ ] **Step 5: Update docs with real outputs**
+执行记录：运行 `.\.venv\Scripts\python.exe scripts\smoke_llm_event_pipeline.py --call-real-provider`，真实结果为退出码 1，stdout JSON 为 `status=failed`、`agent_mode=llm`、`mode=real_provider`，错误为 `Missing API key for provider 'deepseek'. Set DEEPSEEK_API_KEY in local environment.`。该失败是本机真实 provider 凭据缺失，不伪装为通过。
+
+- [x] **Step 5: Update docs with real outputs**
 
 `docs/07-验收与运行/后端P1测试记录.md` 必须写清：
 
@@ -865,7 +874,9 @@ Expected:
 - 哪些范围没有覆盖。
 - 当前是否可以进入 P1-5。
 
-- [ ] **Step 6: Run documentation checks**
+执行记录：已更新 `docs/07-验收与运行/后端P1测试记录.md`、本计划 Markdown、HTML 阅读版、实现计划 README、项目状态、文档索引和文档入口。文档记录包含测试命令、测试数据、真实输出摘要、失败修复、未覆盖范围和是否可以进入 P1-5。
+
+- [x] **Step 6: Run documentation checks**
 
 Run:
 
@@ -881,12 +892,16 @@ git diff --check 无 trailing whitespace 或冲突标记错误
 rg 无匹配
 ```
 
-- [ ] **Step 7: Commit**
+执行记录：运行 `git diff --check`，真实结果为退出码 0；PowerShell 输出为 Windows 工作区 LF/CRLF 提示，没有 trailing whitespace 或冲突标记错误。运行 `rg "待[补]充|占[位]|预[计]通过|应[该]通过" docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`，真实结果为退出码 1、无匹配。
+
+- [x] **Step 7: Commit**
 
 ```powershell
 git add apps/worker/scripts/smoke_llm_event_pipeline.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4* docs/05-实现计划/README.md docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md docs/README.md
 git commit -m "docs: record p1-4 llm agent acceptance"
 ```
+
+执行记录：本 task 的提交为 `docs: record p1-4 llm agent acceptance`。
 
 ## 6. 验收标准
 
