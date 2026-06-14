@@ -496,10 +496,11 @@ git commit -m "feat(worker): add research writer llm agent"
 
 - Create: `apps/worker/tests/test_llm_reviewer_agent.py`
 - Modify: `apps/worker/worker/agents/llm_event_pipeline_agents.py`
+- Modify: `apps/worker/worker/agents/__init__.py`
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 测试文件必须覆盖：
 
@@ -528,7 +529,9 @@ fake LLM 返回：
 }
 ```
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_llm_reviewer_agent.py`，覆盖 `ReviewPublisherLLMAgent.review` 输出 `ReviewResultDraft`，以及 prompt 中必须包含 `publish`、`revise`、`manual_review`、`reject` 四种 decision、`不要直接发布`、`不要改写正文`、来源支撑、过度推断和 `风险不确定时选择 manual_review` 等审稿边界。测试使用 `FakeLLMClient`，不访问真实 provider。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -542,7 +545,9 @@ Expected:
 ImportError 或 AttributeError，ReviewPublisherLLMAgent 尚不存在
 ```
 
-- [ ] **Step 3: Implement reviewer agent**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_reviewer_agent.py -v`，真实结果为 `collected 0 items / 1 error`，失败原因为 `ImportError: cannot import name 'ReviewPublisherLLMAgent' from 'worker.agents.llm_event_pipeline_agents'`，RED 成立。
+
+- [x] **Step 3: Implement reviewer agent**
 
 新增：
 
@@ -566,7 +571,9 @@ prompt 必须包含：
 - 检查来源支撑、过度推断、空泛表达和标题党风险。
 - 当风险不确定时选择 `manual_review`。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已在 `apps/worker/worker/agents/llm_event_pipeline_agents.py` 新增 `ReviewPublisherLLMAgent`、`_reviewer_system_prompt`、`_reviewer_user_prompt`，复用 `LLMJsonAgent.run_json(ReviewResultDraft, ...)`；已更新 `apps/worker/worker/agents/__init__.py` 导出。新增类和函数均写入中文 docstring，说明输入与输出。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -580,12 +587,16 @@ Expected:
 5 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_reviewer_agent.py tests/test_llm_json_agent.py -v`，真实结果为 `5 passed in 0.13s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_reviewer_agent.py tests/test_llm_writer_agent.py tests/test_llm_editor_agent.py tests/test_event_pipeline_agent_stubs.py -v`，真实结果为 `9 passed in 0.18s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
-git add apps/worker/tests/test_llm_reviewer_agent.py apps/worker/worker/agents/llm_event_pipeline_agents.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
+git add apps/worker/tests/test_llm_reviewer_agent.py apps/worker/worker/agents/llm_event_pipeline_agents.py apps/worker/worker/agents/__init__.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
 git commit -m "feat(worker): add review publisher llm agent"
 ```
+
+执行记录：本 task 的提交为 `feat(worker): add review publisher llm agent`。
 
 ### Task 5: Agent Factory, Workflow Injection, and CLI Mode
 

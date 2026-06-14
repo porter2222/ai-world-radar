@@ -5,7 +5,7 @@ from typing import Any
 
 from worker.agents.llm_json_agent import LLMJsonAgent, LLMJsonResult
 from worker.llm_client import LLMClient
-from worker.schemas.event import EventCandidateDraft, EventDossierDraft
+from worker.schemas.event import EventCandidateDraft, EventDossierDraft, ReviewResultDraft
 
 
 class OnDutyEditorLLMAgent:
@@ -163,4 +163,75 @@ def _writer_user_prompt(
         f"candidate:\n{candidate.model_dump_json()}\n"
         "source signals:\n"
         f"{json.dumps(signals, ensure_ascii=False, sort_keys=True)}"
+    )
+
+
+class ReviewPublisherLLMAgent:
+    """审稿发布真实 LLM Agent。
+
+    输入：事件档案草案和当前修订次数。
+    输出：ReviewResultDraft，用于后续 EventService 保存审稿结果并驱动状态变化。
+    """
+
+    name = "review_publisher_llm"
+    role = "reviewer"
+    prompt_version = "p1-4-reviewer-v1"
+
+    def __init__(self, llm_client=None, max_retries: int = 2):
+        """初始化审稿发布 LLM Agent。
+
+        输入：可选 LLMClient 或测试 fake client，以及 JSON repair 最大重试次数。
+        输出：可复用的 ReviewPublisherLLMAgent 实例。
+        """
+        self.llm_client = llm_client or LLMClient()
+        self.json_agent = LLMJsonAgent(self.llm_client, max_retries=max_retries)
+        self.model_provider = getattr(self.llm_client, "provider", None)
+        self.model_name = getattr(self.llm_client, "model", None)
+        self.last_result: LLMJsonResult[ReviewResultDraft] | None = None
+
+    def review(self, dossier: EventDossierDraft, revision_count: int = 0) -> ReviewResultDraft:
+        """审阅事件档案并生成结构化发布建议。
+
+        输入：EventDossierDraft 和当前修订次数。
+        输出：ReviewResultDraft，decision 只能是 publish、revise、manual_review 或 reject。
+        """
+        result = self.json_agent.run_json(
+            ReviewResultDraft,
+            system_prompt=_reviewer_system_prompt(),
+            user_prompt=_reviewer_user_prompt(dossier, revision_count),
+            prompt_version=self.prompt_version,
+        )
+        self.last_result = result
+        return result.payload
+
+
+def _reviewer_system_prompt() -> str:
+    """构造审稿发布 system prompt。
+
+    输入：无。
+    输出：限制审稿角色、决策枚举和工程边界的 system prompt。
+    """
+    return (
+        "你是 AI World Radar 的审稿发布 Agent，负责审阅事件档案草案并给出结构化建议。"
+        "只输出 JSON，不要输出 Markdown，不要解释。"
+        "decision 只能是 publish、revise、manual_review、reject。"
+        "不要直接发布，不要改写正文，不要写数据库。"
+        "必须检查来源支撑、过度推断、空泛表达和标题党风险。"
+        "风险不确定时选择 manual_review。"
+    )
+
+
+def _reviewer_user_prompt(dossier: EventDossierDraft, revision_count: int) -> str:
+    """构造审稿发布 user prompt。
+
+    输入：事件档案草案和当前修订次数。
+    输出：要求模型生成 ReviewResultDraft JSON 的 user prompt。
+    """
+    return (
+        "请审阅以下 EventDossierDraft，并生成一个 ReviewResultDraft JSON。\n"
+        "字段必须包含 decision、risk_level、issues、revision_instructions、checked_items。\n"
+        "allowed decisions: publish, revise, manual_review, reject。\n"
+        "checked_items 至少说明 source_supported、not_overstated、has_chinese_context。\n"
+        f"revision_count: {revision_count}\n"
+        f"dossier:\n{dossier.model_dump_json()}"
     )
