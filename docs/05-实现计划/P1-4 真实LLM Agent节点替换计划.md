@@ -289,7 +289,7 @@ git commit -m "feat(worker): add llm json agent base"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 测试文件必须覆盖：
 
@@ -321,7 +321,9 @@ fake LLM 返回字段：
 }
 ```
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_llm_editor_agent.py`，覆盖 `OnDutyEditorLLMAgent.triage` 输出 `EventCandidateDraft`，以及 prompt 中必须包含“只输出 JSON”“不要写数据库”“不要直接发布”“不要删除或隐藏信号”“不做完整事实核验”等边界。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -335,7 +337,9 @@ Expected:
 ImportError 或 AttributeError，OnDutyEditorLLMAgent 尚不存在
 ```
 
-- [ ] **Step 3: Implement editor agent**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_editor_agent.py -v`，真实结果为 `collected 0 items / 1 error`，失败原因为 `ModuleNotFoundError: No module named 'worker.agents.llm_event_pipeline_agents'`，RED 成立。
+
+- [x] **Step 3: Implement editor agent**
 
 新增：
 
@@ -361,7 +365,9 @@ prompt 必须包含：
 - 不做完整事实核验。
 - 分数必须为 0 到 100。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/worker/agents/llm_event_pipeline_agents.py` 中的 `OnDutyEditorLLMAgent`，复用 `LLMJsonAgent.run_json(EventCandidateDraft, ...)`；已更新 `apps/worker/worker/agents/__init__.py` 导出。新增类和函数均写入中文 docstring，说明输入与输出。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -375,12 +381,16 @@ Expected:
 5 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_editor_agent.py tests/test_llm_json_agent.py -v`，真实结果为 `5 passed in 0.25s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_editor_agent.py tests/test_event_pipeline_agent_stubs.py -v`，真实结果为 `5 passed in 0.14s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/tests/test_llm_editor_agent.py apps/worker/worker/agents/llm_event_pipeline_agents.py apps/worker/worker/agents/__init__.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
 git commit -m "feat(worker): add on-duty editor llm agent"
 ```
+
+执行记录：本 task 的提交为 `feat(worker): add on-duty editor llm agent`。
 
 ### Task 3: Research Writer LLM Agent
 
