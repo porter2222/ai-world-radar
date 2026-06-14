@@ -12,6 +12,8 @@
 - `P1-2 LangGraph工作流与三Agent最小闭环计划.html`
 - `P1-3 HN与GitHub采集接入新版链路计划.md`
 - `P1-3 HN与GitHub采集接入新版链路计划.html`
+- `P1-4 真实LLM Agent节点替换计划.md`
+- `P1-4 真实LLM Agent节点替换计划.html`
 
 `后端P1实现计划与功能切片拆解` 定义旧版后端 P1 第一条纵向功能切片：HN AI 事件生产闭环。该文档保留为历史参考。
 
@@ -20,3 +22,5 @@
 `P1-2 LangGraph工作流与三Agent最小闭环计划` 是 P1-1 数据底座完成后的 P1-2 实施依据和完成记录，定义 LangGraph 工作流、三 Agent 确定性 stub、工程 tool 适配层、新版脚本入口、旧可执行代码物理清理和验收记录要求。P1-2 已完成。
 
 `P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据和完成记录，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。P1-3 已完成，下一步建议进入 P1-4 真实 LLM Agent 节点替换。
+
+`P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。

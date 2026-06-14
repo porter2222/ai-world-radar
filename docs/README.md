@@ -14,9 +14,10 @@
 8. `05-实现计划/P1实施路线图与第一阶段后端数据底座计划.md`
 9. `05-实现计划/P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 10. `05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`
-11. `05-实现计划/后端P1实现计划与功能切片拆解.md`
-12. `06-代理任务书/后端P1开发代理任务书.md`
-13. `07-验收与运行/后端P1测试记录.md`
+11. `05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
+12. `05-实现计划/后端P1实现计划与功能切片拆解.md`
+13. `06-代理任务书/后端P1开发代理任务书.md`
+14. `07-验收与运行/后端P1测试记录.md`
 
 ## 目录说明
 
@@ -48,7 +49,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环，以及 P1-3 HN / GitHub 采集接入新版链路。P1-3 最终 worker 全量测试为 `50 passed in 10.44s`，全新 SQLite live smoke 已证明真实采集后的 `hn_algolia` signal 可以生成 `PublishedEvent`。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环，以及 P1-3 HN / GitHub 采集接入新版链路。P1-4 真实 LLM Agent 节点替换计划已经建立，后续实现应按该计划的 task 顺序推进。
 
 最新产品基线已经调整为：
 
@@ -58,4 +59,4 @@
 
 下一步建议进入：
 
-> 进入 P1-4 真实 LLM Agent 节点替换：在既有 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路上，逐步替换值班编辑、研究写作、审稿发布三个确定性 stub。
+> 按 `05-实现计划/P1-4 真实LLM Agent节点替换计划.md` 执行 P1-4：在既有 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路上，逐步替换值班编辑、研究写作、审稿发布三个确定性 stub。

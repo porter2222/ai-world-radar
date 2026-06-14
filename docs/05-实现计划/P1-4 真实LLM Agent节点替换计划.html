@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-4 真实 LLM Agent 节点替换计划</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2937; background: #f8fafc; }
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+    aside { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 22px; background: #111827; color: #e5e7eb; box-sizing: border-box; }
+    aside h1 { font-size: 18px; margin: 0 0 8px; }
+    aside p { margin: 0 0 24px; color: #9ca3af; font-size: 13px; line-height: 1.6; }
+    aside a { color: #d1d5db; text-decoration: none; }
+    aside li { margin: 10px 0; line-height: 1.4; }
+    main { padding: 40px; }
+    article { max-width: 1120px; margin: 0 auto; background: white; padding: 44px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    h1 { margin-top: 0; font-size: 32px; }
+    h2 { margin-top: 36px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    h3 { margin-top: 28px; }
+    .meta { color: #6b7280; }
+    code { background: #f3f4f6; padding: 2px 5px; border-radius: 4px; }
+    pre { background: #111827; color: #e5e7eb; padding: 16px; border-radius: 8px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    th, td { border: 1px solid #e5e7eb; padding: 10px; vertical-align: top; text-align: left; }
+    th { background: #f9fafb; }
+    .badge { display: inline-block; border: 1px solid #c7d2fe; color: #3730a3; background: #eef2ff; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside { position: static; height: auto; } main { padding: 20px; } article { padding: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h1>AI World Radar</h1>
+      <p>P1-4 真实 LLM Agent 节点替换计划</p>
+      <ol>
+        <li><a href="#goal">目标</a></li>
+        <li><a href="#scope">边界</a></li>
+        <li><a href="#architecture">设计口径</a></li>
+        <li><a href="#tasks">任务拆解</a></li>
+        <li><a href="#acceptance">验收标准</a></li>
+        <li><a href="#handoff">执行交接</a></li>
+      </ol>
+    </aside>
+    <main>
+      <article>
+        <h1>P1-4 真实 LLM Agent 节点替换计划</h1>
+        <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-14 ｜ 阶段：P1-4 Task 0 planning</p>
+        <p><span class="badge">目标</span> 在 P1-1 数据底座、P1-2 LangGraph 工作流、P1-3 HN / GitHub 采集接入已完成的基础上，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。</p>
+
+        <h2 id="goal">1. 当前阶段</h2>
+        <p>P1-4 不重写事件生产主链路，只替换 Agent 语义判断和内容生成能力。当前唯一主链路仍是：</p>
+        <pre><code>SourceSignal
+-&gt; EventCandidate
+-&gt; EventDossier
+-&gt; ReviewResult
+-&gt; PublishedEvent</code></pre>
+
+        <h2 id="scope">2. 阶段边界</h2>
+        <h3>负责</h3>
+        <ul>
+          <li>真实 LLM Agent 结构化 JSON 调用基座。</li>
+          <li>值班编辑、研究写作、审稿发布三个 LLM Agent。</li>
+          <li><code>--agent-mode stub|llm</code> 脚本入口。</li>
+          <li><code>agent_runs</code> provider、model、prompt_version、retry_count 和 trace 记录。</li>
+          <li>fake LLM 回归测试和可选真实 provider smoke。</li>
+        </ul>
+        <h3>不负责</h3>
+        <ul>
+          <li>不恢复 <code>EvidenceCard / EventCluster / Brief</code> 旧链路。</li>
+          <li>不让 Agent 直接写数据库、直接发布、直接隐藏或删除数据。</li>
+          <li>不做自由上网、RAG、向量数据库、Redis、队列、对象存储或后台 UI。</li>
+          <li>不把 API key 或 provider 私密配置写入代码或文档。</li>
+        </ul>
+
+        <h2 id="architecture">3. 设计口径</h2>
+        <table>
+          <thead><tr><th>模块</th><th>职责</th><th>约束</th></tr></thead>
+          <tbody>
+            <tr><td><code>LLMJsonAgent</code></td><td>调用 <code>LLMClient</code>、提取 JSON、Pydantic 校验、repair retry</td><td>最多 2 次 repair，失败抛出明确错误</td></tr>
+            <tr><td>Editor LLM Agent</td><td>输出 <code>EventCandidateDraft</code></td><td>不发布、不写库、不删除信号</td></tr>
+            <tr><td>Writer LLM Agent</td><td>输出 <code>EventDossierDraft</code></td><td>中文表达，来源支撑，卡片摘要受限</td></tr>
+            <tr><td>Reviewer LLM Agent</td><td>输出 <code>ReviewResultDraft</code></td><td>只建议 publish / revise / manual_review / reject</td></tr>
+            <tr><td>Agent Factory</td><td>创建 stub 或 LLM agent set</td><td>默认 stub，真实调用显式开启</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="tasks">4. 任务拆解</h2>
+        <table>
+          <thead><tr><th>Task</th><th>目标</th><th>核心验证</th><th>提交</th></tr></thead>
+          <tbody>
+            <tr><td>Task 0</td><td>P1-4 计划与入口文档</td><td><code>git diff --check</code>；临时标记扫描</td><td><code>docs: add p1-4 llm agent replacement plan</code></td></tr>
+            <tr><td>Task 1</td><td>LLM JSON Agent Base</td><td><code>tests/test_llm_json_agent.py</code>，fake LLM JSON / repair / failure</td><td><code>feat(worker): add llm json agent base</code></td></tr>
+            <tr><td>Task 2</td><td>On-duty Editor LLM Agent</td><td>输出 <code>EventCandidateDraft</code>，prompt 禁止写库和发布</td><td><code>feat(worker): add on-duty editor llm agent</code></td></tr>
+            <tr><td>Task 3</td><td>Research Writer LLM Agent</td><td>输出 <code>EventDossierDraft</code>，修订意见进入 prompt</td><td><code>feat(worker): add research writer llm agent</code></td></tr>
+            <tr><td>Task 4</td><td>Review Publisher LLM Agent</td><td>输出 <code>ReviewResultDraft</code>，限定四种 decision</td><td><code>feat(worker): add review publisher llm agent</code></td></tr>
+            <tr><td>Task 5</td><td>Factory、workflow 注入与 CLI 模式</td><td><code>--agent-mode stub|llm</code>；fake LLM workflow 首跑</td><td><code>feat(worker): add llm agent mode to event pipeline</code></td></tr>
+            <tr><td>Task 6</td><td>Agent run metadata 与失败记录</td><td>记录 provider/model/prompt/retry；失败 agent_run</td><td><code>feat(worker): record llm agent run metadata</code></td></tr>
+            <tr><td>Task 7</td><td>P1-4 smoke、文档与交接</td><td>全量 pytest；fake LLM smoke；真实 provider smoke 记录</td><td><code>docs: record p1-4 llm agent acceptance</code></td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="acceptance">5. 验收标准</h2>
+        <ul>
+          <li>stub 模式仍是默认模式，且不需要 API key。</li>
+          <li>LLM 模式可以通过 <code>--agent-mode llm</code> 或 <code>AGENT_MODE=llm</code> 开启。</li>
+          <li>三类 LLM Agent 均通过 fake LLM 测试输出既有 Pydantic schema。</li>
+          <li>LangGraph workflow 在注入 fake LLM agents 时能首跑生成 <code>PublishedEvent</code>。</li>
+          <li><code>agent_runs</code> 能记录 provider、model、prompt_version、retry_count、output_json 和 trace_json。</li>
+          <li>真实 provider smoke 已执行并记录真实结果；失败时记录原始错误。</li>
+        </ul>
+
+        <h2 id="handoff">6. 执行交接</h2>
+        <p>按 Task 0 到 Task 7 顺序执行，每个 task 单独 RED/GREEN、更新文档并提交。P1-4 后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
