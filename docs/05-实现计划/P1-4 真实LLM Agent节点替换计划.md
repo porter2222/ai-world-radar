@@ -189,7 +189,7 @@ git commit -m "docs: add p1-4 llm agent replacement plan"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 测试文件必须覆盖：
 
@@ -208,7 +208,9 @@ def test_llm_json_agent_raises_after_max_retries():
 
 测试使用 fake LLMClient，不访问网络。
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_llm_json_agent.py`，覆盖 fenced JSON 解析、非法 JSON repair 一次成功、超过最大 repair 次数抛出 `LLMAgentOutputError`。测试使用 `FakeLLMClient`，不访问真实 provider。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -223,7 +225,9 @@ Expected:
 ModuleNotFoundError: No module named 'worker.agents.llm_json_agent'
 ```
 
-- [ ] **Step 3: Implement LLM JSON base**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_json_agent.py -v`，真实结果为 `collected 0 items / 1 error`，失败原因为 `ModuleNotFoundError: No module named 'worker.agents.llm_json_agent'`，RED 成立。
+
+- [x] **Step 3: Implement LLM JSON base**
 
 新增：
 
@@ -248,7 +252,9 @@ class LLMJsonAgent:
 - repair 最多 2 次。
 - 每个函数写中文 docstring，说明输入和输出。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/worker/agents/llm_json_agent.py`，包含 `LLMAgentOutputError`、`LLMJsonResult`、`LLMJsonAgent` 和 `_extract_json_text`；已更新 `apps/worker/worker/agents/__init__.py` 导出。每个类和函数均写入中文 docstring，说明输入与输出。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -262,12 +268,16 @@ Expected:
 3 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_json_agent.py -v`，真实结果为 `3 passed in 0.13s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_llm_json_agent.py tests/test_event_pipeline_agent_stubs.py -v`，真实结果为 `6 passed in 0.14s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/tests/test_llm_json_agent.py apps/worker/worker/agents/llm_json_agent.py apps/worker/worker/agents/__init__.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
 git commit -m "feat(worker): add llm json agent base"
 ```
+
+执行记录：本 task 的提交为 `feat(worker): add llm json agent base`。
 
 ### Task 2: On-duty Editor LLM Agent
 

@@ -9,8 +9,12 @@ from worker.agents.event_pipeline_agents import (
     ResearchWriterAgentStub,
     ReviewPublisherAgentStub,
 )
+from worker.agents.llm_json_agent import LLMAgentOutputError, LLMJsonAgent, LLMJsonResult
 
 __all__ = [
+    "LLMAgentOutputError",
+    "LLMJsonAgent",
+    "LLMJsonResult",
     "OnDutyEditorAgentStub",
     "ResearchWriterAgentStub",
     "ReviewPublisherAgentStub",
