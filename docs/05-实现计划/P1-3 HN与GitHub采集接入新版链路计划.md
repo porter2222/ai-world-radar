@@ -349,7 +349,7 @@ git commit -m "feat(worker): collect github releases as source signals"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`
 
-- [ ] **Step 1: Write failing script test**
+- [x] **Step 1: Write failing script test**
 
 Test must prove:
 
@@ -357,7 +357,9 @@ Test must prove:
 - Script can collect fixture-injected HN and GitHub signals without running workflow.
 - SQLite DB contains `source_signals` rows after script exits.
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_collect_source_signals_script.py`。测试覆盖 fixture 模式的采集脚本输出、数据库写入计数、重复运行幂等性，以及不创建 `pipeline_runs` / `published_events` 的边界。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -371,7 +373,9 @@ Expected:
 can't open file 'scripts/collect_source_signals.py'
 ```
 
-- [ ] **Step 3: Implement script**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v`，真实结果为 `2 failed`，失败原因是 `scripts/collect_source_signals.py` 尚不存在，RED 成立。
+
+- [x] **Step 3: Implement script**
 
 Script behavior:
 
@@ -400,7 +404,9 @@ Output JSON:
 
 The script must not call `run_event_pipeline`.
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/scripts/collect_source_signals.py`。脚本支持 `--source hn|github`、`--fixture-mode`、`--hn-days`、`--hn-limit`、`--github-repo`、`--github-limit` 和 `--github-token-env`；fixture 模式读取本地测试数据，live 模式调用既有 collector，但都只写 `sources` 和 `source_signals`。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -414,12 +420,16 @@ Expected:
 2 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v`，真实结果为 `collected 2 items`，2 个测试均 `PASSED`，最终 `2 passed in 4.00s`。随后回归运行 `.\.venv\Scripts\python.exe -m pytest tests/test_hn_source_signal_adapter.py tests/test_github_releases_collector.py tests/test_collect_source_signals_script.py -v`，真实结果为 `8 passed in 6.06s`，确认采集脚本没有破坏 source adapter，也没有触发 workflow。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/scripts/collect_source_signals.py apps/worker/tests/test_collect_source_signals_script.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3*
 git commit -m "feat(worker): add source signal collection script"
 ```
+
+执行记录：已提交 `feat(worker): add source signal collection script`。
 
 ### Task 4: Event pipeline consumes collected signals
 
