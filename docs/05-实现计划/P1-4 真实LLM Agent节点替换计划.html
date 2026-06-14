@@ -47,7 +47,7 @@
         <h1>P1-4 真实 LLM Agent 节点替换计划</h1>
         <p class="meta">版本：v1.1 ｜ 更新日期：2026-06-14 ｜ 阶段：P1-4 completed</p>
         <p><span class="badge">目标</span> 在 P1-1 数据底座、P1-2 LangGraph 工作流、P1-3 HN / GitHub 采集接入已完成的基础上，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。</p>
-        <p><span class="badge">完成状态</span> P1-4 已完成。worker 全量 pytest 结果为 <code>66 passed in 16.65s</code>；fake LLM smoke 输出 <code>status=succeeded</code>、<code>published_count=1</code>、<code>agent_runs_count=3</code>；真实 provider smoke 已执行，因本机缺少 <code>DEEPSEEK_API_KEY</code> 返回 <code>status=failed</code>，需配置 key 后补跑。</p>
+        <p><span class="badge">完成状态</span> P1-4 已完成。最新 worker 全量 pytest 结果为 <code>69 passed in 16.63s</code>；fake LLM smoke 输出 <code>status=succeeded</code>、<code>published_count=1</code>、<code>agent_runs_count=3</code>；本机 OpenAI / OpenAI-compatible SDK smoke 已通过，输出 <code>provider=openai</code>、<code>model=gpt-5.5</code>、<code>pong</code>。真实 provider pipeline 已跑到三类 LLM Agent，因内置 <code>example.com</code> 示例来源被 reviewer 判为 <code>manual_review</code>，未自动发布。</p>
 
         <h2 id="goal">1. 当前阶段</h2>
         <p>P1-4 不重写事件生产主链路，只替换 Agent 语义判断和内容生成能力。当前唯一主链路仍是：</p>
@@ -115,15 +115,16 @@
         <table>
           <thead><tr><th>验证项</th><th>真实命令 / 输出</th><th>结论</th></tr></thead>
           <tbody>
-            <tr><td>全量 worker pytest</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code>：<code>66 passed in 16.65s</code></td><td>通过</td></tr>
+            <tr><td>全量 worker pytest</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code>：<code>69 passed in 16.63s</code></td><td>通过</td></tr>
             <tr><td>fake LLM smoke</td><td><code>scripts\smoke_llm_event_pipeline.py --fixture-mode</code>：<code>status=succeeded</code>、<code>agent_mode=llm</code>、<code>published_count=1</code>、<code>agent_runs_count=3</code></td><td>通过</td></tr>
-            <tr><td>真实 provider smoke</td><td><code>scripts\smoke_llm_event_pipeline.py --call-real-provider</code>：退出码 1，错误为缺少 <code>DEEPSEEK_API_KEY</code></td><td>已执行，需配置 key 后补跑</td></tr>
+            <tr><td>OpenAI SDK smoke</td><td>从主目录 <code>.env</code> 临时注入进程环境后运行 <code>scripts\smoke_llm_client.py --call</code>：<code>provider=openai</code>、<code>model=gpt-5.5</code>、<code>base_url=https://api.codexapi.space/v1</code>、<code>api_key_present=True</code>、<code>pong</code></td><td>通过</td></tr>
+            <tr><td>真实 provider pipeline smoke</td><td><code>scripts\smoke_llm_event_pipeline.py --call-real-provider</code>：<code>status=partial_failed</code>、<code>agent_runs_count=3</code>、<code>failed_agent_runs_count=0</code>、<code>published_count=0</code>；数据库显示 reviewer 决策为 <code>manual_review</code></td><td>真实调用通过，因示例来源未发布</td></tr>
           </tbody>
         </table>
-        <p>P1-4 的稳定验收依据是 fake LLM 自动化测试、全量 pytest 和 fixture smoke。真实 provider smoke 的失败为本机凭据缺失，不代表代码路径未实现。</p>
+        <p>P1-4 的稳定验收依据是 fake LLM 自动化测试、全量 pytest 和 fixture smoke。真实 provider 调用已证明本机 OpenAI / OpenAI-compatible 配置可在该分支使用；完整 pipeline 未发布是审稿安全逻辑对示例来源的阻断，不是 SDK、gateway 或 API key 失败。</p>
 
         <h2 id="handoff">7. 执行交接</h2>
-        <p>Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。后续进入 P1-5 前，先配置 provider key 并补跑真实 provider smoke。P1-4 后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
+        <p>Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。后续进入发布质量验收前，建议补一条使用可信来源的 real provider pipeline smoke，证明 reviewer 可给出 <code>publish</code> 并生成 <code>PublishedEvent</code>。P1-4 后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
       </article>
     </main>
   </div>

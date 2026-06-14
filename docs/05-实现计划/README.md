@@ -23,4 +23,4 @@
 
 `P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据和完成记录，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。P1-3 已完成。
 
-`P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据和完成记录，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。P1-4 已完成，最终 worker 全量 pytest 为 `66 passed in 16.65s`，fake LLM smoke 输出 `status=succeeded`、`published_count=1`、`agent_runs_count=3`；真实 provider smoke 因本机缺少 `DEEPSEEK_API_KEY` 失败，需配置 key 后补跑。
+`P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据和完成记录，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。P1-4 已完成，最新 worker 全量 pytest 为 `69 passed in 16.63s`，fake LLM smoke 输出 `status=succeeded`、`published_count=1`、`agent_runs_count=3`；本机 OpenAI / OpenAI-compatible SDK smoke 已通过，真实 provider pipeline 已跑到三类 LLM Agent，但内置示例来源被 reviewer 判为 `manual_review`，未自动发布。

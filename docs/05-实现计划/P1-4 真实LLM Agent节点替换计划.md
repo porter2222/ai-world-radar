@@ -858,7 +858,9 @@ Expected:
 若 provider/gateway 失败，记录真实错误，且不把失败伪装为通过。
 ```
 
-执行记录：运行 `.\.venv\Scripts\python.exe scripts\smoke_llm_event_pipeline.py --call-real-provider`，真实结果为退出码 1，stdout JSON 为 `status=failed`、`agent_mode=llm`、`mode=real_provider`，错误为 `Missing API key for provider 'deepseek'. Set DEEPSEEK_API_KEY in local environment.`。该失败是本机真实 provider 凭据缺失，不伪装为通过。
+执行记录：首次运行 `.\.venv\Scripts\python.exe scripts\smoke_llm_event_pipeline.py --call-real-provider` 时，真实结果为退出码 1，stdout JSON 为 `status=failed`、`agent_mode=llm`、`mode=real_provider`，错误为 `Missing API key for provider 'deepseek'. Set DEEPSEEK_API_KEY in local environment.`。该记录暴露出当时默认 provider 仍误指向 DeepSeek。
+
+补充修正记录：根据用户明确要求，P1-4 真实 provider 口径已改为复用本机 OpenAI / OpenAI-compatible 配置。已新增配置回归测试，默认 `LLM_PROVIDER=openai`、默认 OpenAI model 为 `gpt-4o-mini`，并支持 `OPENAI_USER_AGENT=python-httpx/0.28.1` 注入 OpenAI SDK `default_headers`。使用 `D:\AI World Radar\.env` 临时注入当前进程环境后，`.\.venv\Scripts\python.exe scripts\smoke_llm_client.py --call` 真实输出 `provider=openai`、`model=gpt-5.5`、`base_url=https://api.codexapi.space/v1`、`api_key_present=True`、`pong`。再次运行 `.\.venv\Scripts\python.exe scripts\smoke_llm_event_pipeline.py --call-real-provider` 后，真实 provider 调用成功进入三类 LLM Agent，stdout JSON 为 `status=partial_failed`、`signals_count=1`、`candidates_count=1`、`dossiers_count=1`、`agent_runs_count=3`、`failed_agent_runs_count=0`、`published_count=0`。查询临时 SQLite 后确认三条 `agent_runs` 均为 `succeeded`，`model_provider=openai`、`model_name=gpt-5.5`；未发布原因是 reviewer 对 `example.com` 示例来源给出 `manual_review`，不是 SDK / gateway / API key 失败。
 
 - [x] **Step 5: Update docs with real outputs**
 
@@ -915,12 +917,12 @@ P1-4 完成后必须满足：
 - LLM 输出非法时能 repair；持续失败时能记录失败并返回明确错误。
 - worker 全量 pytest 通过。
 - fake LLM smoke 证明“已采集信号 -> LLM Agent -> 审稿 -> 发布快照”首跑可用。
-- 真实 provider smoke 已执行并记录真实结果；若失败，必须写明 provider/gateway 错误，不能写成通过。
+- 真实 provider smoke 已执行并记录真实结果；当前 OpenAI / OpenAI-compatible SDK 调用已通过，完整 pipeline 因示例来源被 reviewer 判为 `manual_review`。
 - 文档记录真实命令、真实输出、测试数据、失败修复、未覆盖范围和是否可以进入 P1-5。
 
 ## 7. 风险与处理方式
 
-- Provider/gateway 可能失败：自动化回归只依赖 fake LLM；真实 provider smoke 单独记录，不作为本地无 key 环境的阻塞条件。
+- Provider/gateway 可能失败：自动化回归只依赖 fake LLM；真实 provider smoke 单独记录。当前本机 OpenAI / OpenAI-compatible 配置已可调用，但内置示例来源不满足自动发布条件。
 - LLM 输出不稳定：通过 JSON extraction、Pydantic validation、repair prompt 和最大重试次数收敛。
 - Agent 可能过度推断：writer prompt 必须要求来源支撑，reviewer prompt 必须检查过度推断；P1-4 不声明完整事实核验。
 - 成本风险：P1-4 默认 stub，真实调用需要显式 `--agent-mode llm` 或 `--call-real-provider`。
@@ -928,4 +930,4 @@ P1-4 完成后必须满足：
 
 ## 8. 执行交接
 
-本计划保存于 `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`。当前建议按 Task 0 到 Task 7 顺序执行，每个 task 单独 RED/GREEN、更新文档并提交。
+本计划保存于 `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`。Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。后续进入发布质量验收前，建议补一条使用可信来源的 real provider pipeline smoke，证明 reviewer 可给出 `publish` 并生成 `PublishedEvent`。

@@ -20,12 +20,17 @@ ChatMessage = dict[str, str]
 
 @dataclass(frozen=True)
 class LLMProviderConfig:
-    """OpenAI-compatible provider 配置。"""
+    """OpenAI-compatible provider 配置。
+
+    输入：provider、model、api_key、base_url，以及可选 User-Agent 覆盖。
+    输出：创建 OpenAI SDK client 所需的完整配置对象。
+    """
 
     provider: ProviderName
     model: str
     api_key: str
     base_url: str
+    user_agent: str | None = None
 
 
 class LLMClient:
@@ -43,6 +48,11 @@ class LLMClient:
         base_url: str | None = None,
         client=None,
     ) -> None:
+        """初始化 LLMClient。
+
+        输入：可选 provider/model/api_key/base_url 覆盖项，以及测试可注入的 client。
+        输出：带 provider、model、api_key、base_url 和 SDK client 的 LLMClient 实例。
+        """
         settings = load_settings()
         resolved_provider = provider or settings.llm_provider
         config = resolve_provider_config(
@@ -100,7 +110,11 @@ def resolve_provider_config(
     api_key: str | None = None,
     base_url: str | None = None,
 ) -> LLMProviderConfig:
-    """解析 provider 对应的 OpenAI-compatible 配置。"""
+    """解析 provider 对应的 OpenAI-compatible 配置。
+
+    输入：provider 名称，以及可选 model/api_key/base_url 覆盖项。
+    输出：可用于创建 OpenAI SDK client 的 LLMProviderConfig。
+    """
     if provider == "qwen-cn":
         return LLMProviderConfig(
             provider=provider,
@@ -121,11 +135,17 @@ def resolve_provider_config(
             model=model or "gpt-4o-mini",
             api_key=_required_api_key(api_key, "OPENAI_API_KEY", provider),
             base_url=base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            user_agent=os.getenv("OPENAI_USER_AGENT") or None,
         )
     raise ValueError(f"Unsupported provider: {provider}")
 
 
 def _required_api_key(explicit_key: str | None, env_name: str, provider: str) -> str:
+    """读取 provider API key。
+
+    输入：显式传入的 key、环境变量名和 provider 名称。
+    输出：可用 API key；缺失时抛出带 provider/env 提示的 ValueError。
+    """
     key = explicit_key or os.getenv(env_name)
     if not key:
         raise ValueError(f"Missing API key for provider '{provider}'. Set {env_name} in local environment.")
@@ -133,12 +153,25 @@ def _required_api_key(explicit_key: str | None, env_name: str, provider: str) ->
 
 
 def _create_openai_client(config: LLMProviderConfig):
+    """创建 OpenAI SDK client。
+
+    输入：已解析好的 provider 配置。
+    输出：可执行 chat.completions.create 的 OpenAI client；若配置 user_agent，会写入 default_headers。
+    """
     from openai import OpenAI
 
-    return OpenAI(api_key=config.api_key, base_url=config.base_url)
+    kwargs = {"api_key": config.api_key, "base_url": config.base_url}
+    if config.user_agent:
+        kwargs["default_headers"] = {"User-Agent": config.user_agent}
+    return OpenAI(**kwargs)
 
 
 def _normalize_messages(message: str | list[ChatMessage], system_prompt: str) -> list[ChatMessage]:
+    """统一 OpenAI-compatible messages 格式。
+
+    输入：字符串 message 或已组装 messages，以及默认 system_prompt。
+    输出：可直接传给 chat.completions.create 的 messages 列表。
+    """
     if isinstance(message, str):
         return [
             {"role": "system", "content": system_prompt},

@@ -1,4 +1,7 @@
-from worker.llm_client import LLMClient
+import sys
+from types import SimpleNamespace
+
+from worker.llm_client import LLMClient, LLMProviderConfig, _create_openai_client, resolve_provider_config
 
 
 class FakeMessage:
@@ -92,3 +95,53 @@ def test_worker_package_exports_llm_client():
     from worker import LLMClient as ExportedLLMClient
 
     assert ExportedLLMClient is LLMClient
+
+
+def test_openai_provider_config_reads_optional_user_agent(monkeypatch):
+    """验证 OpenAI provider 会读取可选 User-Agent 覆盖。
+
+    输入：OPENAI_API_KEY、OPENAI_BASE_URL 和 OPENAI_USER_AGENT 环境变量。
+    输出：解析后的 provider config 携带 user_agent，供 SDK 初始化使用。
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://api.codexapi.space/v1")
+    monkeypatch.setenv("OPENAI_USER_AGENT", "python-httpx/0.28.1")
+
+    config = resolve_provider_config("openai")
+
+    assert config.provider == "openai"
+    assert config.base_url == "https://api.codexapi.space/v1"
+    assert config.user_agent == "python-httpx/0.28.1"
+
+
+def test_create_openai_client_passes_user_agent_as_default_header(monkeypatch):
+    """验证 OpenAI SDK 初始化时会带上 User-Agent 覆盖。
+
+    输入：携带 user_agent 的 LLMProviderConfig，以及 fake openai.OpenAI 构造器。
+    输出：构造 OpenAI client 时传入 default_headers={"User-Agent": "..."}。
+    """
+
+    class FakeOpenAI:
+        """记录 OpenAI SDK 初始化参数的 fake 构造器。
+
+        输入：OpenAI SDK 构造参数。
+        输出：保存 kwargs，便于测试断言。
+        """
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
+    config = LLMProviderConfig(
+        provider="openai",
+        model="gpt-test",
+        api_key="test-key",
+        base_url="https://api.codexapi.space/v1",
+        user_agent="python-httpx/0.28.1",
+    )
+
+    client = _create_openai_client(config)
+
+    assert client.kwargs["api_key"] == "test-key"
+    assert client.kwargs["base_url"] == "https://api.codexapi.space/v1"
+    assert client.kwargs["default_headers"] == {"User-Agent": "python-httpx/0.28.1"}

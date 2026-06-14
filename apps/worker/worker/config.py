@@ -43,6 +43,8 @@ def load_settings() -> Settings:
     load_dotenv(root / ".env")
 
     worker_dir = root / "apps" / "worker"
+    llm_provider = os.getenv("LLM_PROVIDER", "openai")
+    llm_model = os.getenv("LLM_MODEL", _default_llm_model(llm_provider))
     return Settings(
         project_root=root,
         worker_dir=worker_dir,
@@ -51,7 +53,20 @@ def load_settings() -> Settings:
             "DATABASE_URL",
             "postgresql+psycopg://postgres:postgres@localhost:5432/ai_world_radar",
         ),
-        llm_provider=os.getenv("LLM_PROVIDER", "deepseek"),
-        llm_model=os.getenv("LLM_MODEL", "deepseek-chat"),
+        llm_provider=llm_provider,
+        llm_model=llm_model,
         agent_mode=os.getenv("AGENT_MODE", "stub"),
     )
+
+
+def _default_llm_model(provider: str) -> str:
+    """按 provider 返回默认模型名。
+
+    输入：LLM provider 名称，例如 openai、deepseek 或 qwen-cn。
+    输出：该 provider 在未显式配置 LLM_MODEL 时使用的模型名。
+    """
+    if provider == "deepseek":
+        return "deepseek-chat"
+    if provider == "qwen-cn":
+        return "qwen-plus"
+    return "gpt-4o-mini"
