@@ -161,12 +161,23 @@ class EventPipelineTools:
         candidate_id: str | None = None,
         dossier_id: str | None = None,
         retry_count: int = 0,
+        agent: Any | None = None,
     ):
         """记录一次 Agent 输出。
 
-        输入：run_id、Agent 名称/角色、输入摘要、输出 JSON 和可选业务对象 ID。
+        输入：run_id、Agent 名称/角色、输入摘要、输出 JSON、可选业务对象 ID 和 Agent 实例。
         输出：已写入数据库的 AgentRun。
         """
+        metadata = self._successful_agent_metadata(agent)
+        trace_json = {"pipeline": "p1-2-event-pipeline"}
+        if metadata["raw_text"] is not None:
+            trace_json.update(
+                {
+                    "llm_raw_text": metadata["raw_text"],
+                    "llm_prompt_version": metadata["prompt_version"],
+                    "llm_retry_count": metadata["retry_count"],
+                }
+            )
         return self.run_log_service.record_agent_run(
             AgentRunRecord(
                 pipeline_run_id=run_id,
@@ -174,11 +185,51 @@ class EventPipelineTools:
                 dossier_id=dossier_id,
                 agent_name=agent_name,
                 agent_role=agent_role,
+                model_provider=metadata["model_provider"],
+                model_name=metadata["model_name"],
+                prompt_version=metadata["prompt_version"],
                 input_summary=input_summary,
                 output_json=output_json,
-                trace_json={"pipeline": "p1-2-event-pipeline"},
+                trace_json=trace_json,
                 status="succeeded",
+                retry_count=metadata["retry_count"] if metadata["retry_count"] is not None else retry_count,
+            )
+        )
+
+    def record_agent_failure(
+        self,
+        run_id: str,
+        agent: Any,
+        agent_role: Literal["editor", "writer", "reviewer", "skill"],
+        input_summary: str,
+        error_message: str,
+        candidate_id: str | None = None,
+        dossier_id: str | None = None,
+    ):
+        """记录一次失败的 Agent 输出。
+
+        输入：run_id、Agent 实例、角色、输入摘要、错误信息和可选业务对象 ID。
+        输出：status=failed 的 AgentRun。
+        """
+        json_agent = getattr(agent, "json_agent", None)
+        retry_count = getattr(json_agent, "max_retries", 0)
+        prompt_version = getattr(agent, "prompt_version", None)
+        return self.run_log_service.record_agent_run(
+            AgentRunRecord(
+                pipeline_run_id=run_id,
+                candidate_id=candidate_id,
+                dossier_id=dossier_id,
+                agent_name=getattr(agent, "name", "unknown_agent"),
+                agent_role=agent_role,
+                model_provider=getattr(agent, "model_provider", None),
+                model_name=getattr(agent, "model_name", None),
+                prompt_version=prompt_version,
+                input_summary=input_summary,
+                output_json={},
+                trace_json={"pipeline": "p1-2-event-pipeline", "llm_prompt_version": prompt_version},
+                status="failed",
                 retry_count=retry_count,
+                error_message=error_message,
             )
         )
 
@@ -287,3 +338,26 @@ class EventPipelineTools:
         输出：匹配条件的行数。
         """
         return self.session.scalar(select(func.count(column)).where(condition)) or 0
+
+    def _successful_agent_metadata(self, agent: Any | None) -> dict[str, Any]:
+        """读取成功 Agent 调用的 LLM metadata。
+
+        输入：Agent 实例；stub 或 None 会返回空 metadata。
+        输出：provider、model、prompt_version、retry_count 和 raw_text 组成的 dict。
+        """
+        if agent is None:
+            return {
+                "model_provider": None,
+                "model_name": None,
+                "prompt_version": None,
+                "retry_count": None,
+                "raw_text": None,
+            }
+        last_result = getattr(agent, "last_result", None)
+        return {
+            "model_provider": getattr(agent, "model_provider", None),
+            "model_name": getattr(agent, "model_name", None),
+            "prompt_version": getattr(last_result, "prompt_version", None) or getattr(agent, "prompt_version", None),
+            "retry_count": getattr(last_result, "retry_count", None),
+            "raw_text": getattr(last_result, "raw_text", None),
+        }

@@ -6,6 +6,7 @@ from langgraph.graph import END, StateGraph
 from sqlalchemy.orm import Session
 
 from worker.agents.factory import create_event_agents
+from worker.agents.llm_json_agent import LLMAgentOutputError
 from worker.models import EventCandidate, EventDossier
 from worker.schemas.workflow import EventPipelineState
 from worker.tools.event_pipeline_tools import EventPipelineTools
@@ -37,8 +38,26 @@ def run_event_pipeline(
         source_scope=source_scope or {},
         status="initialized",
     )
-    final_state = graph.invoke(initial_state.model_dump())
-    return EventPipelineState.model_validate(final_state)
+    try:
+        final_state = graph.invoke(initial_state.model_dump())
+        return EventPipelineState.model_validate(final_state)
+    except LLMAgentOutputError as exc:
+        if pipeline_tools.current_run_id is not None:
+            pipeline_tools.finish_run_with_counts(
+                pipeline_tools.current_run_id,
+                status="failed",
+                summary="P1-4 workflow failed during LLM agent output parsing",
+                error_message=str(exc),
+            )
+        return EventPipelineState(
+            run_id=pipeline_tools.current_run_id,
+            run_key=run_key,
+            signal_ids=signal_ids,
+            source_scope=source_scope or {},
+            current_node="failed",
+            status="failed",
+            errors=[str(exc)],
+        )
 
 
 def _build_event_pipeline_graph(tools: EventPipelineTools):
@@ -140,7 +159,18 @@ def _editorial_triage_node(tools: EventPipelineTools):
         """
         parsed = EventPipelineState.model_validate(state)
         signals = tools.load_signals(parsed.signal_ids)
-        draft = tools.editor.triage(signals)
+        try:
+            draft = tools.editor.triage(signals)
+        except LLMAgentOutputError as exc:
+            if parsed.run_id is not None:
+                tools.record_agent_failure(
+                    parsed.run_id,
+                    tools.editor,
+                    "editor",
+                    f"triage {len(signals)} source signals",
+                    str(exc),
+                )
+            raise
         if parsed.run_id is not None:
             tools.record_agent_result(
                 parsed.run_id,
@@ -148,6 +178,7 @@ def _editorial_triage_node(tools: EventPipelineTools):
                 "editor",
                 f"triage {len(signals)} source signals",
                 draft.model_dump(),
+                agent=tools.editor,
             )
         return {
             **parsed.model_dump(),
@@ -173,7 +204,18 @@ def _merge_and_rank_events_node(tools: EventPipelineTools):
         """
         parsed = EventPipelineState.model_validate(state)
         signals = tools.load_signals(parsed.signal_ids)
-        candidate = tools.create_candidate(signals)
+        try:
+            candidate = tools.create_candidate(signals)
+        except LLMAgentOutputError as exc:
+            if parsed.run_id is not None:
+                tools.record_agent_failure(
+                    parsed.run_id,
+                    tools.editor,
+                    "editor",
+                    f"create candidate from {len(signals)} source signals",
+                    str(exc),
+                )
+            raise
         return {
             **parsed.model_dump(),
             "candidate_ids": [candidate.id],
@@ -226,7 +268,19 @@ def _draft_event_dossier_node(tools: EventPipelineTools):
         candidate = _load_current_candidate(tools.session, parsed)
         signals = tools.load_signals(parsed.signal_ids)
         revision_instruction = _last_revision_instruction(parsed)
-        dossier = tools.create_dossier(candidate, signals, revision_instruction)
+        try:
+            dossier = tools.create_dossier(candidate, signals, revision_instruction)
+        except LLMAgentOutputError as exc:
+            if parsed.run_id is not None:
+                tools.record_agent_failure(
+                    parsed.run_id,
+                    tools.writer,
+                    "writer",
+                    f"draft dossier for candidate {candidate.id}",
+                    str(exc),
+                    candidate_id=candidate.id,
+                )
+            raise
         if parsed.run_id is not None:
             tools.record_agent_result(
                 parsed.run_id,
@@ -240,7 +294,7 @@ def _draft_event_dossier_node(tools: EventPipelineTools):
                 },
                 candidate_id=candidate.id,
                 dossier_id=dossier.id,
-                retry_count=parsed.revision_count,
+                agent=tools.writer,
             )
         return {
             **parsed.model_dump(),
@@ -271,7 +325,20 @@ def _review_event_dossier_node(tools: EventPipelineTools):
         event_dossier = tools.session.get(EventDossier, parsed.dossier_id)
         if event_dossier is None:
             raise ValueError(f"EventDossier not found for id={parsed.dossier_id}")
-        review = tools.review_dossier(event_dossier, revision_count=parsed.revision_count)
+        try:
+            review = tools.review_dossier(event_dossier, revision_count=parsed.revision_count)
+        except LLMAgentOutputError as exc:
+            if parsed.run_id is not None:
+                tools.record_agent_failure(
+                    parsed.run_id,
+                    tools.reviewer,
+                    "reviewer",
+                    f"review dossier {event_dossier.id}",
+                    str(exc),
+                    candidate_id=event_dossier.candidate_id,
+                    dossier_id=event_dossier.id,
+                )
+            raise
         if parsed.run_id is not None:
             tools.record_agent_result(
                 parsed.run_id,
@@ -286,7 +353,7 @@ def _review_event_dossier_node(tools: EventPipelineTools):
                 },
                 candidate_id=event_dossier.candidate_id,
                 dossier_id=event_dossier.id,
-                retry_count=parsed.revision_count,
+                agent=tools.reviewer,
             )
         return {
             **parsed.model_dump(),

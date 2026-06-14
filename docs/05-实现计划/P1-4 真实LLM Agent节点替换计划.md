@@ -709,11 +709,13 @@ git commit -m "feat(worker): add llm agent mode to event pipeline"
 
 - Modify: `apps/worker/tests/test_event_pipeline_llm_mode.py`
 - Modify: `apps/worker/worker/tools/event_pipeline_tools.py`
-- Modify: `apps/worker/worker/agents/llm_json_agent.py`
+- Modify: `apps/worker/worker/workflows/event_pipeline.py`
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 
-- [ ] **Step 1: Write failing tests**
+执行偏差：原计划列出 `apps/worker/worker/agents/llm_json_agent.py`，但 `LLMJsonResult.retry_count/raw_text/prompt_version` 已在 Task 1 完成，本 task 无需修改该文件；为让失败 AgentRun 能落库并让 workflow 返回 failed state，实际修改 `apps/worker/worker/workflows/event_pipeline.py`。
+
+- [x] **Step 1: Write failing tests**
 
 测试必须覆盖：
 
@@ -726,7 +728,9 @@ def test_llm_agent_failure_records_failed_agent_run():
     """验证 LLM 输出持续失败时记录 failed agent_run 和错误摘要。"""
 ```
 
-- [ ] **Step 2: Run RED**
+执行记录：已修改 `apps/worker/tests/test_event_pipeline_llm_mode.py`，新增 `test_llm_agent_runs_record_provider_model_prompt_and_retry_count` 和 `test_llm_agent_failure_records_failed_agent_run`。测试数据使用 fake LLM client，不访问真实 provider；成功路径让 writer 第一次输出非法 JSON、第二次 repair 成功；失败路径让 reviewer 连续三次输出非法 JSON。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -740,7 +744,9 @@ Expected:
 model_provider / model_name / prompt_version / retry_count 未写入，或失败记录不存在
 ```
 
-- [ ] **Step 3: Implement metadata recording**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_llm_mode.py -v`，真实结果为 `2 failed, 1 passed in 2.14s`。失败 1：`on_duty_editor_llm.model_provider` 为 `None`。失败 2：reviewer 连续非法 JSON 时直接抛出 `LLMAgentOutputError`，没有 failed AgentRun 和 failed PipelineRun。
+
+- [x] **Step 3: Implement metadata recording**
 
 实现要求：
 
@@ -749,7 +755,9 @@ model_provider / model_name / prompt_version / retry_count 未写入，或失败
 - `EventPipelineTools.record_agent_result` 写入 provider、model、prompt_version、retry_count。
 - 当 LLM Agent 抛出 `LLMAgentOutputError` 时，记录 `status="failed"` 的 `agent_runs`，再让 workflow 进入 failed 或脚本返回 failed JSON。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已修改 `EventPipelineTools.record_agent_result`，从成功 Agent 的 `last_result` 写入 `model_provider`、`model_name`、`prompt_version`、`retry_count` 和 trace 中的 `llm_raw_text` / `llm_prompt_version` / `llm_retry_count`。新增 `record_agent_failure`，在 LLM 输出持续非法时写入 `status="failed"` 的 AgentRun。已修改 workflow，在 editor / writer / reviewer 节点捕获 `LLMAgentOutputError`，先记录失败 AgentRun，再由 `run_event_pipeline` 回填 failed PipelineRun 并返回 failed state。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -763,12 +771,16 @@ Expected:
 全部通过
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_llm_mode.py -v`，真实结果为 `3 passed in 1.57s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_llm_mode.py tests/test_run_log_service.py -v`，真实结果为 `4 passed in 3.69s`。再运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_workflow.py tests/test_event_pipeline_tools.py tests/test_run_event_pipeline_script.py tests/test_agent_factory.py tests/test_event_pipeline_llm_mode.py tests/test_llm_json_agent.py -v`，真实结果为 `13 passed in 7.35s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
-git add apps/worker/tests/test_event_pipeline_llm_mode.py apps/worker/worker/tools/event_pipeline_tools.py apps/worker/worker/agents/llm_json_agent.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
+git add apps/worker/tests/test_event_pipeline_llm_mode.py apps/worker/worker/tools/event_pipeline_tools.py apps/worker/worker/workflows/event_pipeline.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
 git commit -m "feat(worker): record llm agent run metadata"
 ```
+
+执行记录：本 task 的提交为 `feat(worker): record llm agent run metadata`。
 
 ### Task 7: P1-4 Smoke, Docs, and Phase Handoff
 

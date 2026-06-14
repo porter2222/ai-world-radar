@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from worker.models import AgentRun, Base, PublishedEvent
+from worker.models import AgentRun, Base, PipelineRun, PublishedEvent
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
@@ -178,3 +178,79 @@ def test_event_pipeline_can_run_with_injected_llm_agents():
         "review_publisher_llm",
     }
     assert len(fake_client.calls) == 4
+
+
+def test_llm_agent_runs_record_provider_model_prompt_and_retry_count():
+    """验证 agent_runs 记录真实 LLM metadata。
+
+    输入：writer 第一次返回非法 JSON、第二次 repair 成功的 fake LLM client。
+    输出：AgentRun 写入 provider、model、prompt_version 和 JSON repair retry_count。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    fake_client = FakeLLMClient(
+        [candidate_json(), candidate_json(), "not json", dossier_json(), review_json()]
+    )
+
+    state = run_event_pipeline(
+        session,
+        signal_ids=[signal.id],
+        run_key="manual-p1-4-llm-metadata",
+        source_scope={"source": "hn_algolia"},
+        agent_mode="llm",
+        llm_client=fake_client,
+    )
+
+    agent_runs = session.scalars(select(AgentRun)).all()
+    runs_by_name = {run.agent_name: run for run in agent_runs}
+
+    assert state.status == "succeeded"
+    assert runs_by_name["on_duty_editor_llm"].model_provider == "fake"
+    assert runs_by_name["on_duty_editor_llm"].model_name == "fake-model"
+    assert runs_by_name["on_duty_editor_llm"].prompt_version == "p1-4-editor-v1"
+    assert runs_by_name["on_duty_editor_llm"].retry_count == 0
+    assert runs_by_name["research_writer_llm"].model_provider == "fake"
+    assert runs_by_name["research_writer_llm"].model_name == "fake-model"
+    assert runs_by_name["research_writer_llm"].prompt_version == "p1-4-writer-v1"
+    assert runs_by_name["research_writer_llm"].retry_count == 1
+    assert runs_by_name["research_writer_llm"].trace_json["llm_prompt_version"] == "p1-4-writer-v1"
+    assert runs_by_name["review_publisher_llm"].prompt_version == "p1-4-reviewer-v1"
+
+
+def test_llm_agent_failure_records_failed_agent_run():
+    """验证 LLM 输出持续失败时记录 failed agent_run。
+
+    输入：reviewer 连续三次返回非法 JSON 的 fake LLM client。
+    输出：workflow 返回 failed，AgentRun 和 PipelineRun 均记录失败信息。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    fake_client = FakeLLMClient(
+        [candidate_json(), candidate_json(), dossier_json(), "not json", "still not json", "bad again"]
+    )
+
+    state = run_event_pipeline(
+        session,
+        signal_ids=[signal.id],
+        run_key="manual-p1-4-llm-failure",
+        source_scope={"source": "hn_algolia"},
+        agent_mode="llm",
+        llm_client=fake_client,
+    )
+
+    failed_run = session.scalar(select(AgentRun).where(AgentRun.status == "failed"))
+    pipeline_run = session.scalar(select(PipelineRun))
+    published_count = len(session.scalars(select(PublishedEvent)).all())
+
+    assert state.status == "failed"
+    assert state.errors
+    assert failed_run is not None
+    assert failed_run.agent_name == "review_publisher_llm"
+    assert failed_run.model_provider == "fake"
+    assert failed_run.model_name == "fake-model"
+    assert failed_run.prompt_version == "p1-4-reviewer-v1"
+    assert failed_run.retry_count == 2
+    assert "无法解析 LLM 输出为 ReviewResultDraft" in failed_run.error_message
+    assert pipeline_run.status == "failed"
+    assert pipeline_run.failed_count == 1
+    assert published_count == 0
