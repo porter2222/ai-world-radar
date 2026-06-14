@@ -161,12 +161,14 @@ Expected:
 
 执行记录：已运行 `git diff --check`，真实结果为退出码 0；PowerShell 输出仅包含既有工作区换行提示，没有 trailing whitespace 或冲突标记错误。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```powershell
 git add docs/README.md docs/05-实现计划/README.md docs/05-实现计划/P1-3* docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md
 git commit -m "docs: add p1-3 source collection plan"
 ```
+
+执行记录：已提交 `docs: add p1-3 source collection plan`。
 
 ### Task 1: HN SourceSignal adapter
 
@@ -522,7 +524,7 @@ git commit -m "feat(worker): run event pipeline from collected signals"
 - Modify: `docs/00-项目总览/文档索引.md`
 - Modify: `docs/README.md`
 
-- [ ] **Step 1: Run full worker pytest**
+- [x] **Step 1: Run full worker pytest**
 
 Run:
 
@@ -536,7 +538,9 @@ Expected:
 all tests passed
 ```
 
-- [ ] **Step 2: Run fresh SQLite smoke**
+执行记录：已在 `apps/worker` 下运行 `.\.venv\Scripts\python.exe -m pytest -v`，真实结果为 `collected 50 items`，50 个测试均 `PASSED`，最终 `50 passed in 10.44s`。
+
+- [x] **Step 2: Run fresh SQLite smoke**
 
 Run:
 
@@ -554,7 +558,9 @@ run_event_pipeline.py 输出 status=succeeded 且 published_count=1
 
 If live network or GitHub rate limit fails, run a fixture-mode smoke and record the live failure text exactly in `后端P1测试记录.md`。
 
-- [ ] **Step 3: Update docs with real outputs**
+执行记录：已使用全新 `scratch/p1_3_smoke_final.sqlite` 运行 live smoke。采集命令真实输出为 `{"signals_count": 2, "source_keys": ["github_releases", "hn_algolia"], "sources_count": 2, "status": "succeeded"}`；pipeline 命令真实输出为 `{"candidates_count": 1, "dossiers_count": 1, "published_count": 1, "published_event_id": "pub_c3e6a2a5e1854da3b801f467c39d218e", "run_id": "run_74a443ea196c4978a997161dc316665b", "signals_count": 1, "status": "succeeded"}`；表计数为 `{'sources': 2, 'source_signals': 2, 'pipeline_runs': 1, 'agent_runs': 3, 'event_candidates': 1, 'event_dossiers': 1, 'review_results': 1, 'published_events': 1}`。smoke 数据库检查后已删除，未进入 git 工作区。
+
+- [x] **Step 3: Update docs with real outputs**
 
 `docs/07-验收与运行/后端P1测试记录.md` must state:
 
@@ -566,7 +572,9 @@ If live network or GitHub rate limit fails, run a fixture-mode smoke and record 
 - 哪些范围没有覆盖。
 - 当前是否可以进入 P1-4。
 
-- [ ] **Step 4: Run documentation check**
+执行记录：已在 `docs/07-验收与运行/后端P1测试记录.md` 追加 P1-3 Task 5 最终验收记录，并同步更新本文档、HTML 阅读版、实现计划 README、项目状态、文档索引和文档入口。
+
+- [x] **Step 4: Run documentation check**
 
 Run:
 
@@ -582,12 +590,16 @@ git diff --check 无输出
 rg 无匹配
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：已运行 `git diff --check`，真实结果为退出码 0；PowerShell 输出为 Windows 工作区 LF/CRLF 提示，没有 trailing whitespace 或冲突标记错误。已运行 `rg "待[补]充|占[位]|预[计]通过|应[该]通过" docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`，真实结果为退出码 1、无匹配。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3* docs/05-实现计划/README.md docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md docs/README.md
 git commit -m "docs: record p1-3 source collection acceptance"
 ```
+
+执行记录：本 task 的文档收尾提交为 `docs: record p1-3 source collection acceptance`。
 
 ## 6. 验收标准
 
@@ -611,4 +623,4 @@ P1-3 完成后必须满足：
 
 ## 8. 执行交接
 
-本计划保存于 `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`。当前建议按 Task 0 到 Task 5 顺序执行，每个 task 单独 RED/GREEN、更新文档并提交。
+本计划保存于 `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`。Task 0 到 Task 5 已按顺序执行，每个 task 均有 RED/GREEN 或验收命令记录、文档更新和独立提交。P1-3 已完成，下一阶段建议进入 P1-4：真实 LLM Agent 节点替换。

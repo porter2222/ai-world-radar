@@ -82,6 +82,7 @@
         <li><a href="#scope">阶段边界</a></li>
         <li><a href="#mapping">映射口径</a></li>
         <li><a href="#tasks">任务拆解</a></li>
+        <li><a href="#final-evidence">最终验收摘要</a></li>
         <li><a href="#acceptance">验收标准</a></li>
         <li><a href="#handoff">执行交接</a></li>
       </ol>
@@ -89,13 +90,13 @@
     <main class="content">
       <article class="doc">
         <h1>P1-3 HN 与 GitHub 采集接入新版链路计划</h1>
-        <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-14 ｜ 阶段：P1-3 Task 0 completed</p>
+        <p class="meta">版本：v1.0 ｜ 更新日期：2026-06-14 ｜ 阶段：P1-3 completed</p>
         <blockquote>
           <p><strong>Goal:</strong> 把真实 HN / GitHub 公开来源稳定写入新版 <code>source_signals</code>，并让 P1-2 的 <code>scripts/run_event_pipeline.py</code> 能消费这些信号产出 <code>PublishedEvent</code>。</p>
         </blockquote>
 
         <h2 id="stage">1. 当前阶段</h2>
-        <p>P1-1 已完成新版后端数据底座，P1-2 已完成 LangGraph 最小闭环，并已物理删除旧 HN pipeline、旧 Agent stub、旧 <code>run_hn_pipeline.py</code> 和旧 legacy guard 测试。P1-3 只补 source layer，不恢复旧事件模型。</p>
+        <p>P1-1 已完成新版后端数据底座，P1-2 已完成 LangGraph 最小闭环，并已物理删除旧 HN pipeline、旧 Agent stub、旧 <code>run_hn_pipeline.py</code> 和旧 legacy guard 测试。P1-3 已完成 source layer 接入，不恢复旧事件模型。</p>
         <pre><code>SourceSignal
 -&gt; EventCandidate
 -&gt; EventDossier
@@ -137,22 +138,31 @@
             <tr><td>Task 2</td><td>GitHub releases collector and adapter</td><td>RED: <code>ModuleNotFoundError: No module named 'worker.collectors.github_releases'</code>；GREEN: <code>3 passed in 0.39s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 3</td><td>Collection script writes SourceSignal only</td><td>RED: <code>can't open file 'scripts/collect_source_signals.py'</code>；GREEN: <code>2 passed in 4.00s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 4</td><td>Event pipeline consumes collected signals</td><td>RED: <code>unrecognized arguments: --source-key hn_algolia --limit 1</code>；GREEN: <code>2 passed in 6.75s</code></td><td>已完成，已提交</td></tr>
-            <tr><td>Task 5</td><td>P1-3 smoke, docs, and phase handoff</td><td><code>pytest -v</code>；采集 + pipeline SQLite smoke</td><td>未开始</td></tr>
+            <tr><td>Task 5</td><td>P1-3 smoke, docs, and phase handoff</td><td>全量 <code>pytest -v</code>: <code>50 passed in 10.44s</code>；live SQLite smoke: 采集 <code>signals_count=2</code>，pipeline <code>published_count=1</code></td><td>已完成，文档已更新</td></tr>
           </tbody>
         </table>
 
-        <h2 id="acceptance">5. 验收标准</h2>
+        <h2 id="final-evidence">5. 最终验收摘要</h2>
+        <ul>
+          <li>worker 全量测试：<code>.\.venv\Scripts\python.exe -m pytest -v</code>，真实结果 <code>50 passed in 10.44s</code>。</li>
+          <li>全新 SQLite live 采集 smoke：HN limit=1 + GitHub <code>openai/openai-python</code> releases limit=1，真实输出 <code>{"signals_count": 2, "source_keys": ["github_releases", "hn_algolia"], "sources_count": 2, "status": "succeeded"}</code>。</li>
+          <li>全新 SQLite pipeline smoke：从 <code>source_key=hn_algolia</code> 消费 1 条已入库信号，真实输出 <code>{"candidates_count": 1, "dossiers_count": 1, "published_count": 1, "signals_count": 1, "status": "succeeded"}</code>。</li>
+          <li>表计数：<code>sources=2</code>、<code>source_signals=2</code>、<code>pipeline_runs=1</code>、<code>agent_runs=3</code>、<code>event_candidates=1</code>、<code>event_dossiers=1</code>、<code>review_results=1</code>、<code>published_events=1</code>。</li>
+        </ul>
+
+        <h2 id="acceptance">6. 验收标准</h2>
         <ul>
           <li>HN Algolia story 可以映射为新版 <code>SourceSignalCreate</code>。</li>
           <li>GitHub release 可以映射为新版 <code>SourceSignalCreate</code>。</li>
           <li><code>source_hash</code> 对同一外部对象稳定，且通过 <code>SignalService</code> 幂等写入。</li>
           <li><code>collect_source_signals.py</code> 可以只采集并写入 <code>source_signals</code>，不运行事件生产 workflow。</li>
           <li><code>run_event_pipeline.py</code> 可以用已入库 source signals 运行，不依赖 <code>--seed-demo-signal</code>。</li>
+          <li>worker 全量 pytest 通过。</li>
           <li>全新 SQLite smoke 证明“采集 -&gt; 入库信号 -&gt; 事件生产 -&gt; 发布快照”首跑可用。</li>
         </ul>
 
-        <h2 id="handoff">6. 执行交接</h2>
-        <p>按 Task 0 到 Task 5 顺序执行，每个 task 单独 RED/GREEN、更新文档并提交。P1-3 完成前不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
+        <h2 id="handoff">7. 执行交接</h2>
+        <p>Task 0 到 Task 5 已按顺序执行，每个 task 均有 RED/GREEN 或验收命令记录、文档更新和独立提交。P1-3 已完成，下一阶段建议进入 P1-4：真实 LLM Agent 节点替换。后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
       </article>
     </main>
   </div>

@@ -19,4 +19,4 @@
 
 `P1-2 LangGraph工作流与三Agent最小闭环计划` 是 P1-1 数据底座完成后的 P1-2 实施依据和完成记录，定义 LangGraph 工作流、三 Agent 确定性 stub、工程 tool 适配层、新版脚本入口、旧可执行代码物理清理和验收记录要求。P1-2 已完成。
 
-`P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。
+`P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据和完成记录，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。P1-3 已完成，下一步建议进入 P1-4 真实 LLM Agent 节点替换。

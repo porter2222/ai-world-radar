@@ -119,14 +119,15 @@
         <table>
           <thead><tr><th>阶段</th><th>名称</th><th>目标</th><th>交付物</th></tr></thead>
           <tbody>
-            <tr><td>P1-1</td><td>后端数据底座与 Worker 重构</td><td>建立新版核心表、schema、服务层、测试证据</td><td>本计划执行范围</td></tr>
-            <tr><td>P1-2</td><td>LangGraph 工作流与三 Agent 最小闭环</td><td>用确定性 stub 跑通编辑部式工作流</td><td>下一份计划</td></tr>
-            <tr><td>P1-3</td><td>HN / GitHub 冷启动采集</td><td>把真实来源写入 source_signals</td><td>后端采集计划</td></tr>
+            <tr><td>P1-1</td><td>后端数据底座与 Worker 重构</td><td>建立新版核心表、schema、服务层、测试证据</td><td>已完成</td></tr>
+            <tr><td>P1-2</td><td>LangGraph 工作流与三 Agent 最小闭环</td><td>用确定性 stub 跑通编辑部式工作流</td><td>已完成</td></tr>
+            <tr><td>P1-3</td><td>HN / GitHub 冷启动采集</td><td>把真实来源写入 source_signals</td><td>已完成</td></tr>
             <tr><td>P1-4</td><td>真实 LLM Agent 节点替换</td><td>值班编辑、研究写作、审稿发布逐个替换</td><td>Agent 计划</td></tr>
             <tr><td>P1-5</td><td>Next.js 页面与后台</td><td>展示已发布事件和后台运行记录</td><td>前端计划</td></tr>
             <tr><td>P1-6</td><td>P1 验收与部署准备</td><td>形成可演示、可测试、可迁移的产品闭环</td><td>验收与运行计划</td></tr>
           </tbody>
         </table>
+        <p><strong>执行状态补充（2026-06-14）：</strong>P1-1、P1-2、P1-3 均已完成。P1-3 最终 worker 全量测试为 <code>50 passed in 10.44s</code>，全新 SQLite live smoke 生成 <code>published_events=1</code>。下一阶段建议进入 P1-4：真实 LLM Agent 节点替换。</p>
 
         <h2 id="scope">3. P1-1 范围</h2>
         <h3>必须完成</h3>

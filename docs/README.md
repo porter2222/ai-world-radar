@@ -48,7 +48,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构，以及 P1-2 LangGraph 工作流与三 Agent 最小闭环。P1-3 HN / GitHub 采集接入计划已经建立，后续实现应按该计划的 task 顺序推进。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环，以及 P1-3 HN / GitHub 采集接入新版链路。P1-3 最终 worker 全量测试为 `50 passed in 10.44s`，全新 SQLite live smoke 已证明真实采集后的 `hn_algolia` signal 可以生成 `PublishedEvent`。
 
 最新产品基线已经调整为：
 
@@ -58,4 +58,4 @@
 
 下一步建议进入：
 
-> 执行 P1-3 真实 HN / GitHub 采集接入计划，把外部公开信号稳定写入新版 `source_signals`，再复用 P1-2 的 `scripts/run_event_pipeline.py` 产出 `PublishedEvent`。
+> 进入 P1-4 真实 LLM Agent 节点替换：在既有 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路上，逐步替换值班编辑、研究写作、审稿发布三个确定性 stub。
