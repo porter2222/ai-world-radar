@@ -178,7 +178,7 @@ git commit -m "docs: add p1-3 source collection plan"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 Test target:
 
@@ -198,7 +198,9 @@ def test_hn_story_maps_to_source_signal_create():
     assert signal.heat_metrics["hn_heat_score"] == 65
 ```
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_hn_source_signal_adapter.py`，覆盖 HN source 配置、HNStory 到 SourceSignalCreate 映射、无外链时回退到 HN item URL 三个场景。实际测试数比计划示例多 1 个，用于固定 HN item URL fallback 口径。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -213,7 +215,9 @@ Expected:
 ModuleNotFoundError: No module named 'worker.sources'
 ```
 
-- [ ] **Step 3: Implement adapter**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_hn_source_signal_adapter.py -v`，真实结果为 `collected 0 items / 1 error`，失败原因为 `ModuleNotFoundError: No module named 'worker.sources'`，RED 成立。
+
+- [x] **Step 3: Implement adapter**
 
 `hn_source.py` must expose:
 
@@ -224,7 +228,9 @@ def hn_story_to_signal(story: HNStory) -> SourceSignalCreate: ...
 
 函数级中文 docstring 必须说明输入和输出。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/worker/sources/__init__.py` 和 `apps/worker/worker/sources/hn_source.py`。`build_hn_source` 构造 HN Algolia SourceCreate；`hn_story_to_signal` 将 HNStory 映射为 SourceSignalCreate；辅助函数负责 HN item URL、canonical URL 和 raw_summary。新增函数均包含中文 docstring，说明输入与输出。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -235,15 +241,19 @@ Run:
 Expected:
 
 ```text
-2 passed
+3 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_hn_source_signal_adapter.py -v`，真实结果为 `collected 3 items`，3 个测试均 `PASSED`，最终 `3 passed in 0.13s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/worker/sources apps/worker/tests/test_hn_source_signal_adapter.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3*
 git commit -m "feat(worker): map hn stories to source signals"
 ```
+
+执行记录：已提交 `feat(worker): map hn stories to source signals`。
 
 ### Task 2: GitHub releases collector and adapter
 
@@ -532,7 +542,7 @@ Run:
 
 ```powershell
 git diff --check
-rg "待补充|占位|预计通过|应该通过" docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md
+rg "待[补]充|占[位]|预[计]通过|应[该]通过" docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md
 ```
 
 Expected:

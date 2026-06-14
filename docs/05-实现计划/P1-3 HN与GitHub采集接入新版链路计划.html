@@ -133,7 +133,7 @@
           <thead><tr><th>Task</th><th>目标</th><th>核心验证</th><th>状态</th></tr></thead>
           <tbody>
             <tr><td>Task 0</td><td>P1-3 计划与入口文档</td><td><code>git diff --check</code> 退出码 0，仅有既有换行提示</td><td>已完成</td></tr>
-            <tr><td>Task 1</td><td>HN SourceSignal adapter</td><td><code>pytest tests/test_hn_source_signal_adapter.py -v</code></td><td>未开始</td></tr>
+            <tr><td>Task 1</td><td>HN SourceSignal adapter</td><td>RED: <code>ModuleNotFoundError: No module named 'worker.sources'</code>；GREEN: <code>3 passed in 0.13s</code></td><td>已完成，已提交</td></tr>
             <tr><td>Task 2</td><td>GitHub releases collector and adapter</td><td><code>pytest tests/test_github_releases_collector.py -v</code></td><td>未开始</td></tr>
             <tr><td>Task 3</td><td>Collection script writes SourceSignal only</td><td><code>pytest tests/test_collect_source_signals_script.py -v</code></td><td>未开始</td></tr>
             <tr><td>Task 4</td><td>Event pipeline consumes collected signals</td><td><code>pytest tests/test_run_event_pipeline_script.py -v</code></td><td>未开始</td></tr>
