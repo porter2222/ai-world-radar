@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from worker.models import Base
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.signal_service import SignalService
+from scripts.run_event_pipeline import parse_args
 
 
 def seed_hn_signal(db_path):
@@ -109,3 +110,16 @@ def test_run_event_pipeline_script_consumes_collected_source_signals(tmp_path):
     assert summary["status"] == "succeeded"
     assert summary["signals_count"] == 1
     assert summary["published_count"] == 1
+
+
+def test_run_event_pipeline_script_accepts_agent_mode_argument(monkeypatch):
+    """验证脚本接受 --agent-mode stub|llm。
+
+    输入：包含 --agent-mode llm 的命令行参数。
+    输出：parse_args 返回 agent_mode=llm。
+    """
+    monkeypatch.setattr(sys, "argv", ["run_event_pipeline.py", "--agent-mode", "llm"])
+
+    args = parse_args()
+
+    assert args.agent_mode == "llm"

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from worker.config import load_settings
 from worker.db.session import create_worker_engine
 from worker.models import Base, PipelineRun, Source, SourceSignal
 from worker.schemas.source import SourceCreate, SourceSignalCreate
@@ -18,7 +19,7 @@ def parse_args() -> argparse.Namespace:
     """解析新版事件 pipeline 脚本参数。
 
     输入：命令行参数。
-    输出：包含数据库 URL、run_key 和 smoke 开关的 argparse Namespace。
+    输出：包含数据库 URL、run_key、agent mode 和 smoke 开关的 argparse Namespace。
     """
     parser = argparse.ArgumentParser(description="Run the P1-2 event dossier pipeline.")
     parser.add_argument("--database-url", default=None, help="覆盖默认 DATABASE_URL。")
@@ -27,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--seed-demo-signal", action="store_true", help="写入一条 demo SourceSignal 后运行。")
     parser.add_argument("--source-key", default=None, help="从已入库 source_signals 中按 source_key 选择信号。")
     parser.add_argument("--limit", type=int, default=1, help="按 source_key 选择信号时的最大数量。")
+    parser.add_argument("--agent-mode", choices=["stub", "llm"], default=None, help="覆盖 AGENT_MODE，选择 stub 或 llm。")
     return parser.parse_args()
 
 
@@ -37,6 +39,8 @@ def main() -> int:
     输出：向 stdout 打印 JSON 摘要，并用进程退出码表达成功或失败。
     """
     args = parse_args()
+    settings = load_settings()
+    agent_mode = args.agent_mode or settings.agent_mode
     engine = create_worker_engine(args.database_url) if args.database_url else create_worker_engine()
     if args.create_schema_for_smoke:
         Base.metadata.create_all(engine)
@@ -60,12 +64,14 @@ def main() -> int:
             signal_ids=signal_ids,
             run_key=run_key,
             source_scope=source_scope,
+            agent_mode=agent_mode,
         )
         session.commit()
 
         run = session.scalar(select(PipelineRun).where(PipelineRun.id == state.run_id))
         summary = {
             "status": state.status,
+            "agent_mode": agent_mode,
             "run_id": state.run_id,
             "published_event_id": state.published_event_id,
             "signals_count": run.signals_count if run else 0,

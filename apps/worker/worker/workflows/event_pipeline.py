@@ -5,6 +5,7 @@ from typing import Any
 from langgraph.graph import END, StateGraph
 from sqlalchemy.orm import Session
 
+from worker.agents.factory import create_event_agents
 from worker.models import EventCandidate, EventDossier
 from worker.schemas.workflow import EventPipelineState
 from worker.tools.event_pipeline_tools import EventPipelineTools
@@ -16,14 +17,20 @@ def run_event_pipeline(
     signal_ids: list[str],
     run_key: str,
     source_scope: dict[str, Any] | None = None,
+    agent_mode: str = "stub",
+    llm_client: Any | None = None,
+    tools: EventPipelineTools | None = None,
 ) -> EventPipelineState:
     """运行 P1-2 事件档案生产工作流。
 
-    输入：数据库 Session、待处理 SourceSignal ID、run_key 和来源范围。
+    输入：数据库 Session、待处理 SourceSignal ID、run_key、来源范围、Agent 模式和可选注入 tools。
     输出：最终 EventPipelineState，包含 run、candidate、dossier、review 和发布结果。
     """
-    tools = EventPipelineTools(session)
-    graph = _build_event_pipeline_graph(tools)
+    pipeline_tools = tools or EventPipelineTools(
+        session,
+        agents=create_event_agents(mode=agent_mode, llm_client=llm_client),
+    )
+    graph = _build_event_pipeline_graph(pipeline_tools)
     initial_state = EventPipelineState(
         run_key=run_key,
         signal_ids=signal_ids,

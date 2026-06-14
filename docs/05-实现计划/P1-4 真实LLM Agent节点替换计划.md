@@ -603,9 +603,10 @@ git commit -m "feat(worker): add review publisher llm agent"
 **Files:**
 
 - Create: `apps/worker/tests/test_agent_factory.py`
-- Modify: `apps/worker/tests/test_event_pipeline_llm_mode.py`
+- Create: `apps/worker/tests/test_event_pipeline_llm_mode.py`
 - Modify: `apps/worker/tests/test_run_event_pipeline_script.py`
 - Create: `apps/worker/worker/agents/factory.py`
+- Modify: `apps/worker/worker/agents/__init__.py`
 - Modify: `apps/worker/worker/config.py`
 - Modify: `apps/worker/worker/tools/event_pipeline_tools.py`
 - Modify: `apps/worker/worker/workflows/event_pipeline.py`
@@ -613,7 +614,9 @@ git commit -m "feat(worker): add review publisher llm agent"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 
-- [ ] **Step 1: Write failing tests**
+执行偏差：原计划把 `apps/worker/tests/test_event_pipeline_llm_mode.py` 写成 Modify，但当前 worktree 不存在该文件，实际处理为 Create；为导出 factory，也同步修改 `apps/worker/worker/agents/__init__.py`。
+
+- [x] **Step 1: Write failing tests**
 
 测试必须覆盖：
 
@@ -634,7 +637,9 @@ def test_run_event_pipeline_script_accepts_agent_mode_argument():
     """验证脚本接受 --agent-mode stub|llm。"""
 ```
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/test_agent_factory.py`，覆盖默认 stub 和 llm 模式共享 fake client；已新增 `apps/worker/tests/test_event_pipeline_llm_mode.py`，覆盖 workflow 使用 `agent_mode="llm"` 和 fake LLM client 首跑发布；已修改 `apps/worker/tests/test_run_event_pipeline_script.py`，覆盖 `--agent-mode llm` 参数解析。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -648,7 +653,9 @@ Expected:
 agent factory 不存在，或 --agent-mode 参数不存在
 ```
 
-- [ ] **Step 3: Implement factory and injection**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_agent_factory.py tests/test_event_pipeline_llm_mode.py tests/test_run_event_pipeline_script.py -v`，真实结果为 `collected 4 items / 1 error`，失败原因为 `ModuleNotFoundError: No module named 'worker.agents.factory'`，RED 成立。
+
+- [x] **Step 3: Implement factory and injection**
 
 新增：
 
@@ -669,7 +676,9 @@ def create_event_agents(mode: str = "stub", llm_client: LLMClient | None = None)
 - `scripts/run_event_pipeline.py` 增加 `--agent-mode stub|llm`，默认读取 settings。
 - stub 模式继续完全兼容现有测试。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/worker/agents/factory.py` 中的 `EventAgentSet` 和 `create_event_agents`；已更新 `apps/worker/worker/agents/__init__.py` 导出；`Settings` 已新增 `agent_mode`；`EventPipelineTools` 支持 `EventAgentSet` 注入；`run_event_pipeline` 支持 `agent_mode`、`llm_client` 和 `tools` 注入；`scripts/run_event_pipeline.py` 支持 `--agent-mode stub|llm`，并在 stdout JSON 中输出 `agent_mode`。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -683,12 +692,16 @@ Expected:
 全部通过
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：实现后首次运行 GREEN 命令时，真实结果为 `1 failed, 5 passed in 7.39s`；失败点是 `test_event_pipeline_can_run_with_injected_llm_agents` 依赖 `AgentRun.created_at/id` 推断顺序，但同秒时间戳和随机字符串 ID 不保证流程顺序。已将断言改为精确校验 3 条 AgentRun 的名称集合。随后重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_agent_factory.py tests/test_event_pipeline_llm_mode.py tests/test_run_event_pipeline_script.py -v`，真实结果为 `6 passed in 17.60s`。再运行 `.\.venv\Scripts\python.exe -m pytest tests/test_event_pipeline_workflow.py tests/test_event_pipeline_tools.py tests/test_llm_editor_agent.py tests/test_llm_writer_agent.py tests/test_llm_reviewer_agent.py tests/test_agent_factory.py tests/test_event_pipeline_llm_mode.py -v`，真实结果为 `11 passed in 2.01s`。
+
+- [x] **Step 5: Commit**
 
 ```powershell
-git add apps/worker/tests/test_agent_factory.py apps/worker/tests/test_event_pipeline_llm_mode.py apps/worker/tests/test_run_event_pipeline_script.py apps/worker/worker/agents/factory.py apps/worker/worker/config.py apps/worker/worker/tools/event_pipeline_tools.py apps/worker/worker/workflows/event_pipeline.py apps/worker/scripts/run_event_pipeline.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
+git add apps/worker/tests/test_agent_factory.py apps/worker/tests/test_event_pipeline_llm_mode.py apps/worker/tests/test_run_event_pipeline_script.py apps/worker/worker/agents/factory.py apps/worker/worker/agents/__init__.py apps/worker/worker/config.py apps/worker/worker/tools/event_pipeline_tools.py apps/worker/worker/workflows/event_pipeline.py apps/worker/scripts/run_event_pipeline.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-4*
 git commit -m "feat(worker): add llm agent mode to event pipeline"
 ```
+
+执行记录：本 task 的提交为 `feat(worker): add llm agent mode to event pipeline`。
 
 ### Task 6: Agent Run Metadata and Failure Recording
 

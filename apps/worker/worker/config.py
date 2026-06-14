@@ -21,7 +21,7 @@ class Settings:
     """Worker 运行配置。
 
     输入：由 `load_settings` 从环境变量和默认值组装。
-    输出：供数据库连接、runtime 目录和 LLM stub 配置读取的不可变配置对象。
+    输出：供数据库连接、runtime 目录、LLM 配置和 Agent 模式读取的不可变配置对象。
     """
 
     project_root: Path
@@ -30,13 +30,14 @@ class Settings:
     database_url: str
     llm_provider: str
     llm_model: str
+    agent_mode: str
 
 
 def load_settings() -> Settings:
     """读取 Worker 配置。
 
     输入：项目根目录下的 `.env` 和当前系统环境变量。
-    输出：`Settings`，包含数据库 URL、runtime 路径和默认 LLM provider/model。
+    输出：`Settings`，包含数据库 URL、runtime 路径、默认 LLM provider/model 和 Agent 模式。
     """
     root = project_root()
     load_dotenv(root / ".env")
@@ -52,4 +53,5 @@ def load_settings() -> Settings:
         ),
         llm_provider=os.getenv("LLM_PROVIDER", "deepseek"),
         llm_model=os.getenv("LLM_MODEL", "deepseek-chat"),
+        agent_mode=os.getenv("AGENT_MODE", "stub"),
     )

@@ -10,6 +10,7 @@ from worker.agents.event_pipeline_agents import (
     ResearchWriterAgentStub,
     ReviewPublisherAgentStub,
 )
+from worker.agents.factory import EventAgentSet
 from worker.models import EventCandidate, EventDossier, PipelineRun, PublishedEvent, SourceSignal
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand
 from worker.schemas.run import AgentRunRecord, PipelineRunCreate
@@ -20,28 +21,34 @@ from worker.services.run_log_service import RunLogService
 class EventPipelineTools:
     """事件工作流工程工具集合。
 
-    输入：SQLAlchemy Session 和可选三 Agent stub。
+    输入：SQLAlchemy Session 和可选三 Agent 或 Agent 集合。
     输出：供 LangGraph 节点调用的受控数据库写入能力。
     """
 
     def __init__(
         self,
         session: Session,
-        editor: OnDutyEditorAgentStub | None = None,
-        writer: ResearchWriterAgentStub | None = None,
-        reviewer: ReviewPublisherAgentStub | None = None,
+        editor: Any | None = None,
+        writer: Any | None = None,
+        reviewer: Any | None = None,
+        agents: EventAgentSet | None = None,
     ):
         """初始化 tool 适配层。
 
-        输入：调用方管理事务的 Session，以及可替换的确定性 Agent stub。
-        输出：绑定服务层和 Agent stub 的 EventPipelineTools 实例。
+        输入：调用方管理事务的 Session，以及可替换的 Agent 实例或 Agent 集合。
+        输出：绑定服务层和三类 Agent 的 EventPipelineTools 实例。
         """
         self.session = session
         self.event_service = EventService(session)
         self.run_log_service = RunLogService(session)
-        self.editor = editor or OnDutyEditorAgentStub()
-        self.writer = writer or ResearchWriterAgentStub()
-        self.reviewer = reviewer or ReviewPublisherAgentStub()
+        selected_agents = agents or EventAgentSet(
+            editor=OnDutyEditorAgentStub(),
+            writer=ResearchWriterAgentStub(),
+            reviewer=ReviewPublisherAgentStub(),
+        )
+        self.editor = editor or selected_agents.editor
+        self.writer = writer or selected_agents.writer
+        self.reviewer = reviewer or selected_agents.reviewer
         self.current_run_id: str | None = None
 
     def start_run(self, run_key: str, source_scope: dict[str, Any]) -> PipelineRun:
@@ -80,7 +87,7 @@ class EventPipelineTools:
         return signals
 
     def create_candidate(self, signals: list[dict[str, Any]]) -> EventCandidate:
-        """通过值班编辑 stub 和 EventService 创建候选事件。
+        """通过值班编辑 Agent 和 EventService 创建候选事件。
 
         输入：已标准化的来源信号 dict 列表。
         输出：已写入数据库并关联来源信号的 EventCandidate。
@@ -102,7 +109,7 @@ class EventPipelineTools:
         signals: list[dict[str, Any]],
         revision_instructions: str = "",
     ) -> EventDossier:
-        """通过研究写作 stub 和 EventService 创建事件档案。
+        """通过研究写作 Agent 和 EventService 创建事件档案。
 
         输入：候选事件 ORM、来源信号 dict 列表和可选修订说明。
         输出：已写入数据库的 EventDossier。
@@ -115,7 +122,7 @@ class EventPipelineTools:
         return dossier
 
     def review_dossier(self, dossier: EventDossier, revision_count: int = 0):
-        """通过审稿发布 stub 和 EventService 保存审稿结果。
+        """通过审稿发布 Agent 和 EventService 保存审稿结果。
 
         输入：事件档案 ORM 和当前修订次数。
         输出：已写入数据库的 ReviewResult。
@@ -155,7 +162,7 @@ class EventPipelineTools:
         dossier_id: str | None = None,
         retry_count: int = 0,
     ):
-        """记录一次 Agent stub 输出。
+        """记录一次 Agent 输出。
 
         输入：run_id、Agent 名称/角色、输入摘要、输出 JSON 和可选业务对象 ID。
         输出：已写入数据库的 AgentRun。
