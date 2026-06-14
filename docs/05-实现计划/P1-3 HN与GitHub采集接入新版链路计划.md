@@ -266,7 +266,7 @@ git commit -m "feat(worker): map hn stories to source signals"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-3 HN与GitHub采集接入新版链路计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Tests must cover:
 
@@ -274,7 +274,9 @@ Tests must cover:
 - Release maps to `SourceSignalCreate`.
 - `source_hash` is stable for the same owner/repo/release id.
 
-- [ ] **Step 2: Run RED**
+执行记录：已新增 `apps/worker/tests/fixtures/github_releases_response.json` 和 `apps/worker/tests/test_github_releases_collector.py`。测试覆盖 GitHub release JSON 到 `GitHubRelease`、payload 按 `published_at` 倒序并限制数量、`GitHubRelease` 到 `SourceSignalCreate` 的映射。
+
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -288,7 +290,9 @@ Expected:
 ModuleNotFoundError: No module named 'worker.collectors.github_releases'
 ```
 
-- [ ] **Step 3: Implement collector and adapter**
+执行记录：首次运行 `.\.venv\Scripts\python.exe -m pytest tests/test_github_releases_collector.py -v`，真实结果为 `collected 0 items / 1 error`，失败原因为 `ModuleNotFoundError: No module named 'worker.collectors.github_releases'`，RED 成立。
+
+- [x] **Step 3: Implement collector and adapter**
 
 Collector must expose:
 
@@ -309,7 +313,9 @@ def github_release_to_signal(release: GitHubRelease) -> SourceSignalCreate: ...
 
 函数级中文 docstring 必须说明输入和输出。
 
-- [ ] **Step 4: Run GREEN**
+执行记录：已新增 `apps/worker/worker/collectors/github_releases.py` 和 `apps/worker/worker/sources/github_source.py`，并更新 `worker/sources/__init__.py` 导出 GitHub source adapter。新增函数和 `GitHubRelease` 均包含中文 docstring，说明输入与输出。
+
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -323,12 +329,16 @@ Expected:
 3 passed
 ```
 
-- [ ] **Step 5: Commit**
+执行记录：重新运行 `.\.venv\Scripts\python.exe -m pytest tests/test_github_releases_collector.py -v`，真实结果为 `collected 3 items`，3 个测试均 `PASSED`，最终 `3 passed in 0.39s`。随后运行 `.\.venv\Scripts\python.exe -m pytest tests/test_hn_source_signal_adapter.py tests/test_github_releases_collector.py -v`，真实结果为 `6 passed in 0.21s`，确认新增导出未破坏 Task 1。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/worker/collectors/github_releases.py apps/worker/worker/sources/github_source.py apps/worker/tests/fixtures/github_releases_response.json apps/worker/tests/test_github_releases_collector.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-3*
 git commit -m "feat(worker): collect github releases as source signals"
 ```
+
+执行记录：已提交 `feat(worker): collect github releases as source signals`。
 
 ### Task 3: Collection script writes SourceSignal only
 
