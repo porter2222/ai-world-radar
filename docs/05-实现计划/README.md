@@ -10,9 +10,13 @@
 - `P1实施路线图与第一阶段后端数据底座计划.html`
 - `P1-2 LangGraph工作流与三Agent最小闭环计划.md`
 - `P1-2 LangGraph工作流与三Agent最小闭环计划.html`
+- `P1-3 HN与GitHub采集接入新版链路计划.md`
+- `P1-3 HN与GitHub采集接入新版链路计划.html`
 
 `后端P1实现计划与功能切片拆解` 定义旧版后端 P1 第一条纵向功能切片：HN AI 事件生产闭环。该文档保留为历史参考。
 
 `P1实施路线图与第一阶段后端数据底座计划` 是新版 PRD v2.0、Agent 系统设计 v1.0、技术架构与数据模型设计 v1.0 之后的 P1-1 实施依据，定义 P1 总路线图和第一阶段后端数据底座重构任务。P1-1 已完成，保留为数据底座验收依据。
 
-`P1-2 LangGraph工作流与三Agent最小闭环计划` 是 P1-1 数据底座完成后的 P1-2 实施依据和完成记录，定义 LangGraph 工作流、三 Agent 确定性 stub、工程 tool 适配层、新版脚本入口、旧可执行代码物理清理和验收记录要求。P1-2 已完成，下一阶段建议新增 P1-3 真实 HN / GitHub 采集接入计划。
+`P1-2 LangGraph工作流与三Agent最小闭环计划` 是 P1-1 数据底座完成后的 P1-2 实施依据和完成记录，定义 LangGraph 工作流、三 Agent 确定性 stub、工程 tool 适配层、新版脚本入口、旧可执行代码物理清理和验收记录要求。P1-2 已完成。
+
+`P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。
