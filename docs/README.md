@@ -59,4 +59,4 @@
 
 下一步建议进入：
 
-> P1-5 工程准备：在保留 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路和默认 `AGENT_MODE=stub` 的前提下，补一条可信来源 real provider pipeline smoke，再推进下一阶段产品/API/前端或发布前验收任务。
+> P1-5 工程准备：在保留 `SourceSignal -> EventCandidate -> EventDossier -> ReviewResult -> PublishedEvent` 主链路和默认 `AGENT_MODE=stub` 的前提下，补一条高热度来源 real provider publish smoke，验证 HN 等热度源可生成热议型 `PublishedEvent`，且不把社区讨论写成官方事实，再推进下一阶段产品/API/前端或发布前验收任务。
