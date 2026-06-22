@@ -212,29 +212,41 @@ def dossier_json() -> str:
     输入：无。
     输出：符合 EventDossierDraft 的 JSON 字符串。
     """
-    return """
-{
-  "candidate_key": "p1-4-openai-coding-agent",
-  "card_title": "HN 热议 OpenAI 编码 Agent",
-  "card_summary": "HN 开发者正在讨论 OpenAI 编码 Agent 对日常工作流的影响。",
-  "category": "模型与产品",
-  "signal_label": "高热讨论",
-  "detail_title": "HN 为什么热议 OpenAI 编码 Agent",
-  "detail_summary": "这次热议集中在编码 Agent 对开发者工作流和工具选择的潜在影响。",
-  "detail_body": "发生了什么：HN 上开发者正在讨论 OpenAI 编码 Agent 对日常开发工作流的影响。\\n\\n为什么重要：这反映了开发者社区对 AI 编程工具形态变化的关注。\\n\\n后续看什么：观察官方说明、API 能力和社区反馈。",
-  "why_it_matters": "这件事有助于中文用户理解 AI 编程工具的新变化。",
-  "follow_up_points": ["观察官方文档", "观察社区反馈"],
-  "source_refs": [
-    {
-      "signal_id": "p1-4-heat-hn-1",
-      "title": "HN discussion: developers debate OpenAI coding agents",
-      "url": "https://news.ycombinator.com/item?id=40617088",
-      "source_key": "hn_algolia"
-    }
-  ],
-  "status": "draft"
-}
-""".strip()
+    return json.dumps(
+        {
+            "candidate_key": "p1-4-openai-coding-agent",
+            "card_title": "HN 热议 OpenAI 编码 Agent",
+            "card_summary": "HN 开发者正在讨论 OpenAI 编码 Agent 对日常工作流的影响。",
+            "category": "模型与产品",
+            "signal_label": "高热讨论",
+            "detail_title": "HN 为什么热议 OpenAI 编码 Agent",
+            "detail_summary": "这次热议集中在编码 Agent 对开发者工作流和工具选择的潜在影响。",
+            "detail_body": (
+                "Hacker News 上出现一则围绕 OpenAI 编码 Agent 的高热讨论，输入信号显示该讨论达到 512 points 和 186 comments。"
+                "这说明开发者社区正在集中关注 AI 编程工具是否会从代码补全走向更完整的任务执行，但这仍然是社区热议信号。\n\n"
+                "讨论的背景是 coding agent 正在被视为下一类开发生产力工具。开发者关心它是否能理解项目上下文、跨文件修改代码、生成测试、解释失败原因，"
+                "并在真实工程流程中减少重复劳动，而不是只在演示场景里表现良好。\n\n"
+                "社区焦点并不单一。一部分人期待它帮助处理迁移脚本、样板代码、测试补全和 issue 初筛；另一部分人担心它误解需求、制造隐藏 bug、增加审查负担，"
+                "或者在权限和责任边界上带来新的工程风险。\n\n"
+                "对中文用户来说，这条热议的价值在于提示一个观察方向：AI 编程工具竞争可能从模型能力展示，转向谁能更可靠地嵌入真实团队工作流。"
+                "这会影响个人开发者学习重点、创业团队工具选型和企业工程团队的采用节奏。\n\n"
+                "需要注意的是，当前来源只有 HN 热度信号。它可以支撑“开发者社区正在热议”这一判断，但不能写成 OpenAI 已确认新产品、发布时间表或行业趋势已经被验证。"
+                "后续应继续观察官方说明、开发者实测、企业采用案例和可复现的工作流模板。"
+            ),
+            "why_it_matters": "这件事有助于中文用户理解 AI 编程工具的新变化。",
+            "follow_up_points": ["观察官方文档", "观察社区反馈"],
+            "source_refs": [
+                {
+                    "signal_id": "p1-4-heat-hn-1",
+                    "title": "HN discussion: developers debate OpenAI coding agents",
+                    "url": "https://news.ycombinator.com/item?id=40617088",
+                    "source_key": "hn_algolia",
+                }
+            ],
+            "status": "draft",
+        },
+        ensure_ascii=False,
+    )
 
 
 def review_json() -> str:

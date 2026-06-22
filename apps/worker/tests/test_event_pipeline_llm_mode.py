@@ -1,3 +1,5 @@
+import json
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -94,35 +96,58 @@ def candidate_json() -> str:
 """.strip()
 
 
+def rich_detail_body() -> str:
+    """生成 LLM workflow 测试用高信息密度详情正文。
+
+    输入：无。
+    输出：至少五段、满足 EventDossierDraft 校验的正文。
+    """
+    return (
+        "Hacker News 上出现一则关于 OpenAI 新编码 Agent 的讨论，开发者正在关注它是否会改变日常软件开发流程。"
+        "这条来源是社区热度信号，因此它能证明讨论正在发生，但不能证明官方已经发布或确认完整产品路线。\n\n"
+        "讨论的背景是 AI 编程工具正在从代码补全和问答辅助，向更主动的任务执行形态发展。"
+        "开发者关心这类 Agent 是否能理解项目上下文、跨文件修改代码、运行测试并解释失败原因。\n\n"
+        "社区讨论焦点包括效率提升、重复劳动减少、迁移脚本生成和代码审查辅助。"
+        "同时也有开发者担心上下文误读、权限过大、生成代码不可控，以及团队协作中的责任边界不清。"
+        "这些争议决定了它能否从新鲜工具变成稳定工作流。\n\n"
+        "对中文用户来说，这类讨论可以帮助判断 AI 编程工具的真正落地方向。"
+        "如果后续出现稳定实测、企业采用案例或官方 API 能力说明，它可能从社区热议升级为更强的事实型事件。"
+        "在此之前，正文应帮助用户理解为什么这股热度值得观察。\n\n"
+        "边界必须明确：当前只能写成 HN 开发者正在热议，不能写成 OpenAI 已确认新功能，也不能写成行业已经得出结论。"
+        "后续应观察官方文档、开发者实测和开源项目工作流模板，并把新的强证据和当前社区热度区分开。"
+    )
+
+
 def dossier_json() -> str:
     """生成 fake LLM 事件档案响应。
 
     输入：无。
     输出：符合 EventDossierDraft 的 JSON 字符串。
     """
-    return """
-{
-  "candidate_key": "hn-openai-agent",
-  "card_title": "OpenAI 新编码 Agent 引发关注",
-  "card_summary": "开发者正在讨论 OpenAI 新编码 Agent 对工作流的影响。",
-  "category": "模型与产品",
-  "signal_label": "高热讨论",
-  "detail_title": "OpenAI 新编码 Agent 为什么值得关注",
-  "detail_summary": "这次讨论集中在编码 Agent 对开发者工作流和工具选择的影响。",
-  "detail_body": "发生了什么：HN 上开发者正在讨论 OpenAI 新编码 Agent。\\n\\n为什么重要：编码 Agent 可能改变开发者使用 AI 工具的方式。\\n\\n后续看什么：观察官方说明、API 能力和社区反馈。",
-  "why_it_matters": "这件事有助于中文用户理解 AI 编程工具的新变化。",
-  "follow_up_points": ["观察官方文档", "观察社区反馈"],
-  "source_refs": [
-    {
-      "signal_id": "sig_1",
-      "title": "OpenAI releases a new coding agent",
-      "url": "https://example.com/openai-coding-agent",
-      "source_key": "hn_algolia"
-    }
-  ],
-  "status": "draft"
-}
-""".strip()
+    return json.dumps(
+        {
+            "candidate_key": "hn-openai-agent",
+            "card_title": "OpenAI 新编码 Agent 引发关注",
+            "card_summary": "开发者正在讨论 OpenAI 新编码 Agent 对工作流的影响。",
+            "category": "模型与产品",
+            "signal_label": "高热讨论",
+            "detail_title": "OpenAI 新编码 Agent 为什么值得关注",
+            "detail_summary": "这次讨论集中在编码 Agent 对开发者工作流和工具选择的影响。",
+            "detail_body": rich_detail_body(),
+            "why_it_matters": "这件事有助于中文用户理解 AI 编程工具的新变化。",
+            "follow_up_points": ["观察官方文档", "观察社区反馈"],
+            "source_refs": [
+                {
+                    "signal_id": "sig_1",
+                    "title": "OpenAI releases a new coding agent",
+                    "url": "https://example.com/openai-coding-agent",
+                    "source_key": "hn_algolia",
+                }
+            ],
+            "status": "draft",
+        },
+        ensure_ascii=False,
+    )
 
 
 def review_json() -> str:

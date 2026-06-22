@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from worker.schemas.common import EventDossierStatus, ReviewDecision, RiskLevel, WorkerSchema, score_field
 
@@ -43,11 +43,24 @@ class EventDossierDraft(WorkerSchema):
     cover_image_url: str | None = None
     detail_title: str = Field(min_length=1)
     detail_summary: str = Field(min_length=1)
-    detail_body: str = Field(min_length=1)
+    detail_body: str = Field(min_length=500)
     why_it_matters: str = Field(min_length=1)
     follow_up_points: list[str] = Field(default_factory=list)
     source_refs: list[dict[str, Any]] = Field(default_factory=list)
     status: EventDossierStatus = "draft"
+
+    @field_validator("detail_body")
+    @classmethod
+    def validate_detail_body_depth(cls, value: str) -> str:
+        """校验详情正文的信息密度。
+
+        输入：LLM 或 stub 生成的 detail_body。
+        输出：信息量达标的正文；不足五段时抛出 ValueError。
+        """
+        paragraphs = [item.strip() for item in value.split("\n\n") if item.strip()]
+        if len(paragraphs) < 5:
+            raise ValueError("detail_body 至少需要 5 段，覆盖背景、热度、讨论焦点、影响和边界")
+        return value
 
 
 class ReviewResultDraft(WorkerSchema):

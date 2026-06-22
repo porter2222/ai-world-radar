@@ -8,6 +8,26 @@ from worker.schemas.run import AgentRunRecord, PipelineRunCreate
 from worker.schemas.source import SourceSignalCreate
 
 
+def rich_detail_body() -> str:
+    """构造信息密度足够的事件详情正文。
+
+    输入：无。
+    输出：至少五段、覆盖背景、热度、讨论焦点、影响和边界的详情正文。
+    """
+    return (
+        "Hacker News 上出现一则围绕 OpenAI 式 coding agents 的高热讨论，输入信号显示该讨论获得 512 points 和 186 comments。"
+        "这说明外网开发者社区正在集中关注 AI 编程工具从代码补全走向任务执行的变化，但它仍然只是社区热议信号。\n\n"
+        "这类 coding agents 被讨论的核心，是它们是否能够理解项目上下文、跨文件修改代码、执行测试、解释失败原因，并在开发者确认后完成更长链路的工程任务。"
+        "如果这些能力变得稳定，它们可能不只是 IDE 插件，而会成为软件团队工作流里的新协作层。\n\n"
+        "开发者讨论的分歧也很明显。一部分人关注重复劳动减少、迁移脚本生成、测试补全和 issue 初步处理；另一部分人担心上下文误读、生成代码审查成本、权限边界和生产环境安全。"
+        "这些争议比单纯的产品宣传更有信息价值，因为它们反映了一线使用者真正会遇到的阻力。\n\n"
+        "对中文 AI 用户来说，这个事件的价值在于提示一个方向：AI 编程工具的竞争可能从模型能力展示，转向谁能更可靠地嵌入真实工程流程。"
+        "后续如果出现官方产品更新、开发者实测报告或企业采用案例，这类社区讨论就可能升级为更强的事实型事件。\n\n"
+        "需要注意的是，当前来源只有 HN 热度信号。它可以支撑“开发者社区正在热议”这一判断，但不能据此写成 OpenAI 已发布新产品、确认路线图，或行业趋势已经被验证。"
+        "发布时必须保留这种边界，把它定位为热议型事件。"
+    )
+
+
 def test_source_signal_requires_source_hash_and_title():
     """验证 SourceSignalCreate 接收来源哈希和标题。
 
@@ -98,7 +118,7 @@ def test_event_dossier_contains_card_and_detail_content():
         signal_label="高热讨论",
         detail_title="OpenAI 新模型为什么引发开发者关注",
         detail_summary="这次讨论集中在模型能力、调用成本和开发者工具集成。",
-        detail_body="这是一段面向中文用户的事件解释正文，说明背景、变化和可能影响。",
+        detail_body=rich_detail_body(),
         why_it_matters="它可能影响 AI 编程工具和应用开发成本。",
         follow_up_points=["是否开放 API", "是否影响现有工具价格"],
         source_refs=[{"title": "HN discussion", "url": "https://news.ycombinator.com/item?id=123"}],
@@ -106,6 +126,32 @@ def test_event_dossier_contains_card_and_detail_content():
 
     assert dossier.card_title == "OpenAI 新模型引发开发者讨论"
     assert dossier.follow_up_points == ["是否开放 API", "是否影响现有工具价格"]
+
+
+def test_event_dossier_rejects_thin_detail_body():
+    """验证详情正文不能只是低信息量短摘要。
+
+    输入：只有三段、信息量不足的 detail_body。
+    输出：Pydantic ValidationError，避免低质量正文进入发布链路。
+    """
+    with pytest.raises(ValidationError):
+        EventDossierDraft(
+            candidate_key="openai-new-model",
+            card_title="OpenAI 新模型引发开发者讨论",
+            card_summary="开发者关注其能力、价格和工具链影响。",
+            category="模型与产品",
+            signal_label="高热讨论",
+            detail_title="OpenAI 新模型为什么引发开发者关注",
+            detail_summary="这次讨论集中在模型能力、调用成本和开发者工具集成。",
+            detail_body=(
+                "发生了什么：HN 上开发者正在讨论 OpenAI 新编码 Agent。\n\n"
+                "为什么重要：编码 Agent 可能改变开发者使用 AI 工具的方式。\n\n"
+                "后续看什么：观察官方说明、API 能力和社区反馈。"
+            ),
+            why_it_matters="它可能影响 AI 编程工具和应用开发成本。",
+            follow_up_points=["是否开放 API", "是否影响现有工具价格"],
+            source_refs=[{"title": "HN discussion", "url": "https://news.ycombinator.com/item?id=123"}],
+        )
 
 
 def test_review_result_decision_is_limited():

@@ -36,6 +36,29 @@ def _bounded_score(value: float) -> float:
     return max(0.0, min(100.0, float(value)))
 
 
+def _rich_stub_detail_body(summary: str, revision_note: str) -> str:
+    """生成信息密度足够的 stub 详情正文。
+
+    输入：来源摘要和可选审稿修订说明。
+    输出：至少五段、满足 EventDossierDraft 详情质量要求的正文。
+    """
+    return (
+        f"来源信号显示：{summary} 这说明 AI 圈或开发者社区正在围绕该主题形成讨论，值得被整理成事件档案。"
+        "P1 阶段优先记录这种正在升温的讨论，但不会把它直接改写成官方已经确认的事实。\n\n"
+        "这类事件通常需要先解释背景和触发点：相关模型、产品、工具或开源项目为什么突然被关注，"
+        "它和开发者工作流、模型使用成本、产品能力边界或行业采用节奏之间有什么关系。\n\n"
+        "详情页还需要呈现讨论焦点，而不只是复述标题。用户需要知道社区正在关心哪些具体问题，"
+        "例如能力是否稳定、集成是否方便、成本是否可控、是否会改变团队协作方式，以及是否存在明显争议。"
+        "这些信息能帮助读者区分短期噪声、真实采用阻力和后续值得追踪的产品信号。\n\n"
+        "对中文用户来说，这类事件的价值在于把外网碎片信号转译成可判断的信息：它可能影响工具选型、学习重点、"
+        "产品路线判断和后续观察优先级。即便暂时没有官方结论，热度本身也能反映 AI 圈的关注方向，"
+        "尤其适合提醒用户哪些英文社区话题正在从小圈子扩散到更广泛的开发者视野。\n\n"
+        "来源边界必须保留清楚：当前正文只能说明该主题正在被讨论，不能写成官方已经发布、能力已经验证或趋势已经定论。"
+        "后续应继续观察官方说明、开发者实测、价格变化、API 能力和社区反馈。"
+        f"{revision_note}"
+    )
+
+
 class OnDutyEditorAgentStub:
     """值班编辑确定性 stub。
 
@@ -121,12 +144,7 @@ class ResearchWriterAgentStub:
             signal_label="高热讨论",
             detail_title=f"{title} 为什么值得关注",
             detail_summary=f"{summary} 这条事件档案会先解释变化本身，再说明它对中文用户的影响。",
-            detail_body=(
-                f"发生了什么：{summary}\n\n"
-                "为什么重要：这类 AI 工具更新通常会影响开发者选择模型、评估成本和设计产品功能。\n\n"
-                "后续看什么：继续观察官方说明、API 能力、价格变化以及社区反馈。"
-                f"{revision_note}"
-            ),
+            detail_body=_rich_stub_detail_body(summary, revision_note),
             why_it_matters="这件事可能影响中文用户理解 AI 工具链变化、评估使用成本和判断后续跟进价值。",
             follow_up_points=["观察官方文档是否更新", "观察开发者社区是否持续讨论", "观察价格和 API 能力是否明确"],
             source_refs=source_refs,
