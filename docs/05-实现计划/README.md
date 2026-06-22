@@ -29,4 +29,4 @@
 
 P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。
 
-`P1-6 产品接口层与最小API计划` 是后端 P1 进入产品接口层前的方案文档，定义只读产品查询边界、`ProductQueryService` 优先的实现顺序、可选 FastAPI 薄适配层、事件列表 / 详情 / 后台审计接口草案、响应契约和验收标准。当前状态为方案已落文档，等待用户确认是否采用“先 ProductQueryService，再 FastAPI 薄适配层”的推荐方案。
+`P1-6 产品接口层与最小API计划` 是后端 P1 进入产品接口层前的方案文档，定义只读产品查询边界、`ProductQueryService` 优先的实现顺序、FastAPI 薄适配层、事件列表 / 详情 / 后台审计接口草案、响应契约和验收标准。当前状态为用户已确认采用“ProductQueryService + FastAPI 薄适配层”方案，下一步进入测试先行实现。

@@ -245,14 +245,14 @@
 
         <section id="architecture">
           <h2>3. 总体架构</h2>
-          <pre><code>Next.js Web App\n  -> 首页 / 事件雷达页\n  -> 事件详情页\n  -> 后台管理页\n  -> 轻量查询 API / Server Action\n\nPython Worker\n  -> 信息源采集\n  -> 正文缓存\n  -> LangGraph workflow\n  -> 编辑部式 Agent\n  -> Skill / Tool 调用\n  -> Pydantic 结构化校验\n  -> 审稿修订循环\n  -> 发布服务写库\n  -> 运行报告\n\nPostgreSQL\n  -> 业务数据\n  -> 事件状态\n  -> Agent 运行记录\n  -> 后台操作记录</code></pre>
-          <p>Next.js 和 Python Worker 在 P1 阶段不通过 HTTP 服务通信，而是通过 PostgreSQL 协作。P1 不引入 FastAPI，未来复杂任务控制再抽出 FastAPI Agent Service。</p>
+          <pre><code>Next.js Web App\n  -> 首页 / 事件雷达页\n  -> 事件详情页\n  -> 后台管理页\n  -> 调用 FastAPI 产品接口\n\nPython Worker\n  -> 信息源采集\n  -> 正文缓存\n  -> LangGraph workflow\n  -> 编辑部式 Agent\n  -> Skill / Tool 调用\n  -> Pydantic 结构化校验\n  -> 审稿修订循环\n  -> 发布服务写库\n  -> 运行报告\n\nFastAPI Product API\n  -> 已发布事件列表 / 详情\n  -> pipeline run / agent run 审计查询\n  -> manual_review 队列查询\n  -> 只读 HTTP JSON 接口\n\nPostgreSQL\n  -> 业务数据\n  -> 事件状态\n  -> Agent 运行记录\n  -> 后台操作记录</code></pre>
+          <p>Next.js 和 Python Worker 在 P1 阶段仍不直接通过 HTTP 通信。Python Worker 负责后台生产链路，FastAPI Product API 负责把 PostgreSQL 中的已发布内容和审计记录以只读 JSON 接口暴露给 Next.js。2026-06-22 用户已确认：从 P1-6 起引入 FastAPI 薄适配层。</p>
         </section>
 
         <section id="modules">
           <h2>4. 模块职责</h2>
           <h3>Next.js Web App</h3>
-          <p>负责首页、事件详情页、后台管理页、轻量查询 API / Server Action、后台操作写库和重跑请求状态。</p>
+          <p>负责首页、事件详情页、后台管理页和调用 FastAPI 产品接口。后台操作写库和重跑请求状态后续仍需单独设计，P1-6 的 FastAPI 只做只读查询。</p>
           <h3>Python Worker</h3>
           <p>负责读取来源、采集和标准化信号、正文缓存、LangGraph workflow、三类主 Agent、Pydantic 校验、审稿修订循环、发布服务写库和本地运行报告。</p>
           <h3>PostgreSQL</h3>
@@ -331,8 +331,8 @@
 
         <section id="fastapi">
           <h2>13. FastAPI 边界</h2>
-          <p>P1 不引入 FastAPI。原因是 P1 不需要 Python 对外提供 HTTP 服务，Next.js 足以承担前台和后台轻量 API，Python Worker 通过 PostgreSQL 协作即可。</p>
-          <p>P1 必须认真设计 Pydantic schema，以便未来 FastAPI 复用。未来需要实时 Agent 服务、任务状态查询、取消任务和重试任务时，再引入 FastAPI。</p>
+          <p>P1-6 起引入 FastAPI，但只作为产品接口层的薄适配服务。FastAPI 当前只读已有 PostgreSQL 数据，不触发采集、不触发 Agent / LangGraph workflow，不提供发布、隐藏、驳回、重跑等写操作。</p>
+          <p>业务查询规则必须放在 <code>ProductQueryService</code>，endpoint 只做参数解析和响应返回。管理端只读接口当前仅用于本地或内网开发；公开部署前必须补鉴权。未来需要实时 Agent 服务、任务状态查询、取消任务和重试任务时，再扩展为 FastAPI Agent Service。</p>
         </section>
 
         <section id="langgraph">
