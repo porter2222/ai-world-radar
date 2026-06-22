@@ -302,6 +302,17 @@ ModuleNotFoundError: No module named 'worker.api'
 - 不增加任何写接口。
 - 管理端只读接口当前仅用于本地或内网开发；公开部署前必须补鉴权。
 
+执行记录（2026-06-22）：
+
+- 已新增 `apps/worker/tests/test_product_api.py`，覆盖 `GET /health`、`GET /events`、`GET /events/{slug}`、缺失 slug 404、pipeline run / agent run 审计查询和 `manual_review` 队列查询。
+- 首次 RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_api.py -v`，真实失败为 `ModuleNotFoundError: No module named 'fastapi'`。
+- 已用 `pip index versions fastapi` / `pip index versions uvicorn` 查询本机可用版本，当前分别为 `fastapi 0.138.0`、`uvicorn 0.49.0`。
+- 已修改 `apps/worker/pyproject.toml`，新增 `fastapi==0.138.0`、`uvicorn==0.49.0`，并执行 `.\.venv\Scripts\python.exe -m pip install -e ".[dev]"`，真实输出包含 `Successfully installed ... fastapi-0.138.0 ... uvicorn-0.49.0`。
+- 第二次 RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_api.py -v`，真实失败为 `ModuleNotFoundError: No module named 'worker.api'`。
+- 已新增 `apps/worker/worker/api/__init__.py`、`apps/worker/worker/api/dependencies.py`、`apps/worker/worker/api/app.py`。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_api.py -v`，真实结果为 `2 passed in 1.05s`。
+- 联合回归命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py tests/test_product_api.py -v`，真实结果为 `6 passed in 1.13s`。
+
 ### Task 3: PostgreSQL 只读 smoke 和文档验收
 
 **Files:**
