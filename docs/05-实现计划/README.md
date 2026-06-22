@@ -14,6 +14,8 @@
 - `P1-3 HN与GitHub采集接入新版链路计划.html`
 - `P1-4 真实LLM Agent节点替换计划.md`
 - `P1-4 真实LLM Agent节点替换计划.html`
+- `P1-6 产品接口层与最小API计划.md`
+- `P1-6 产品接口层与最小API计划.html`
 
 `后端P1实现计划与功能切片拆解` 定义旧版后端 P1 第一条纵向功能切片：HN AI 事件生产闭环。该文档保留为历史参考。
 
@@ -26,3 +28,5 @@
 `P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据和完成记录，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。P1-4 已完成，fake LLM smoke 输出 `status=succeeded`、`published_count=1`、`agent_runs_count=3`；本机 OpenAI / OpenAI-compatible SDK smoke 已通过。2026-06-22 已补高热度 HN 来源 real provider publish smoke，输出 `status=succeeded`、`published_count=1`，reviewer 判断 `publish/low`，并在 `checked_items` 中确认该来源支撑“社区正在热议”而不是“官方已确认事实”。同日已补齐详情正文信息密度和读者口吻兜底。
 
 P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。
+
+`P1-6 产品接口层与最小API计划` 是后端 P1 进入产品接口层前的方案文档，定义只读产品查询边界、`ProductQueryService` 优先的实现顺序、可选 FastAPI 薄适配层、事件列表 / 详情 / 后台审计接口草案、响应契约和验收标准。当前状态为方案已落文档，等待用户确认是否采用“先 ProductQueryService，再 FastAPI 薄适配层”的推荐方案。
