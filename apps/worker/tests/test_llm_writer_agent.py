@@ -135,3 +135,20 @@ def test_research_writer_receives_revision_instructions():
     assert "不要编造来源没有支撑的信息" in combined_prompt
     assert "card_summary 不超过 120 字符" in combined_prompt
     assert "source_refs 必须引用输入 signal" in combined_prompt
+
+
+def test_research_writer_prompt_bounds_community_heat_language():
+    """验证写作 prompt 要求社区热度事件使用受限表达。
+
+    输入：HN 来源信号和 fake LLM。
+    输出：prompt 明确热度源只支撑讨论正在发生，不能写成官方已确认事实。
+    """
+    fake_client = FakeLLMClient([dossier_json()])
+    agent = ResearchWriterLLMAgent(fake_client)
+
+    agent.draft(candidate_draft(), [sample_signal()])
+
+    combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
+    assert "热度源只支撑讨论正在发生" in combined_prompt
+    assert "优先使用外网热议、社区正在讨论、传闻正在发酵" in combined_prompt
+    assert "不要写成官方已确认事实" in combined_prompt

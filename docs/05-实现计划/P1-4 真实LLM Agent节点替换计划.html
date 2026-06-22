@@ -124,7 +124,7 @@
         <p>P1-4 的稳定验收依据是 fake LLM 自动化测试、全量 pytest 和 fixture smoke。真实 provider 调用已证明本机 OpenAI / OpenAI-compatible 配置可在该分支使用；完整 pipeline 未发布是审稿安全逻辑对示例来源的阻断，不是 SDK、gateway 或 API key 失败。</p>
 
         <h2 id="handoff">7. 执行交接</h2>
-        <p>Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。后续进入发布质量验收前，建议补一条使用高热度来源的 real provider publish smoke，证明 reviewer 可以在来源表达边界匹配时给出 <code>publish</code> 并生成热议型 <code>PublishedEvent</code>，而不是要求每条热度事件都有官方事实源。P1-4 后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
+        <p>Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。2026-06-22 已补一条使用高热度 HN 来源的 real provider publish smoke，证明 reviewer 可以在来源表达边界匹配时给出 <code>publish</code> 并生成热议型 <code>PublishedEvent</code>，而不是要求每条热度事件都有官方事实源。P1-4 后续仍不要恢复旧 <code>EvidenceCard / EventCluster / Brief</code> 主链路。</p>
       </article>
     </main>
   </div>

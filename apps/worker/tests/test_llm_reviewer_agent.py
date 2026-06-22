@@ -124,3 +124,21 @@ def test_review_publisher_prompt_lists_allowed_decisions():
     assert "过度推断" in combined_prompt
     assert "风险不确定时选择 manual_review" in combined_prompt
     assert "revision_count: 1" in combined_prompt
+
+
+def test_review_publisher_prompt_allows_bounded_heat_discussion_publish():
+    """验证审稿 prompt 支持高热社区事件按表达边界发布。
+
+    输入：HN 风格事件档案和 fake LLM。
+    输出：prompt 明确热度源可支撑讨论本身，且不能写成官方已确认事实。
+    """
+    fake_client = FakeLLMClient([review_json()])
+    agent = ReviewPublisherLLMAgent(fake_client)
+
+    agent.review(sample_dossier(), revision_count=0)
+
+    combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
+    assert "热度源可以支撑讨论正在发生" in combined_prompt
+    assert "不要求每条热议型事件都有官方事实源" in combined_prompt
+    assert "不能把社区讨论写成官方已确认事实" in combined_prompt
+    assert "表达是否和来源强度匹配" in combined_prompt

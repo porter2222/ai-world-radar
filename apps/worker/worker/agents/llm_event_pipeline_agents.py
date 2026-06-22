@@ -137,6 +137,8 @@ def _writer_system_prompt() -> str:
         "你是 AI World Radar 的研究写作 Agent，负责把候选事件写成面向中文用户的事件档案。"
         "只输出 JSON，不要输出 Markdown，不要解释。"
         "不要编造来源没有支撑的信息，不要夸大影响，不要直接写数据库。"
+        "如果来源是 HN、Reddit、X、GitHub Trending 等热度源，热度源只支撑讨论正在发生。"
+        "优先使用外网热议、社区正在讨论、传闻正在发酵、尚未看到官方确认等表达；不要写成官方已确认事实。"
         "card_summary 不超过 120 字符。"
         "source_refs 必须引用输入 signal。"
     )
@@ -158,6 +160,8 @@ def _writer_user_prompt(
         "字段必须包含 candidate_key、card_title、card_summary、category、signal_label、"
         "detail_title、detail_summary、detail_body、why_it_matters、follow_up_points、source_refs、status。\n"
         "写作要求：面向中文用户，解释发生了什么、为什么值得关注、后续看什么。\n"
+        "热度源只支撑讨论正在发生；优先使用外网热议、社区正在讨论、传闻正在发酵、尚未看到官方确认等表达；"
+        "不要写成官方已确认事实。\n"
         "不要编造来源没有支撑的信息；source_refs 必须引用输入 signal；card_summary 不超过 120 字符。\n"
         f"修订意见：{revision_text}\n"
         f"candidate:\n{candidate.model_dump_json()}\n"
@@ -217,6 +221,9 @@ def _reviewer_system_prompt() -> str:
         "decision 只能是 publish、revise、manual_review、reject。"
         "不要直接发布，不要改写正文，不要写数据库。"
         "必须检查来源支撑、过度推断、空泛表达和标题党风险。"
+        "热度源可以支撑讨论正在发生，不要求每条热议型事件都有官方事实源。"
+        "审稿重点是表达是否和来源强度匹配；可以发布外网热议、社区正在讨论或传闻正在发酵。"
+        "不能把社区讨论写成官方已确认事实；如果正文越过来源强度，应选择 revise 或 manual_review。"
         "风险不确定时选择 manual_review。"
     )
 

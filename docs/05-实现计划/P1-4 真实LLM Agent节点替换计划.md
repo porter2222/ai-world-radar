@@ -930,4 +930,4 @@ P1-4 完成后必须满足：
 
 ## 8. 执行交接
 
-本计划保存于 `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`。Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。后续进入发布质量验收前，建议补一条使用高热度来源的 real provider publish smoke，证明 reviewer 可以在来源表达边界匹配时给出 `publish` 并生成热议型 `PublishedEvent`，而不是要求每条热度事件都有官方事实源。
+本计划保存于 `docs/05-实现计划/P1-4 真实LLM Agent节点替换计划.md`。Task 0 到 Task 7 已按顺序执行，每个 task 均单独 RED/GREEN、更新文档并提交。2026-06-22 已补一条使用高热度 HN 来源的 real provider publish smoke，证明 reviewer 可以在来源表达边界匹配时给出 `publish` 并生成热议型 `PublishedEvent`，而不是要求每条热度事件都有官方事实源。

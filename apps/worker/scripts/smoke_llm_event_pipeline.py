@@ -125,22 +125,25 @@ def seed_smoke_signal(session):
     service = SignalService(session)
     service.upsert_source(
         SourceCreate(
-            source_key="p1_4_smoke",
-            name="P1-4 Smoke Source",
-            source_type="fixture",
+            source_key="hn_algolia",
+            name="Hacker News Algolia",
+            source_type="community",
             fetch_method="manual",
-            entry_url="https://example.com/p1-4-smoke",
+            entry_url="https://news.ycombinator.com/",
         )
     )
     return service.upsert_signal(
         SourceSignalCreate(
-            source_key="p1_4_smoke",
-            source_item_id="p1-4-smoke-1",
-            original_title="OpenAI releases a new coding agent",
-            original_url="https://example.com/openai-coding-agent",
-            raw_summary="Developers discuss OpenAI's new coding agent and its workflow impact.",
-            source_hash=f"p1_4_smoke:{datetime.now(UTC).timestamp()}",
-            heat_metrics={"points": 120, "comments": 45},
+            source_key="hn_algolia",
+            source_item_id="p1-4-heat-hn-1",
+            original_title="HN discussion: developers debate OpenAI coding agents",
+            original_url="https://news.ycombinator.com/item?id=40617088",
+            raw_summary=(
+                "HN: 512 points, 186 comments. Developers are discussing whether OpenAI-style "
+                "coding agents will change day-to-day software workflows."
+            ),
+            source_hash=f"hn_algolia:p1-4-heat-hn-{datetime.now(UTC).timestamp()}",
+            heat_metrics={"points": 512, "comments": 186, "hn_heat_score": 88},
         )
     )
 
@@ -188,17 +191,17 @@ def candidate_json() -> str:
     return """
 {
   "candidate_key": "p1-4-openai-coding-agent",
-  "title": "OpenAI 新编码 Agent 引发开发者关注",
-  "event_type": "product_update",
+  "title": "HN 热议 OpenAI 编码 Agent 对开发者工作流的影响",
+  "event_type": "community_discussion",
   "category": "模型与产品",
   "primary_subject": "OpenAI",
-  "suggested_angle": "从开发者工作流变化解释这件事。",
-  "heat_score": 75,
+  "suggested_angle": "从社区讨论热度解释开发者为什么关注编码 Agent。",
+  "heat_score": 88,
   "importance_score": 82,
   "audience_value_score": 78,
-  "ranking_score": 79,
-  "ranking_reason": "来源信号同时具备讨论热度和中文用户理解价值。",
-  "merge_reason": "当前 smoke 信号可单独形成候选事件。"
+  "ranking_score": 83,
+  "ranking_reason": "HN 高位讨论和评论量说明开发者社区正在集中关注。",
+  "merge_reason": "当前 HN 热度信号可单独形成热议型候选事件。"
 }
 """.strip()
 
@@ -212,21 +215,21 @@ def dossier_json() -> str:
     return """
 {
   "candidate_key": "p1-4-openai-coding-agent",
-  "card_title": "OpenAI 新编码 Agent 引发关注",
-  "card_summary": "开发者正在讨论 OpenAI 新编码 Agent 对工作流的影响。",
+  "card_title": "HN 热议 OpenAI 编码 Agent",
+  "card_summary": "HN 开发者正在讨论 OpenAI 编码 Agent 对日常工作流的影响。",
   "category": "模型与产品",
   "signal_label": "高热讨论",
-  "detail_title": "OpenAI 新编码 Agent 为什么值得关注",
-  "detail_summary": "这次讨论集中在编码 Agent 对开发者工作流和工具选择的影响。",
-  "detail_body": "发生了什么：开发者正在讨论 OpenAI 新编码 Agent。\\n\\n为什么重要：编码 Agent 可能改变开发者使用 AI 工具的方式。\\n\\n后续看什么：观察官方说明、API 能力和社区反馈。",
+  "detail_title": "HN 为什么热议 OpenAI 编码 Agent",
+  "detail_summary": "这次热议集中在编码 Agent 对开发者工作流和工具选择的潜在影响。",
+  "detail_body": "发生了什么：HN 上开发者正在讨论 OpenAI 编码 Agent 对日常开发工作流的影响。\\n\\n为什么重要：这反映了开发者社区对 AI 编程工具形态变化的关注。\\n\\n后续看什么：观察官方说明、API 能力和社区反馈。",
   "why_it_matters": "这件事有助于中文用户理解 AI 编程工具的新变化。",
   "follow_up_points": ["观察官方文档", "观察社区反馈"],
   "source_refs": [
     {
-      "signal_id": "p1-4-smoke-1",
-      "title": "OpenAI releases a new coding agent",
-      "url": "https://example.com/openai-coding-agent",
-      "source_key": "p1_4_smoke"
+      "signal_id": "p1-4-heat-hn-1",
+      "title": "HN discussion: developers debate OpenAI coding agents",
+      "url": "https://news.ycombinator.com/item?id=40617088",
+      "source_key": "hn_algolia"
     }
   ],
   "status": "draft"
