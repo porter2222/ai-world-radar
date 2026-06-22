@@ -51,6 +51,8 @@
 
 当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换，以及 P1-5 发布质量与工程准备第一轮闭环。P1-5 已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。
 
+后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
+
 最新产品基线已经调整为：
 
 > P1 以“事件档案生产与发布”为核心；晨报后置到 P1.5，基于已发布事件生成。
@@ -59,4 +61,4 @@
 
 下一步建议进入：
 
-> P1 发布前总体验收、产品 API / 前端首页与详情页，或 live HN / GitHub 采集到发布的端到端 smoke。默认 `AGENT_MODE=stub` 不变，真实 LLM 调用继续显式开启。
+> 先由用户检查后端 P1 发布前验收清单；确认后进入产品接口层，优先做已发布事件列表、事件详情、pipeline run / agent run 审计查询和 `manual_review` 队列查询。默认 `AGENT_MODE=stub` 不变，真实 LLM 调用继续显式开启。
