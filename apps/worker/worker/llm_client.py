@@ -5,6 +5,7 @@ import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 if __package__ in {None, ""}:
     worker_root = Path(__file__).resolve().parents[1]
@@ -66,6 +67,7 @@ class LLMClient:
         self.api_key = config.api_key
         self.base_url = config.base_url
         self.client = client or _create_openai_client(config)
+        self.last_usage: dict[str, int] | None = None
 
     def chat(
         self,
@@ -82,6 +84,7 @@ class LLMClient:
             messages=_normalize_messages(message, system_prompt),
             stream=False,
         )
+        self.last_usage = _extract_token_usage(response)
         return response.choices[0].message.content or ""
 
     def stream_chat(self, messages: list[ChatMessage]) -> Iterable[str]:
@@ -178,6 +181,34 @@ def _normalize_messages(message: str | list[ChatMessage], system_prompt: str) ->
             {"role": "user", "content": message},
         ]
     return message
+
+
+def _extract_token_usage(response: Any) -> dict[str, int] | None:
+    """从 OpenAI-compatible 响应中提取 token usage。
+
+    输入：OpenAI SDK response，可能带有 usage 属性或字典字段。
+    输出：标准 prompt/completion/total token dict；缺失时返回 None。
+    """
+    usage = getattr(response, "usage", None)
+    if usage is None and isinstance(response, dict):
+        usage = response.get("usage")
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        total_tokens = usage.get("total_tokens")
+    else:
+        prompt_tokens = getattr(usage, "prompt_tokens", None)
+        completion_tokens = getattr(usage, "completion_tokens", None)
+        total_tokens = getattr(usage, "total_tokens", None)
+    if prompt_tokens is None and completion_tokens is None and total_tokens is None:
+        return None
+    return {
+        "prompt_tokens": int(prompt_tokens or 0),
+        "completion_tokens": int(completion_tokens or 0),
+        "total_tokens": int(total_tokens or 0),
+    }
 
 
 if __name__ == "__main__":

@@ -169,7 +169,7 @@ class EventPipelineTools:
         输出：已写入数据库的 AgentRun。
         """
         metadata = self._successful_agent_metadata(agent)
-        trace_json = {"pipeline": "p1-2-event-pipeline"}
+        trace_json = {"pipeline": "p1-2-event-pipeline", "token_usage": metadata["token_usage"]}
         if metadata["raw_text"] is not None:
             trace_json.update(
                 {
@@ -192,6 +192,7 @@ class EventPipelineTools:
                 output_json=output_json,
                 trace_json=trace_json,
                 status="succeeded",
+                duration_ms=metadata["duration_ms"],
                 retry_count=metadata["retry_count"] if metadata["retry_count"] is not None else retry_count,
             )
         )
@@ -214,6 +215,7 @@ class EventPipelineTools:
         json_agent = getattr(agent, "json_agent", None)
         retry_count = getattr(json_agent, "max_retries", 0)
         prompt_version = getattr(agent, "prompt_version", None)
+        token_usage = getattr(json_agent, "last_token_usage", None)
         return self.run_log_service.record_agent_run(
             AgentRunRecord(
                 pipeline_run_id=run_id,
@@ -226,8 +228,13 @@ class EventPipelineTools:
                 prompt_version=prompt_version,
                 input_summary=input_summary,
                 output_json={},
-                trace_json={"pipeline": "p1-2-event-pipeline", "llm_prompt_version": prompt_version},
+                trace_json={
+                    "pipeline": "p1-2-event-pipeline",
+                    "llm_prompt_version": prompt_version,
+                    "token_usage": token_usage,
+                },
                 status="failed",
+                duration_ms=getattr(json_agent, "last_duration_ms", None),
                 retry_count=retry_count,
                 error_message=error_message,
             )
@@ -351,6 +358,8 @@ class EventPipelineTools:
                 "model_name": None,
                 "prompt_version": None,
                 "retry_count": None,
+                "duration_ms": None,
+                "token_usage": None,
                 "raw_text": None,
             }
         last_result = getattr(agent, "last_result", None)
@@ -359,5 +368,7 @@ class EventPipelineTools:
             "model_name": getattr(agent, "model_name", None),
             "prompt_version": getattr(last_result, "prompt_version", None) or getattr(agent, "prompt_version", None),
             "retry_count": getattr(last_result, "retry_count", None),
+            "duration_ms": getattr(last_result, "duration_ms", None),
+            "token_usage": getattr(last_result, "token_usage", None),
             "raw_text": getattr(last_result, "raw_text", None),
         }

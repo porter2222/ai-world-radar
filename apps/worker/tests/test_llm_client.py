@@ -15,17 +15,19 @@ class FakeChoice:
 
 
 class FakeResponse:
-    def __init__(self, content: str):
+    def __init__(self, content: str, usage=None):
         self.choices = [FakeChoice(content)]
+        self.usage = usage
 
 
 class FakeCompletions:
     def __init__(self):
         self.calls = []
+        self.next_usage = None
 
     def create(self, **kwargs):
         self.calls.append(kwargs)
-        return FakeResponse("detail json")
+        return FakeResponse("detail json", usage=self.next_usage)
 
 
 class FakeChat:
@@ -84,6 +86,32 @@ def test_llm_client_accepts_prebuilt_messages():
 
     call = fake_client.chat.completions.calls[0]
     assert call["messages"] == messages
+
+
+def test_llm_client_exposes_token_usage_from_response():
+    """验证 LLMClient 会保存 OpenAI-compatible 响应中的 usage。
+
+    输入：fake OpenAI response.usage，包含 prompt/completion/total token。
+    输出：chat 返回文本，同时 client.last_usage 保存标准 token usage dict。
+    """
+    fake_client = FakeOpenAIClient()
+    fake_client.chat.completions.next_usage = SimpleNamespace(
+        prompt_tokens=11,
+        completion_tokens=7,
+        total_tokens=18,
+    )
+    client = LLMClient(
+        provider="openai",
+        model="gpt-test",
+        api_key="test-key",
+        base_url="https://example.test/v1",
+        client=fake_client,
+    )
+
+    result = client.chat("写一段事件详情", system_prompt="你是 AI 情报编辑。")
+
+    assert result == "detail json"
+    assert client.last_usage == {"prompt_tokens": 11, "completion_tokens": 7, "total_tokens": 18}
 
 
 def test_worker_package_exports_llm_client():

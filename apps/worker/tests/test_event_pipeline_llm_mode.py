@@ -233,13 +233,19 @@ def test_llm_agent_runs_record_provider_model_prompt_and_retry_count():
     assert runs_by_name["on_duty_editor_llm"].model_provider == "fake"
     assert runs_by_name["on_duty_editor_llm"].model_name == "fake-model"
     assert runs_by_name["on_duty_editor_llm"].prompt_version == "p1-4-editor-v1"
+    assert runs_by_name["on_duty_editor_llm"].duration_ms is not None
+    assert runs_by_name["on_duty_editor_llm"].trace_json["token_usage"] is None
     assert runs_by_name["on_duty_editor_llm"].retry_count == 0
     assert runs_by_name["research_writer_llm"].model_provider == "fake"
     assert runs_by_name["research_writer_llm"].model_name == "fake-model"
     assert runs_by_name["research_writer_llm"].prompt_version == "p1-4-writer-v1"
+    assert runs_by_name["research_writer_llm"].duration_ms is not None
+    assert runs_by_name["research_writer_llm"].trace_json["token_usage"] is None
     assert runs_by_name["research_writer_llm"].retry_count == 1
     assert runs_by_name["research_writer_llm"].trace_json["llm_prompt_version"] == "p1-4-writer-v1"
     assert runs_by_name["review_publisher_llm"].prompt_version == "p1-4-reviewer-v1"
+    assert runs_by_name["review_publisher_llm"].duration_ms is not None
+    assert runs_by_name["review_publisher_llm"].trace_json["token_usage"] is None
 
 
 def test_llm_agent_failure_records_failed_agent_run():
@@ -274,6 +280,8 @@ def test_llm_agent_failure_records_failed_agent_run():
     assert failed_run.model_provider == "fake"
     assert failed_run.model_name == "fake-model"
     assert failed_run.prompt_version == "p1-4-reviewer-v1"
+    assert failed_run.duration_ms is not None
+    assert failed_run.trace_json["token_usage"] is None
     assert failed_run.retry_count == 2
     assert "无法解析 LLM 输出为 ReviewResultDraft" in failed_run.error_message
     assert pipeline_run.status == "failed"

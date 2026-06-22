@@ -1,7 +1,8 @@
-from sqlalchemy import create_engine
+import pytest
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from worker.models import Base
+from worker.models import Base, PublishedEvent
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand, ReviewResultDraft
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.event_service import EventService
@@ -128,3 +129,165 @@ def test_candidate_dossier_review_and_publish_flow_is_idempotent():
     assert review.decision == "publish"
     assert first_publish.id == second_publish.id
     assert first_publish.published_title == "OpenAI 新模型为什么引发开发者关注"
+
+
+@pytest.mark.parametrize(
+    ("decision", "expected_candidate_status", "expected_dossier_status"),
+    [
+        ("revise", "drafting", "needs_revision"),
+        ("manual_review", "manual_review", "manual_review"),
+        ("reject", "rejected", "rejected"),
+    ],
+)
+def test_non_publish_review_decisions_update_status_without_publishing(
+    decision: str,
+    expected_candidate_status: str,
+    expected_dossier_status: str,
+):
+    """验证非发布审稿决策只流转状态，不写入发布快照。
+
+    输入：revise、manual_review、reject 三种 ReviewResult.decision。
+    输出：候选事件和 dossier 进入对应状态，published_events 保持为空。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    service = EventService(session)
+    candidate = service.create_candidate_with_signals(
+        EventCandidateDraft(
+            candidate_key=f"openai-new-model-{decision}",
+            title="OpenAI 新模型引发开发者讨论",
+            category="模型与产品",
+            heat_score=82,
+            importance_score=90,
+            audience_value_score=76,
+            ranking_score=85,
+            ranking_reason="HN 热度较高，且来自重要 AI 公司相关消息。",
+        ),
+        signal_ids=[signal.id],
+        merge_reason="同一 HN story 指向同一事件。",
+    )
+    dossier = service.save_dossier(
+        candidate.id,
+        EventDossierDraft(
+            candidate_key=candidate.candidate_key,
+            card_title="OpenAI 新模型引发开发者讨论",
+            card_summary="开发者关注其能力、价格和工具链影响。",
+            category="模型与产品",
+            signal_label="高热讨论",
+            detail_title="OpenAI 新模型为什么引发开发者关注",
+            detail_summary="这次讨论集中在模型能力、调用成本和开发者工具集成。",
+            detail_body=rich_detail_body(),
+            why_it_matters="它可能影响 AI 编程工具和应用开发成本。",
+            follow_up_points=["是否开放 API"],
+            source_refs=[{"title": "HN discussion", "url": "https://news.ycombinator.com/item?id=123"}],
+        ),
+    )
+
+    review = service.save_review_result(
+        dossier.id,
+        ReviewResultDraft(
+            decision=decision,
+            risk_level="medium",
+            issues=["需要人工确认"] if decision != "revise" else ["需要重写"],
+            revision_instructions="请按审稿意见处理。",
+            checked_items={"has_sources": True},
+        ),
+    )
+
+    assert review.decision == decision
+    assert candidate.status == expected_candidate_status
+    assert dossier.status == expected_dossier_status
+    assert session.scalars(select(PublishedEvent)).all() == []
+    with pytest.raises(ValueError, match="Dossier has no publish review result"):
+        service.publish_dossier(
+            PublishEventCommand(candidate_id=candidate.id, dossier_id=dossier.id, publish_mode="auto")
+        )
+
+
+def test_slug_collision_adds_candidate_suffix_while_same_candidate_is_idempotent():
+    """验证不同候选事件 slug 冲突时追加短后缀，同候选事件重复发布仍幂等。
+
+    输入：两个 candidate_key 归一化后同为 openai-agent 的候选事件。
+    输出：第二个发布快照自动追加 candidate ID 后缀，第一个候选事件重复发布仍返回原记录。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    service = EventService(session)
+
+    first_candidate = _create_reviewed_candidate(service, signal.id, "openai-agent")
+    first_publish = service.publish_dossier(
+        PublishEventCommand(
+            candidate_id=first_candidate["candidate"].id,
+            dossier_id=first_candidate["dossier"].id,
+            publish_mode="auto",
+        )
+    )
+    repeated_publish = service.publish_dossier(
+        PublishEventCommand(
+            candidate_id=first_candidate["candidate"].id,
+            dossier_id=first_candidate["dossier"].id,
+            publish_mode="auto",
+        )
+    )
+    second_candidate = _create_reviewed_candidate(service, signal.id, "openai agent")
+    second_publish = service.publish_dossier(
+        PublishEventCommand(
+            candidate_id=second_candidate["candidate"].id,
+            dossier_id=second_candidate["dossier"].id,
+            publish_mode="auto",
+        )
+    )
+
+    assert repeated_publish.id == first_publish.id
+    assert first_publish.slug == "openai-agent"
+    assert second_publish.slug == f"openai-agent-{second_candidate['candidate'].id[-8:]}"
+    assert first_publish.slug != second_publish.slug
+
+
+def _create_reviewed_candidate(service: EventService, signal_id: str, candidate_key: str) -> dict[str, object]:
+    """创建一条已通过审稿但尚未发布的候选事件。
+
+    输入：EventService、SourceSignal ID 和 candidate_key。
+    输出：包含 candidate 与 dossier 的测试辅助字典。
+    """
+    candidate = service.create_candidate_with_signals(
+        EventCandidateDraft(
+            candidate_key=candidate_key,
+            title="OpenAI Agent 引发开发者讨论",
+            category="模型与产品",
+            heat_score=82,
+            importance_score=90,
+            audience_value_score=76,
+            ranking_score=85,
+            ranking_reason="HN 热度较高，且开发者使用价值明显。",
+        ),
+        signal_ids=[signal_id],
+        merge_reason="测试 slug 冲突。",
+    )
+    dossier = service.save_dossier(
+        candidate.id,
+        EventDossierDraft(
+            candidate_key=candidate_key,
+            card_title="OpenAI Agent 引发关注",
+            card_summary="开发者关注其能力、价格和工具链影响。",
+            category="模型与产品",
+            signal_label="高热讨论",
+            detail_title="OpenAI Agent 为什么引发开发者关注",
+            detail_summary="这次讨论集中在 Agent 对开发者工具链的影响。",
+            detail_body=rich_detail_body(),
+            why_it_matters="它可能影响 AI 编程工具和应用开发成本。",
+            follow_up_points=["是否开放 API"],
+            source_refs=[{"title": "HN discussion", "url": "https://news.ycombinator.com/item?id=123"}],
+        ),
+    )
+    service.save_review_result(
+        dossier.id,
+        ReviewResultDraft(
+            decision="publish",
+            risk_level="low",
+            issues=[],
+            revision_instructions="",
+            checked_items={"has_sources": True},
+        ),
+    )
+    return {"candidate": candidate, "dossier": dossier}

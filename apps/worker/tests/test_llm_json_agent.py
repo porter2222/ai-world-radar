@@ -11,13 +11,15 @@ class FakeLLMClient:
     输出：记录每次 chat 调用，并按顺序返回 response。
     """
 
-    def __init__(self, responses: list[str]):
+    def __init__(self, responses: list[str], usages: list[dict[str, int] | None] | None = None):
         """初始化 fake client。
 
-        输入：模型响应文本列表。
+        输入：模型响应文本列表，以及可选 usage 列表。
         输出：可供 LLMJsonAgent 调用的 fake client。
         """
         self.responses = responses
+        self.usages = usages or []
+        self.last_usage: dict[str, int] | None = None
         self.calls: list[dict[str, str]] = []
 
     def chat(self, message: str, system_prompt: str = "You are a helpful assistant.") -> str:
@@ -27,6 +29,7 @@ class FakeLLMClient:
         输出：下一条预设模型响应。
         """
         self.calls.append({"message": message, "system_prompt": system_prompt})
+        self.last_usage = self.usages.pop(0) if self.usages else None
         return self.responses.pop(0)
 
 
@@ -96,6 +99,28 @@ def test_llm_json_agent_repairs_invalid_json_once():
     assert len(fake_client.calls) == 2
     assert "请修复" in fake_client.calls[1]["message"]
     assert "not json" in fake_client.calls[1]["message"]
+
+
+def test_llm_json_agent_records_duration_and_token_usage():
+    """验证 LLMJsonAgent 会记录耗时和 token usage。
+
+    输入：暴露 last_usage 的 fake LLM client。
+    输出：LLMJsonResult 包含非负 duration_ms 和 usage 计数。
+    """
+    fake_client = FakeLLMClient(
+        [candidate_json()],
+        usages=[{"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20}],
+    )
+    agent = LLMJsonAgent(fake_client)
+
+    result = agent.run_json(
+        EventCandidateDraft,
+        system_prompt="你是 AI 情报编辑。",
+        user_prompt="请输出候选事件 JSON。",
+    )
+
+    assert result.duration_ms >= 0
+    assert result.token_usage == {"prompt_tokens": 12, "completion_tokens": 8, "total_tokens": 20}
 
 
 def test_llm_json_agent_raises_after_max_retries():

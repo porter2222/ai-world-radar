@@ -362,7 +362,17 @@ def _review_event_dossier_node(tools: EventPipelineTools):
             "current_node": "review_event_dossier",
             "agent_trace": [
                 *parsed.agent_trace,
-                {"node": "review_event_dossier", "review_id": review.id, "decision": review.decision},
+                {
+                    "node": "review_event_dossier",
+                    "review_id": review.id,
+                    "decision": review.decision,
+                    "output": {
+                        "decision": review.decision,
+                        "risk_level": review.risk_level,
+                        "issues": review.issues,
+                        "revision_instructions": review.revision_instructions,
+                    },
+                },
             ],
         }
 
@@ -388,6 +398,21 @@ def _revise_if_needed_node():
                 **parsed.model_dump(),
                 "revision_count": parsed.revision_count + 1,
                 "current_node": "revise_if_needed",
+            }
+        if parsed.review_decision == "revise":
+            return {
+                **parsed.model_dump(),
+                "review_decision": "manual_review",
+                "current_node": "revise_if_needed",
+                "status": "manual_review",
+                "agent_trace": [
+                    *parsed.agent_trace,
+                    {
+                        "node": "revise_if_needed",
+                        "max_revision_count": parsed.revision_count,
+                        "decision": "manual_review",
+                    },
+                ],
             }
         return {**parsed.model_dump(), "current_node": "revise_if_needed"}
 
@@ -421,6 +446,14 @@ def _publish_or_manual_review_node(tools: EventPipelineTools):
             }
         if parsed.review_decision == "reject":
             return {**parsed.model_dump(), "current_node": "publish_or_manual_review", "status": "failed"}
+        if parsed.review_decision == "manual_review":
+            candidate = tools.session.get(EventCandidate, candidate_id)
+            dossier = tools.session.get(EventDossier, parsed.dossier_id)
+            if candidate is not None:
+                candidate.status = "manual_review"
+            if dossier is not None:
+                dossier.status = "manual_review"
+            tools.session.flush()
         return {**parsed.model_dump(), "current_node": "publish_or_manual_review", "status": "manual_review"}
 
     return node
@@ -458,7 +491,7 @@ def _route_after_revision_check(state: dict[str, Any]) -> str:
     输出：下一个节点名称。
     """
     parsed = EventPipelineState.model_validate(state)
-    if parsed.review_decision == "revise" and parsed.revision_count <= 2:
+    if parsed.review_decision == "revise" and parsed.status != "manual_review":
         return "draft_event_dossier"
     return "publish_or_manual_review"
 

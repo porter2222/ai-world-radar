@@ -4,7 +4,7 @@
 
 当前文档包括：
 
-- `后端P1测试记录.md`：后端 P1 第一轮工程骨架、P1-1 数据底座、P1-2 LangGraph 最小闭环、P1-3 HN / GitHub 采集接入的测试命令、测试数据、运行结果和未覆盖范围。
+- `后端P1测试记录.md`：后端 P1 第一轮工程骨架、P1-1 数据底座、P1-2 LangGraph 最小闭环、P1-3 HN / GitHub 采集接入、P1-4 真实 LLM Agent 节点替换，以及 2026-06-22 P1-5 发布质量分支覆盖、agent run 审计和 PostgreSQL real provider smoke 的测试命令、测试数据、运行结果、失败修复和未覆盖范围。
 - `本地开发调试指南.md`：VSCode、终端、临时脚本和单个函数 / Agent 节点调试的导包规范。
 
 计划文档包括：

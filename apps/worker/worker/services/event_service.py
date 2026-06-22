@@ -137,9 +137,19 @@ class EventService:
             revision_instructions=payload.revision_instructions,
             checked_items=payload.checked_items,
         )
+        candidate = self.session.get(EventCandidate, dossier.candidate_id)
+        if candidate is None:
+            raise ValueError(f"EventCandidate not found for id={dossier.candidate_id}")
+
         dossier.status = {
             "publish": "approved",
             "revise": "needs_revision",
+            "manual_review": "manual_review",
+            "reject": "rejected",
+        }[payload.decision]
+        candidate.status = {
+            "publish": "ready_to_publish",
+            "revise": "drafting",
             "manual_review": "manual_review",
             "reject": "rejected",
         }[payload.decision]

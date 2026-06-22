@@ -23,4 +23,6 @@
 
 `P1-3 HN与GitHub采集接入新版链路计划` 是 P1-2 最小闭环完成后的 P1-3 实施依据和完成记录，定义 HN / GitHub 真实采集如何映射并写入新版 `source_signals`，以及如何复用 `scripts/run_event_pipeline.py` 消费已入库信号产出 `PublishedEvent`。P1-3 已完成。
 
-`P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据和完成记录，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。P1-4 已完成，最新 worker 全量 pytest 为 `71 passed in 12.88s`，fake LLM smoke 输出 `status=succeeded`、`published_count=1`、`agent_runs_count=3`；本机 OpenAI / OpenAI-compatible SDK smoke 已通过。2026-06-22 已补高热度 HN 来源 real provider publish smoke，输出 `status=succeeded`、`published_count=1`，reviewer 判断 `publish/low`，并在 `checked_items` 中确认该来源支撑“社区正在热议”而不是“官方已确认事实”。
+`P1-4 真实LLM Agent节点替换计划` 是 P1-3 采集接入完成后的 P1-4 实施依据和完成记录，定义如何在不改变新版主链路的前提下，把值班编辑、研究写作、审稿发布三个确定性 stub 逐个替换为真实 LLM Agent。P1-4 已完成，fake LLM smoke 输出 `status=succeeded`、`published_count=1`、`agent_runs_count=3`；本机 OpenAI / OpenAI-compatible SDK smoke 已通过。2026-06-22 已补高热度 HN 来源 real provider publish smoke，输出 `status=succeeded`、`published_count=1`，reviewer 判断 `publish/low`，并在 `checked_items` 中确认该来源支撑“社区正在热议”而不是“官方已确认事实”。同日已补齐详情正文信息密度和读者口吻兜底。
+
+P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。

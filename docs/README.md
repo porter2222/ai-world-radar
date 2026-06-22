@@ -49,7 +49,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路，以及 P1-4 真实 LLM Agent 节点替换。P1-4 已支持 `stub|llm` 模式切换、三类真实 LLM Agent、fake LLM 首跑发布、`agent_runs` metadata 和失败记录；本机 OpenAI / OpenAI-compatible SDK smoke 已通过。2026-06-22 已补齐高热度 HN 来源 real provider publish smoke，输出 `status=succeeded`、`published_count=1`，且 reviewer 明确区分“社区正在热议”和“官方已确认事实”。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换，以及 P1-5 发布质量与工程准备第一轮闭环。P1-5 已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。
 
 最新产品基线已经调整为：
 
@@ -59,4 +59,4 @@
 
 下一步建议进入：
 
-> P1-5 发布质量与工程准备：在保留默认 `AGENT_MODE=stub` 的前提下，补齐 `revise/manual_review/reject` 分支覆盖、真实 provider 成本与延迟审计，并按需要在本机 PostgreSQL `ai_world_radar` 上复跑真实 provider smoke；随后再进入产品 API / 前端页面或发布前验收任务。
+> P1 发布前总体验收、产品 API / 前端首页与详情页，或 live HN / GitHub 采集到发布的端到端 smoke。默认 `AGENT_MODE=stub` 不变，真实 LLM 调用继续显式开启。

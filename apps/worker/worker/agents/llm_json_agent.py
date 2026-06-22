@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -23,13 +24,15 @@ class LLMAgentOutputError(ValueError):
 class LLMJsonResult(Generic[SchemaT]):
     """封装一次结构化 LLM 调用结果。
 
-    输入：Pydantic payload、模型原始文本、重试次数和可选 prompt 版本。
+    输入：Pydantic payload、模型原始文本、重试次数、耗时、token usage 和可选 prompt 版本。
     输出：供具体 Agent 节点读取的结构化结果对象。
     """
 
     payload: SchemaT
     raw_text: str
     retry_count: int
+    duration_ms: int
+    token_usage: dict[str, int] | None = None
     prompt_version: str | None = None
 
 
@@ -48,6 +51,8 @@ class LLMJsonAgent:
         """
         self.llm_client = llm_client
         self.max_retries = max_retries
+        self.last_duration_ms: int | None = None
+        self.last_token_usage: dict[str, int] | None = None
 
     def run_json(
         self,
@@ -65,14 +70,22 @@ class LLMJsonAgent:
         message = user_prompt
         last_error = ""
         raw_text = ""
+        started_at = time.perf_counter()
+        token_usage: dict[str, int] | None = None
         for attempt in range(self.max_retries + 1):
             raw_text = self.llm_client.chat(message, system_prompt=system_prompt)
+            token_usage = _merge_token_usage(token_usage, _normalize_token_usage(getattr(self.llm_client, "last_usage", None)))
             try:
                 payload = self._validate_payload(schema_type, raw_text)
+                duration_ms = _elapsed_ms(started_at)
+                self.last_duration_ms = duration_ms
+                self.last_token_usage = token_usage
                 return LLMJsonResult(
                     payload=payload,
                     raw_text=raw_text,
                     retry_count=attempt,
+                    duration_ms=duration_ms,
+                    token_usage=token_usage,
                     prompt_version=prompt_version,
                 )
             except (json.JSONDecodeError, ValidationError, ValueError) as exc:
@@ -86,6 +99,8 @@ class LLMJsonAgent:
                     error_message=last_error,
                 )
 
+        self.last_duration_ms = _elapsed_ms(started_at)
+        self.last_token_usage = token_usage
         raise LLMAgentOutputError(f"无法解析 LLM 输出为 {schema_type.__name__}: {last_error}")
 
     def _validate_payload(self, schema_type: type[SchemaT], raw_text: str) -> SchemaT:
@@ -137,3 +152,57 @@ def _extract_json_text(raw_text: str) -> str:
         return text[start : end + 1]
 
     return text
+
+
+def _elapsed_ms(started_at: float) -> int:
+    """计算从开始时间到当前的毫秒耗时。
+
+    输入：`time.perf_counter()` 记录的开始时间。
+    输出：非负整数毫秒。
+    """
+    return max(0, int((time.perf_counter() - started_at) * 1000))
+
+
+def _normalize_token_usage(usage: Any) -> dict[str, int] | None:
+    """归一化 LLM client 暴露的 token usage。
+
+    输入：None、dict 或带 prompt_tokens/completion_tokens/total_tokens 属性的对象。
+    输出：标准 usage dict；缺失时返回 None。
+    """
+    if usage is None:
+        return None
+    if isinstance(usage, dict):
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        total_tokens = usage.get("total_tokens")
+    else:
+        prompt_tokens = getattr(usage, "prompt_tokens", None)
+        completion_tokens = getattr(usage, "completion_tokens", None)
+        total_tokens = getattr(usage, "total_tokens", None)
+    if prompt_tokens is None and completion_tokens is None and total_tokens is None:
+        return None
+    return {
+        "prompt_tokens": int(prompt_tokens or 0),
+        "completion_tokens": int(completion_tokens or 0),
+        "total_tokens": int(total_tokens or 0),
+    }
+
+
+def _merge_token_usage(
+    current: dict[str, int] | None,
+    incoming: dict[str, int] | None,
+) -> dict[str, int] | None:
+    """累加多次 LLM 调用的 token usage。
+
+    输入：当前累计 usage 和本次调用 usage。
+    输出：新的累计 usage；两者都缺失时返回 None。
+    """
+    if incoming is None:
+        return current
+    if current is None:
+        return dict(incoming)
+    return {
+        "prompt_tokens": current.get("prompt_tokens", 0) + incoming.get("prompt_tokens", 0),
+        "completion_tokens": current.get("completion_tokens", 0) + incoming.get("completion_tokens", 0),
+        "total_tokens": current.get("total_tokens", 0) + incoming.get("total_tokens", 0),
+    }

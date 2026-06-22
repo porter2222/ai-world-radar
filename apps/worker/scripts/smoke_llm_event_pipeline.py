@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from worker.config import project_root
 from worker.db.session import create_worker_engine
-from worker.models import AgentRun, Base, PipelineRun, PublishedEvent
+from worker.models import AgentRun, Base, PipelineRun
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
@@ -85,7 +85,7 @@ def main() -> int:
             llm_client=llm_client,
         )
         session.commit()
-        summary = build_summary(session, state.run_id, database_url=database_url, mode_label=mode_label)
+        summary = build_summary(session, state.run_id, mode_label=mode_label)
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0 if summary["status"] == "succeeded" else 1
     except Exception as exc:
@@ -94,7 +94,6 @@ def main() -> int:
             "status": "failed",
             "agent_mode": "llm",
             "mode": mode_label,
-            "database_url": database_url,
             "error": str(exc),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
@@ -148,22 +147,22 @@ def seed_smoke_signal(session):
     )
 
 
-def build_summary(session, run_id: str | None, *, database_url: str, mode_label: str) -> dict:
+def build_summary(session, run_id: str | None, *, mode_label: str) -> dict:
     """生成 smoke 输出摘要。
 
-    输入：Session、pipeline run id、数据库 URL 和模式标签。
+    输入：Session、pipeline run id 和模式标签。
     输出：用于命令行 stdout 的 JSON dict。
     """
     run = session.get(PipelineRun, run_id) if run_id else None
-    agent_runs = session.scalars(select(AgentRun)).all()
-    published_events = session.scalars(select(PublishedEvent)).all()
+    agent_runs = (
+        session.scalars(select(AgentRun).where(AgentRun.pipeline_run_id == run_id)).all() if run_id else []
+    )
     return {
         "status": run.status if run else "failed",
         "agent_mode": "llm",
         "mode": mode_label,
-        "database_url": database_url,
         "run_id": run_id,
-        "published_count": len(published_events),
+        "published_count": run.published_count if run else 0,
         "agent_runs_count": len(agent_runs),
         "failed_agent_runs_count": len([item for item in agent_runs if item.status == "failed"]),
         "agent_names": [item.agent_name for item in agent_runs],
