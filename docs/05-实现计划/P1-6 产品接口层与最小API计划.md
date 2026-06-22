@@ -259,6 +259,15 @@ ModuleNotFoundError: No module named 'worker.services.product_query_service'
 .\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py -v
 ```
 
+执行记录（2026-06-22）：
+
+- 已新增 `apps/worker/worker/schemas/product.py`，定义前台事件列表、事件详情、pipeline run、agent run 和人工审核队列响应契约。
+- 已新增 `apps/worker/worker/services/product_query_service.py`，所有方法均为只读查询，不触发采集、Agent、workflow、发布或写库。
+- 已新增 `apps/worker/tests/test_product_query_service.py`，覆盖 published 列表过滤和排序、slug 详情读取发布快照版本、agent run raw trace 隐藏、manual_review 队列只取最新 dossier/review。
+- RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py -v`，真实失败为 `ModuleNotFoundError: No module named 'worker.services.product_query_service'`。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py -v`，真实结果为 `4 passed in 0.70s`。
+- 相关回归命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py tests/test_event_service.py tests/test_run_log_service.py -v`，真实结果为 `10 passed in 0.93s`。
+
 ### Task 2: FastAPI HTTP 薄适配层
 
 **Files:**
