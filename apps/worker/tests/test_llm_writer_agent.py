@@ -75,16 +75,16 @@ def rich_detail_body() -> str:
     输出：至少五段、超过最低长度要求的 detail_body。
     """
     return (
-        "Hacker News 上出现一则围绕 OpenAI 新编码 Agent 的讨论，开发者把焦点放在它是否会改变日常软件开发工作流上。"
-        "输入信号显示这不是官方公告，而是社区正在形成的高热讨论，因此正文需要解释讨论本身，而不是把它写成已确认发布。\n\n"
-        "这类 coding agent 被关注，是因为它们可能从简单的代码补全，进一步进入任务拆解、跨文件修改、测试生成和错误修复等更完整的工程环节。"
-        "如果这类能力稳定，开发者使用 AI 工具的方式可能从“问答辅助”转向“协同执行”。\n\n"
-        "社区讨论的关键分歧在于可靠性和控制权。一部分开发者期待它减少重复劳动，帮助理解项目上下文；另一部分开发者担心它误解需求、制造隐藏 bug，或者让代码审查成本变高。"
-        "这些具体争议比单纯的产品宣传更有参考价值。\n\n"
-        "对中文用户来说，这条热议能帮助判断 AI 编程工具的观察重点：不只是模型能力有多强，还包括它能否融入真实团队流程、是否能被审查、是否能降低而不是转移工程成本。"
-        "这些问题会影响个人开发者、创业团队和企业工程团队的采用节奏。\n\n"
-        "需要保留边界的是，当前来源只说明 HN 社区正在讨论，并不能证明 OpenAI 已确认某个新产品、发布时间表或行业结论。"
-        "后续应继续观察官方说明、开发者实测、企业采用案例和开源工作流模板是否出现。"
+        "OpenAI 新编码 Agent 之所以引发开发者关注，是因为它把 AI 编程工具的话题从“写几行代码”推向了“能否参与完整任务”。"
+        "这类工具被期待承担需求拆解、跨文件修改、测试补全和错误定位等工作，而这些环节正是日常软件工程中最耗时间的部分。\n\n"
+        "过去的 AI 编程助手更像是编辑器里的补全能力，开发者仍然需要自己理解上下文、决定改哪里、验证结果是否正确。"
+        "Agent 形态的变化在于，它试图围绕一个目标连续行动，把规划、修改、检查和反馈串成一条更长的工作链。\n\n"
+        "讨论焦点集中在真实项目里的可用性。开发者关心它能不能读懂项目结构，能不能遵守团队代码风格，能不能在修改后运行测试，"
+        "也关心它在遇到失败时能否说明原因，而不是只给出一堆需要人工重新排查的代码。\n\n"
+        "分歧主要来自可靠性和控制权。乐观者认为它会减少重复劳动，让小团队更快完成原型和迁移任务；谨慎者则担心它误解需求、"
+        "制造隐藏缺陷，或把代码审查变成新的负担。真正决定价值的不是一次演示，而是它能否在复杂代码库里稳定交付可检查的结果。\n\n"
+        "对中文开发者和 AI 产品团队来说，这件事值得放进工具选型和研发流程调整里观察。后续更关键的不是概念本身，"
+        "而是真实团队是否会把它用于测试生成、问题修复、框架迁移、代码审查辅助和新人理解代码库等具体场景。"
     )
 
 
@@ -173,7 +173,8 @@ def test_research_writer_prompt_bounds_community_heat_language():
 
     combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
     assert "热度源只支撑讨论正在发生" in combined_prompt
-    assert "优先使用外网热议、社区正在讨论、传闻正在发酵" in combined_prompt
+    assert "这个边界用于控制措辞和审稿判断" in combined_prompt
+    assert "不要把来源分析过程写进 detail_body" in combined_prompt
     assert "不要写成官方已确认事实" in combined_prompt
 
 
@@ -192,6 +193,24 @@ def test_research_writer_prompt_requires_information_dense_detail_body():
     assert "detail_body 至少 5 段" in combined_prompt
     assert "不少于 500 个中文字符" in combined_prompt
     assert "背景和触发点" in combined_prompt
-    assert "社区讨论焦点" in combined_prompt
+    assert "关键变化或讨论焦点" in combined_prompt
     assert "不同观点或争议" in combined_prompt
-    assert "来源边界和未确认内容" in combined_prompt
+
+
+def test_research_writer_prompt_keeps_detail_body_reader_facing():
+    """验证详情正文 prompt 不把内部筛选和审稿语言暴露给用户。
+
+    输入：HN 来源信号和 fake LLM。
+    输出：prompt 明确正文只叙述事件本身，并禁止热度指标和后台元话术进入 detail_body。
+    """
+    fake_client = FakeLLMClient([dossier_json()])
+    agent = ResearchWriterLLMAgent(fake_client)
+
+    agent.draft(candidate_draft(), [sample_signal()])
+
+    combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
+    assert "detail_body 只叙述事件本身" in combined_prompt
+    assert "不要在 detail_body 中复述 points、comments、hn_heat_score 等热度指标" in combined_prompt
+    assert "不要在 detail_body 中出现候选事件、输入信号、来源信号、来源边界" in combined_prompt
+    assert "热度数据或传播情况" not in combined_prompt
+    assert "来源边界和未确认内容" not in combined_prompt

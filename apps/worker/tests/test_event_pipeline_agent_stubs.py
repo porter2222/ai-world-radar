@@ -50,6 +50,29 @@ def test_writer_stub_returns_dossier_draft_with_source_refs():
     assert "中文用户" in result.why_it_matters
 
 
+def test_writer_stub_detail_body_is_reader_facing():
+    """验证 stub 详情正文不包含后台流程和热度指标话术。
+
+    输入：候选事件草案和来源信号列表。
+    输出：detail_body 聚焦事件本身，不出现候选事件、来源信号、来源边界、points/comments 等词。
+    """
+    candidate = OnDutyEditorAgentStub().triage([sample_signal()])
+    result = ResearchWriterAgentStub().draft(candidate, [sample_signal()])
+
+    banned_terms = [
+        "候选事件",
+        "输入信号",
+        "来源信号",
+        "来源边界",
+        "P1 阶段",
+        "points",
+        "comments",
+        "hn_heat_score",
+    ]
+    for term in banned_terms:
+        assert term not in result.detail_body
+
+
 def test_reviewer_stub_returns_publish_review_for_complete_dossier():
     """验证审稿发布 stub 对完整 dossier 给出发布建议。
 
