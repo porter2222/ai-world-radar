@@ -46,9 +46,9 @@
     <main>
       <article>
         <h1>P1-6 产品接口层与最小 API 计划</h1>
-        <p class="meta">版本：v0.2 ｜ 更新日期：2026-06-22 ｜ 阶段：用户已确认采用 FastAPI</p>
+        <p class="meta">版本：v0.3 ｜ 更新日期：2026-06-22 ｜ 阶段：P1-6 Task 1-3 已完成</p>
         <p><span class="badge">目标</span> 为前台首页、事件详情页和后台审计页提供最小可用的只读产品接口层。</p>
-        <p><span class="badge">已确认</span> 先实现 <code>ProductQueryService</code> 和响应 schema，再用 FastAPI 做很薄的 HTTP 适配层。</p>
+        <p><span class="badge">已完成</span> 已实现 <code>ProductQueryService</code>、响应 schema、FastAPI 只读适配层和 PostgreSQL 产品查询 smoke。</p>
 
         <h2 id="context">1. 当前上下文</h2>
         <p>后端 P1 已完成 P1-1 数据底座、P1-2 LangGraph 最小闭环、P1-3 HN / GitHub 采集接入、P1-4 真实 LLM Agent 和 P1-5 发布质量分支覆盖。</p>
@@ -113,10 +113,11 @@
             <tr><td>Task 0</td><td>方案文档和索引更新</td><td>否</td><td><code>git diff --check</code>；文档占位扫描</td></tr>
             <tr><td>Task 1</td><td><code>ProductQueryService</code> 和响应 schema</td><td>已完成</td><td><code>4 passed in 0.70s</code>；联合回归 <code>10 passed in 0.93s</code></td></tr>
             <tr><td>Task 2</td><td>FastAPI HTTP 薄适配层</td><td>已完成</td><td><code>2 passed in 1.05s</code>；联合回归 <code>6 passed in 1.13s</code></td></tr>
-            <tr><td>Task 3</td><td>PostgreSQL 只读 smoke 和文档验收</td><td>否</td><td>worker 全量 pytest；真实只读 smoke 输出</td></tr>
+            <tr><td>Task 3</td><td>PostgreSQL 只读 smoke 和文档验收</td><td>已完成</td><td><code>1 passed in 1.91s</code>；联合回归 <code>7 passed in 2.88s</code>；全量回归 <code>96 passed in 23.40s</code></td></tr>
           </tbody>
         </table>
         <p>执行补充：Task 2 已按测试先行完成两轮 RED。第一轮缺少 <code>fastapi</code> 依赖，第二轮缺少 <code>worker.api</code> 模块；随后新增 <code>fastapi==0.138.0</code>、<code>uvicorn==0.49.0</code> 和只读 FastAPI 适配层。</p>
+        <p>Task 3 执行补充：新增 <code>scripts/smoke_product_queries.py</code> 和对应测试。RED 失败为脚本不存在；实现后 smoke 单测 <code>1 passed in 1.91s</code>，P1-6 联合回归 <code>7 passed in 2.88s</code>，worker 全量回归最新结果 <code>96 passed in 23.40s</code>。本机 PostgreSQL <code>ai_world_radar</code> 只读 smoke 输出 <code>status=succeeded</code>、<code>events_count=3</code>、<code>pipeline_runs_count=3</code>、<code>agent_runs_count=7</code>。</p>
 
         <h2 id="acceptance">7. 验收标准</h2>
         <ul>
@@ -129,8 +130,8 @@
         </ul>
 
         <h2 id="confirm">8. 执行结论</h2>
-        <p>用户已确认 P1-6 直接采用 FastAPI。下一步从 Task 1 开始，先按测试先行方式实现 <code>ProductQueryService</code> 和响应 schema，再进入 Task 2 实现 FastAPI 薄适配层。</p>
-        <p>FastAPI 在 P1-6 只提供只读产品接口，不触发采集、Agent、发布或重跑。管理端接口当前只服务本地开发和后台页面联调，公开部署前必须补鉴权。</p>
+        <p>P1-6 后端产品接口层已完成最小闭环：查询服务、响应 schema、FastAPI 只读 HTTP endpoint、脚本化 PostgreSQL 只读 smoke 和验收文档均已落地。</p>
+        <p>当前可以进入产品页面联调或前端页面开发。FastAPI 在 P1-6 只提供只读产品接口，不触发采集、Agent、发布或重跑。管理端接口当前只服务本地开发和后台页面联调，公开部署前必须补鉴权。</p>
       </article>
     </main>
   </div>

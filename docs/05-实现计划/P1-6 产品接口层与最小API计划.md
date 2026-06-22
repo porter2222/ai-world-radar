@@ -1,6 +1,6 @@
 # P1-6 产品接口层与最小 API 计划
 
-> **当前状态：用户已确认 P1-6 直接采用 FastAPI 薄适配层，下一步进入测试先行实现。**
+> **当前状态：P1-6 Task 1 到 Task 3 已完成。当前已有 `ProductQueryService`、FastAPI 只读适配层和 PostgreSQL 产品查询 smoke。**
 
 **Goal:** 在 P1-1 到 P1-5 后端生产链路已经完成的基础上，为前台首页、事件详情页和后台审计页提供最小可用的只读产品接口层。
 
@@ -339,7 +339,16 @@ PostgreSQL smoke 只做读取，不触发 Agent：
 .\.venv\Scripts\python.exe scripts\smoke_product_queries.py --database-url "<本机 ai_world_radar 连接串>"
 ```
 
-说明：`smoke_product_queries.py` 是否新增取决于实现时的最小需要；如果 query service 测试已经足够覆盖，PostgreSQL smoke 可以使用临时 one-off 只读查询命令，但真实命令和输出必须写入 `后端P1测试记录.md`。
+执行记录（2026-06-22）：
+
+- 已新增 `apps/worker/scripts/smoke_product_queries.py`，使用 `create_worker_engine` 和 `autoflush=False` session，只调用 `ProductQueryService` 做只读查询，不触发采集、Agent、workflow、发布或写库。
+- 已新增 `apps/worker/tests/test_smoke_product_queries_script.py`，测试数据使用临时 SQLite，写入 1 条 published event、1 条 pipeline run、1 条 agent run 和 1 条 manual_review 事件后执行脚本读取。
+- RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_smoke_product_queries_script.py -v`，真实失败为 `can't open file ... scripts\smoke_product_queries.py: [Errno 2] No such file or directory`。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_smoke_product_queries_script.py -v`，真实结果为 `1 passed in 1.91s`。
+- P1-6 联合回归命令：`.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py tests/test_product_api.py tests/test_smoke_product_queries_script.py -v`，真实结果为 `7 passed in 2.88s`。
+- worker 全量回归命令：`.\.venv\Scripts\python.exe -m pytest -v`，最新真实结果为 `96 passed in 23.40s`。
+- PostgreSQL 只读 smoke 命令：`.\.venv\Scripts\python.exe scripts\smoke_product_queries.py --database-url postgresql+psycopg://postgres:<password>@localhost:5432/ai_world_radar`，真实 stdout 为 `status=succeeded`、`events_count=3`、`detail_found=true`、`pipeline_runs_count=3`、`agent_runs_count=7`、`review_queue_count=0`、`first_event_slug=demo-openai-releases-a-new-developer-tool`、`first_pipeline_run_id=run_9edd05cbf4aa464593172c01911fa068`。
+- PostgreSQL 核心表只读计数查询真实输出：`sources_count=2`、`source_signals_count=3`、`source_signal_counts_by_source={"demo":1,"hn_algolia":2}`、`event_candidates_count=3`、`event_candidate_signals_count=3`、`event_dossiers_count=6`、`review_results_count=6`、`published_events_count=3`、`pipeline_runs_count=3`、`agent_runs_count=15`。
 
 ## 7. 验收标准
 
@@ -366,9 +375,9 @@ P1-6 完成后至少满足：
 
 ## 9. 当前执行结论
 
-用户已确认 P1-6 直接采用 FastAPI。下一步从 Task 1 开始，先按测试先行方式实现 `ProductQueryService` 和响应 schema，再进入 Task 2 实现 FastAPI 薄适配层。
+P1-6 后端产品接口层已完成最小闭环：查询服务、响应 schema、FastAPI 只读 HTTP endpoint、脚本化 PostgreSQL 只读 smoke 和验收文档均已落地。当前可以进入产品页面联调或前端页面开发，但公开部署前仍必须补 API 鉴权和管理员权限。
 
-实现时必须守住三条边界：
+后续继续守住三条边界：
 
 - FastAPI 只做只读产品接口，不触发采集、Agent、发布或重跑。
 - 业务查询规则放在 `ProductQueryService`，HTTP endpoint 不写复杂业务逻辑。
