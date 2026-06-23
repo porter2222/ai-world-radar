@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import Any
+from urllib.parse import urlparse
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -11,6 +14,162 @@ from worker.schemas.product import (
     ProductEventListItem,
     ProductPipelineRunItem,
 )
+
+
+SOURCE_KEY_DISPLAY_NAMES = {
+    "hn_algolia": "Hacker News",
+    "github_releases": "GitHub Release",
+    "github_repo_trends": "GitHub",
+    "github_changelog": "GitHub",
+    "openai_news": "OpenAI",
+    "anthropic_news": "Anthropic",
+    "nvidia_news": "NVIDIA",
+    "deepmind_blog": "Google DeepMind",
+    "google_ai_blog": "Google AI",
+    "huggingface_blog": "Hugging Face",
+    "pytorch_blog": "PyTorch",
+    "ollama_blog": "Ollama",
+    "aws_machine_learning_blog": "AWS ML Blog",
+}
+
+SOURCE_KEY_PLATFORM_KEYS = {
+    "hn_algolia": "hacker_news",
+    "github_releases": "github",
+    "github_repo_trends": "github",
+    "github_changelog": "github",
+    "openai_news": "openai",
+    "anthropic_news": "anthropic",
+    "nvidia_news": "nvidia",
+    "deepmind_blog": "google",
+    "google_ai_blog": "google",
+    "huggingface_blog": "hugging_face",
+    "pytorch_blog": "pytorch",
+    "ollama_blog": "ollama",
+    "aws_machine_learning_blog": "aws",
+}
+
+DOMAIN_DISPLAY_NAMES = {
+    "news.ycombinator.com": "Hacker News",
+    "github.com": "GitHub",
+    "openai.com": "OpenAI",
+    "anthropic.com": "Anthropic",
+    "nvidia.com": "NVIDIA",
+    "deepmind.google": "Google DeepMind",
+    "blog.google": "Google AI",
+    "huggingface.co": "Hugging Face",
+    "pytorch.org": "PyTorch",
+    "ollama.com": "Ollama",
+    "aws.amazon.com": "AWS ML Blog",
+}
+
+
+def _source_hint_and_count(source_refs: list[dict[str, Any]]) -> tuple[str | None, int]:
+    """生成首页事件卡的单行来源提示。
+
+    输入：PublishedEvent.source_refs 中的来源引用列表。
+    输出：短来源提示和按平台去重后的来源数量；不返回完整来源明细。
+    """
+    refs = [ref for ref in source_refs if isinstance(ref, dict)]
+    if not refs:
+        return None, 0
+
+    platform_keys = {_source_platform_key(ref) for ref in refs}
+    source_count = len({key for key in platform_keys if key})
+    if source_count == 0:
+        return None, 0
+
+    first_source_name = _source_display_name(refs[0])
+    if source_count == 1:
+        return first_source_name, 1
+    return f"{first_source_name} 等 {source_count} 源", source_count
+
+
+def _source_display_name(ref: dict[str, Any]) -> str:
+    """读取单条来源在首页卡片上的短展示名。
+
+    输入：一条 source ref，可能包含 source_key、url、title。
+    输出：适合单行展示的平台名；优先使用平台映射，最后才用标题兜底。
+    """
+    source_key = _clean_text(ref.get("source_key"))
+    if source_key and source_key in SOURCE_KEY_DISPLAY_NAMES:
+        return SOURCE_KEY_DISPLAY_NAMES[source_key]
+
+    domain = _source_domain(ref)
+    if domain:
+        if domain in DOMAIN_DISPLAY_NAMES:
+            return DOMAIN_DISPLAY_NAMES[domain]
+        return domain.removeprefix("www.")
+
+    return _clean_text(ref.get("title")) or "未知来源"
+
+
+def _source_platform_key(ref: dict[str, Any]) -> str:
+    """生成来源平台去重 key。
+
+    输入：一条 source ref，可能包含 source_key、url、title。
+    输出：用于 source_count 去重的稳定平台 key。
+    """
+    source_key = _clean_text(ref.get("source_key"))
+    if source_key:
+        return SOURCE_KEY_PLATFORM_KEYS.get(source_key, source_key)
+
+    domain = _source_domain(ref)
+    if domain:
+        return _platform_key_from_domain(domain)
+
+    return (_clean_text(ref.get("title")) or "unknown").lower()
+
+
+def _source_domain(ref: dict[str, Any]) -> str:
+    """从来源 URL 中提取域名。
+
+    输入：一条 source ref。
+    输出：小写域名；没有合法 URL 时返回空字符串。
+    """
+    url = _clean_text(ref.get("url"))
+    if not url:
+        return ""
+    parsed = urlparse(url if "://" in url else f"https://{url}")
+    return (parsed.hostname or "").lower()
+
+
+def _platform_key_from_domain(domain: str) -> str:
+    """把域名归一化成平台去重 key。
+
+    输入：来源 URL 域名。
+    输出：平台级 key，常见子域会归并到同一个平台。
+    """
+    normalized = domain.removeprefix("www.")
+    if normalized.endswith("github.com"):
+        return "github"
+    if normalized.endswith("ycombinator.com"):
+        return "hacker_news"
+    if normalized.endswith("openai.com"):
+        return "openai"
+    if normalized.endswith("anthropic.com"):
+        return "anthropic"
+    if normalized.endswith("nvidia.com"):
+        return "nvidia"
+    if normalized.endswith("google") or normalized.endswith("google.com"):
+        return "google"
+    if normalized.endswith("huggingface.co"):
+        return "hugging_face"
+    if normalized.endswith("pytorch.org"):
+        return "pytorch"
+    if normalized.endswith("ollama.com"):
+        return "ollama"
+    if normalized.endswith("amazon.com"):
+        return "aws"
+    return normalized
+
+
+def _clean_text(value: Any) -> str:
+    """清洗来源字段中的短文本。
+
+    输入：任意来源字段值。
+    输出：去除首尾空白后的字符串；空值返回空字符串。
+    """
+    return str(value or "").strip()
 
 
 class ProductQueryService:
@@ -174,6 +333,7 @@ class ProductQueryService:
         输入：PublishedEvent ORM 对象。
         输出：ProductEventListItem。
         """
+        source_hint, source_count = _source_hint_and_count(list(event.source_refs or []))
         return ProductEventListItem(
             id=event.id,
             slug=event.slug,
@@ -184,6 +344,8 @@ class ProductQueryService:
             signal_label=event.signal_label,
             cover_image_url=event.cover_image_url,
             homepage_rank=event.homepage_rank,
+            source_hint=source_hint,
+            source_count=source_count,
             published_at=event.published_at,
         )
 

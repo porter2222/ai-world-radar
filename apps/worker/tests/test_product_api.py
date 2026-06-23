@@ -196,6 +196,18 @@ def test_public_event_api_returns_events_detail_and_404():
     session_factory = make_session_factory()
     with session_factory() as session:
         published = create_published_event(session)
+        published.source_refs = [
+            {
+                "title": "HN discussion title should stay out of list payload",
+                "url": "https://news.ycombinator.com/item?id=api",
+                "source_key": "hn_algolia",
+            },
+            {
+                "title": "GitHub repository",
+                "url": "https://github.com/openai/openai-python",
+                "source_key": "github_repo_trends",
+            },
+        ]
         session.commit()
 
     client = TestClient(create_app(session_factory=session_factory))
@@ -209,13 +221,19 @@ def test_public_event_api_returns_events_detail_and_404():
     assert events_payload["offset"] == 0
     assert events_payload["items"][0]["slug"] == published.slug
     assert events_payload["items"][0]["title"] == "OpenAI Agent API 事件"
+    assert events_payload["items"][0]["source_hint"] == "Hacker News 等 2 源"
+    assert events_payload["items"][0]["source_count"] == 2
+    assert "source_refs" not in events_payload["items"][0]
     assert "ranking_score" not in events_payload["items"][0]
+    assert "heat_score" not in events_payload["items"][0]
+    assert "importance_score" not in events_payload["items"][0]
 
     detail_response = client.get(f"/events/{published.slug}")
     assert detail_response.status_code == 200
     detail_payload = detail_response.json()
     assert detail_payload["id"] == published.id
     assert detail_payload["why_it_matters"] == "它帮助中文用户理解海外开发者正在如何讨论 AI 编程工具。"
+    assert detail_payload["source_refs"] == published.source_refs
 
     missing_response = client.get("/events/not-found")
     assert missing_response.status_code == 404

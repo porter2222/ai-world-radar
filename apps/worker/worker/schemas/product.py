@@ -24,6 +24,8 @@ class ProductEventListItem(WorkerSchema):
     signal_label: str | None = None
     cover_image_url: str | None = None
     homepage_rank: int | None = None
+    source_hint: str | None = None
+    source_count: int = 0
     published_at: datetime
 
 

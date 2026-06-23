@@ -101,7 +101,8 @@
         </table>
 
         <h2 id="contract">5. 响应契约</h2>
-        <p>事件列表返回 <code>id</code>、<code>slug</code>、标题、卡片摘要、详情摘要、分类、热度标签、封面图、首页排序位和发布时间。前台列表不返回 <code>ranking_score</code>、<code>heat_score</code>、<code>importance_score</code> 等复杂分数；这些分数只用于内部排序和后台审计。</p>
+        <p>事件列表返回 <code>id</code>、<code>slug</code>、标题、卡片摘要、详情摘要、分类、热度标签、封面图、首页排序位、发布时间，以及首页卡片单行展示用的 <code>source_hint</code> / <code>source_count</code>。前台列表不返回 <code>ranking_score</code>、<code>heat_score</code>、<code>importance_score</code> 等复杂分数；这些分数只用于内部排序和后台审计。</p>
+        <p><code>source_count</code> 按平台去重，不按 <code>source_refs</code> 原始条数计数。例如两个 HN 链接加一个 GitHub 链接，列表返回 <code>source_hint="Hacker News 等 2 源"</code>、<code>source_count=2</code>。前台列表不返回完整 <code>source_refs</code>，详情页继续由 <code>GET /events/{slug}</code> 返回完整来源引用。</p>
         <p>事件详情额外返回 <code>detail_body</code>、<code>why_it_matters</code>、<code>follow_up_points</code> 和 <code>source_refs</code>，并且必须通过 <code>published_events.dossier_id</code> 联查发布时对应的 <code>event_dossiers</code> 版本。</p>
         <p><code>GET /admin/review-queue</code> 只返回当前仍处于 <code>manual_review</code> 的事件；同一 candidate 存在多版 dossier / review 时，只返回最新 dossier 和最新 review。</p>
         <p>Agent run 审计默认不暴露完整 <code>llm_raw_text</code>，只暴露耗时、重试次数、模型信息、token usage、状态和错误摘要。</p>
@@ -120,11 +121,13 @@
         <p>Task 3 执行补充：新增 <code>scripts/smoke_product_queries.py</code> 和对应测试。RED 失败为脚本不存在；实现后 smoke 单测 <code>1 passed in 1.91s</code>，P1-6 联合回归 <code>7 passed in 2.88s</code>，worker 全量回归最新结果 <code>96 passed in 23.40s</code>。本机 PostgreSQL <code>ai_world_radar</code> 只读 smoke 输出 <code>status=succeeded</code>、<code>events_count=3</code>、<code>pipeline_runs_count=3</code>、<code>agent_runs_count=7</code>。</p>
         <p>真实 HTTP 运行验收补充：2026-06-23 启动 <code>uvicorn worker.api.app:create_app --factory --host 127.0.0.1 --port 8016</code> 连接本机 PostgreSQL <code>ai_world_radar</code>，逐个请求 <code>/health</code>、<code>/events</code>、<code>/events/{slug}</code>、<code>/admin/pipeline-runs</code>、<code>/admin/pipeline-runs/{run_id}</code>、<code>/admin/pipeline-runs/{run_id}/agent-runs</code>、<code>/admin/review-queue</code> 均通过。真实 HN 事件详情 <code>hn-developers-debate-openai-coding-agents-2026-06-22</code> 返回正文长度 <code>1359</code>，验收结束后已停止 uvicorn。</p>
         <p>全链路真实验收补充：2026-06-23 通过 live HN API 采集到 <code>Show HN: PMB – local-first memory for AI coding agents over MCP</code>，真实 LLM pipeline 写入 PostgreSQL，生成 <code>run_f2cabe57ea404c5fbb23244d9a428f22</code> 和 <code>pub_bc6ee13a869347c4b3abd083e2e73e42</code>，slug 为 <code>pmb-local-first-memory-mcp-ai-coding-agents</code>。FastAPI <code>/events</code>、<code>/events/{slug}</code> 和后台 run / agent run 审计接口均能读取本轮真实产物。</p>
+        <p>前端首页来源提示补充：2026-06-23 为 <code>GET /events</code> 列表 item 新增 <code>source_hint</code> 和 <code>source_count</code>，用于首页事件卡右侧单行展示来源；列表仍不返回完整 <code>source_refs</code> 和内部评分字段，详情接口继续返回完整 <code>source_refs</code>。RED 结果为 <code>2 failed in 0.88s</code>，失败点是 <code>KeyError: 'source_hint'</code>；实现后产品接口联合回归 <code>8 passed in 1.67s</code>，worker 全量回归 <code>122 passed in 39.51s</code>。</p>
 
         <h2 id="acceptance">7. 验收标准</h2>
         <ul>
           <li>默认不会触发采集、Agent 或发布。</li>
           <li>事件列表只返回 <code>published</code> 状态。</li>
+          <li>事件列表返回首页卡片可用的 <code>source_hint</code> / <code>source_count</code>，但不暴露完整 <code>source_refs</code>。</li>
           <li>事件详情按 <code>slug</code> 查询，缺失时行为明确。</li>
           <li>后台审计能查看 pipeline run 和 agent run 摘要。</li>
           <li><code>manual_review</code> 队列可查询。</li>

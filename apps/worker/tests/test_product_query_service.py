@@ -202,6 +202,93 @@ def test_list_published_events_returns_public_cards_sorted_and_filtered():
     assert hidden.slug not in [item.slug for item in items]
 
 
+def test_list_published_events_returns_single_line_source_hint_with_deduped_platform_count():
+    """验证首页列表返回轻量单行来源提示，并按平台去重计数。
+
+    输入：一条已发布事件，source_refs 包含两个 HN 链接和一个 GitHub 链接。
+    输出：列表项返回短来源提示 `Hacker News 等 2 源`，不返回完整 source_refs 或内部评分字段。
+    """
+    session = make_session()
+    published = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="multi-source-event",
+            title="多来源事件",
+        ),
+    )
+    published.source_refs = [
+        {
+            "title": "A long HN post title should not appear in source hint",
+            "url": "https://news.ycombinator.com/item?id=111",
+            "source_key": "hn_algolia",
+        },
+        {
+            "title": "Another HN discussion",
+            "url": "https://news.ycombinator.com/item?id=222",
+            "source_key": "hn_algolia",
+        },
+        {
+            "title": "GitHub repository",
+            "url": "https://github.com/openai/openai-python",
+            "source_key": "github_repo_trends",
+        },
+    ]
+    session.flush()
+
+    service = ProductQueryService(session)
+    dumped = service.list_published_events(limit=10, offset=0)[0].model_dump()
+
+    assert dumped["source_hint"] == "Hacker News 等 2 源"
+    assert dumped["source_count"] == 2
+    assert "source_refs" not in dumped
+    assert "ranking_score" not in dumped
+    assert "heat_score" not in dumped
+    assert "importance_score" not in dumped
+
+
+def test_list_published_events_returns_single_source_hint_and_empty_source_state():
+    """验证单来源和无来源时的首页来源提示。
+
+    输入：一条 GitHub 单来源事件，以及一条 source_refs 为空的发布事件。
+    输出：单来源返回平台名和计数 1；无来源返回 None 和计数 0。
+    """
+    session = make_session()
+    github_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="single-github-source",
+            title="GitHub 单来源事件",
+        ),
+    )
+    github_event.source_refs = [
+        {
+            "title": "Release notes title should not be used first",
+            "url": "https://github.com/modelcontextprotocol/python-sdk/releases/tag/v1.0.0",
+            "source_key": "github_releases",
+        }
+    ]
+    empty_source_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="empty-source-event",
+            title="无来源提示事件",
+        ),
+    )
+    empty_source_event.source_refs = []
+    session.flush()
+
+    service = ProductQueryService(session)
+    dumped_by_slug = {item.slug: item.model_dump() for item in service.list_published_events(limit=10, offset=0)}
+
+    assert dumped_by_slug[github_event.slug]["source_hint"] == "GitHub Release"
+    assert dumped_by_slug[github_event.slug]["source_count"] == 1
+    assert dumped_by_slug[empty_source_event.slug]["source_hint"] is None
+    assert dumped_by_slug[empty_source_event.slug]["source_count"] == 0
+
+
 def test_get_event_by_slug_returns_published_snapshot_dossier_version():
     """验证详情页按 slug 读取发布快照绑定的 dossier 版本。
 
