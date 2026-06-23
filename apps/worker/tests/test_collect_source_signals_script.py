@@ -275,3 +275,94 @@ def test_collect_source_signals_script_calculates_github_trend_delta_from_previo
     assert latest_signal["heat_metrics"]["previous_stargazers_count"] == 1000
     assert latest_signal["heat_metrics"]["stars_delta_since_last"] == 250
     assert latest_signal["heat_metrics"]["stars_delta_rate"] == 0.25
+
+
+def test_collect_source_signals_script_writes_official_feeds_fixture_without_running_pipeline(tmp_path):
+    """验证官方源 fixture 采集只写 source_signals。
+    输入：临时 SQLite、fixture 模式、official_feeds source 和 nvidia_news profile。
+    输出：stdout 返回 nvidia_news，数据库只新增官方来源信号，不新增 pipeline_runs / published_events。
+    """
+    db_path = tmp_path / "p1_7_official_feeds_collect.sqlite"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--create-schema-for-smoke",
+            "--fixture-mode",
+            "--source",
+            "official_feeds",
+            "--official-profile",
+            "nvidia_news",
+            "--official-limit",
+            "1",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    summary = json.loads(result.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+
+    assert summary["status"] == "succeeded"
+    assert summary["source_keys"] == ["nvidia_news"]
+    assert summary["sources_count"] == 1
+    assert summary["signals_count"] == 1
+    assert counts == {"sources": 1, "source_signals": 1, "pipeline_runs": 0, "published_events": 0}
+    assert signals[0]["source_key"] == "nvidia_news"
+    assert signals[0]["source_item_id"] == "nvidia-ai-factory-2026"
+    assert signals[0]["heat_metrics"]["official_source"] is True
+    assert signals[0]["metadata"]["source"] == "official_news"
+    assert signals[0]["metadata"]["profile_key"] == "nvidia_news"
+    assert signals[0]["metadata"]["mode"] == "rss"
+
+
+def test_collect_source_signals_script_combines_github_trends_and_official_feeds(tmp_path):
+    """验证采集脚本可以组合 GitHub trends 与官方源。
+    输入：临时 SQLite、fixture 模式、github_trends 和 official_feeds 两类 source。
+    输出：stdout 返回两个 source_key，数据库只有 source_signals，没有事件生产表写入。
+    """
+    db_path = tmp_path / "p1_7_combined_sources_collect.sqlite"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--create-schema-for-smoke",
+            "--fixture-mode",
+            "--source",
+            "github_trends",
+            "--github-trend-query",
+            "topic:llm stars:>100",
+            "--github-trend-limit",
+            "1",
+            "--snapshot-bucket",
+            "2026062311",
+            "--source",
+            "official_feeds",
+            "--official-profile",
+            "nvidia_news",
+            "--official-limit",
+            "1",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    summary = json.loads(result.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+
+    assert summary["status"] == "succeeded"
+    assert summary["source_keys"] == ["github_repo_trends", "nvidia_news"]
+    assert summary["sources_count"] == 2
+    assert summary["signals_count"] == 2
+    assert counts == {"sources": 2, "source_signals": 2, "pipeline_runs": 0, "published_events": 0}
+    assert {signal["source_key"] for signal in signals} == {"github_repo_trends", "nvidia_news"}

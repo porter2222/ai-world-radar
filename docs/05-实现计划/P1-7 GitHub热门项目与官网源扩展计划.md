@@ -541,7 +541,7 @@ git commit -m "feat(worker): collect official news source signals"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-7 GitHub热门项目与官网源扩展计划.md`
 
-- [ ] **Step 1: Write failing script tests**
+- [x] **Step 1: Write failing script tests**
 
 Add tests proving:
 
@@ -557,7 +557,7 @@ assert counts["source_signals"] == 2
 assert counts["pipeline_runs"] == 0
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -571,7 +571,7 @@ Expected:
 argument --source: invalid choice: 'official_feeds'
 ```
 
-- [ ] **Step 3: Implement script integration**
+- [x] **Step 3: Implement script integration**
 
 Add CLI options:
 
@@ -593,7 +593,7 @@ deepmind_blog    mode=html  entry_url=https://deepmind.google/discover/blog/
 
 If a live profile returns no entries because the page structure changed, the script should fail that profile with a clear error in stdout JSON rather than silently reporting success.
 
-- [ ] **Step 4: Run GREEN and source regression**
+- [x] **Step 4: Run GREEN and source regression**
 
 Run:
 
@@ -607,7 +607,7 @@ Expected:
 all selected tests passed
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/scripts/collect_source_signals.py apps/worker/tests/test_collect_source_signals_script.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-7*

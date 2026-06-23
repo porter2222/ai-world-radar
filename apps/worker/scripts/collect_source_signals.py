@@ -12,12 +12,53 @@ from sqlalchemy.orm import sessionmaker
 from worker.collectors.github_releases import collect_from_github_releases_payload, fetch_github_releases
 from worker.collectors.github_repo_trends import collect_from_github_search_payload, fetch_github_repository_trends
 from worker.collectors.hn_algolia import collect_from_algolia_payload, fetch_hn_stories
+from worker.collectors.official_news import (
+    OfficialSourceProfile,
+    collect_from_feed_xml,
+    collect_from_news_html,
+    fetch_official_news,
+)
 from worker.db.session import create_worker_engine
 from worker.models import Base, Source, SourceSignal
 from worker.services.signal_service import SignalService
 from worker.sources.github_source import build_github_releases_source, github_release_to_signal
 from worker.sources.github_trends_source import build_github_repo_trends_source, github_repo_trend_to_signal
 from worker.sources.hn_source import build_hn_source, hn_story_to_signal
+from worker.sources.official_news_source import build_official_news_source, official_news_entry_to_signal
+
+
+OFFICIAL_SOURCE_PROFILES = {
+    "nvidia_news": OfficialSourceProfile(
+        source_key="nvidia_news",
+        name="NVIDIA News",
+        mode="rss",
+        entry_url="https://nvidianews.nvidia.com/rss",
+    ),
+    "github_changelog": OfficialSourceProfile(
+        source_key="github_changelog",
+        name="GitHub Changelog",
+        mode="html",
+        entry_url="https://github.blog/changelog/",
+    ),
+    "openai_news": OfficialSourceProfile(
+        source_key="openai_news",
+        name="OpenAI News",
+        mode="html",
+        entry_url="https://openai.com/news/",
+    ),
+    "anthropic_news": OfficialSourceProfile(
+        source_key="anthropic_news",
+        name="Anthropic News",
+        mode="html",
+        entry_url="https://www.anthropic.com/news",
+    ),
+    "deepmind_blog": OfficialSourceProfile(
+        source_key="deepmind_blog",
+        name="Google DeepMind Blog",
+        mode="html",
+        entry_url="https://deepmind.google/discover/blog/",
+    ),
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -33,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--source",
         action="append",
-        choices=["hn", "github", "github_trends"],
+        choices=["hn", "github", "github_trends", "official_feeds"],
         required=True,
         help="要采集的来源。",
     )
@@ -47,6 +88,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--github-trend-min-stars", type=int, default=100, help="GitHub repo trend 最低 star 阈值。")
     parser.add_argument("--github-trend-token-env", default="GITHUB_TOKEN", help="读取 GitHub repo trend token 的环境变量名。")
     parser.add_argument("--snapshot-bucket", default=None, help="GitHub repo trend 快照 bucket；测试或 smoke 可传固定 YYYYMMDDHH。")
+    parser.add_argument("--official-profile", action="append", default=[], help="官方源 profile key，可重复传入。")
+    parser.add_argument("--official-limit", type=int, default=5, help="每个官方源最大写入条目数。")
     return parser.parse_args()
 
 
@@ -113,6 +156,15 @@ def collect_selected_sources(session_service: SignalService, args: argparse.Name
             snapshot_bucket=args.snapshot_bucket or build_snapshot_bucket(),
         )
         source_keys.add("github_repo_trends")
+
+    if "official_feeds" in selected_sources:
+        official_source_keys = collect_official_feed_signals(
+            session_service,
+            profile_keys=args.official_profile,
+            limit=args.official_limit,
+            fixture_mode=args.fixture_mode,
+        )
+        source_keys.update(official_source_keys)
 
     return source_keys
 
@@ -195,6 +247,47 @@ def collect_github_repo_trend_signals(
                     previous_stargazers_count=previous_stargazers_count,
                 )
             )
+
+
+def collect_official_feed_signals(
+    service: SignalService,
+    *,
+    profile_keys: list[str],
+    limit: int,
+    fixture_mode: bool,
+) -> set[str]:
+    """采集官方 RSS/Atom/HTML 来源并写入 SourceSignal。
+
+    输入：SignalService、官方 profile key 列表、每个 profile 的数量限制和 fixture 开关。
+    输出：本轮实际写入或尝试写入的官方 source_key 集合。
+    """
+    if not profile_keys:
+        raise ValueError("--official-profile is required when --source official_feeds is used")
+
+    source_keys: set[str] = set()
+    for profile_key in profile_keys:
+        profile = get_official_source_profile(profile_key)
+        service.upsert_source(build_official_news_source(profile))
+        entries = load_fixture_official_news(profile=profile, limit=limit) if fixture_mode else fetch_official_news(profile, limit=limit)
+        if not entries:
+            raise ValueError(f"No official entries collected for profile={profile.source_key}")
+        for entry in entries:
+            service.upsert_signal(official_news_entry_to_signal(entry))
+        source_keys.add(profile.source_key)
+    return source_keys
+
+
+def get_official_source_profile(profile_key: str) -> OfficialSourceProfile:
+    """读取内置官方来源 profile。
+
+    输入：命令行传入的 profile key。
+    输出：OfficialSourceProfile；未知 key 时抛出 ValueError 并列出可选项。
+    """
+    profile = OFFICIAL_SOURCE_PROFILES.get(profile_key)
+    if profile is None:
+        available = ", ".join(sorted(OFFICIAL_SOURCE_PROFILES))
+        raise ValueError(f"Unknown official profile: {profile_key}. Available profiles: {available}")
+    return profile
 
 
 def parse_repo(value: str) -> tuple[str, str]:
@@ -304,6 +397,18 @@ def load_fixture_github_repo_trends(*, query: str, limit: int, min_stars: int):
     """
     payload = json.loads(_fixture_path("github_repo_search_response.json").read_text(encoding="utf-8"))
     return collect_from_github_search_payload(payload, query=query, limit=limit, min_stars=min_stars)
+
+
+def load_fixture_official_news(*, profile: OfficialSourceProfile, limit: int):
+    """读取官方源 fixture 并转换为 OfficialNewsEntry。
+
+    输入：官方来源 profile 和最大数量。
+    输出：从测试 fixture 解析出的 OfficialNewsEntry 列表。
+    """
+    if profile.mode in {"rss", "atom"}:
+        filename = "official_atom_feed.xml" if profile.mode == "atom" else "official_rss_feed.xml"
+        return collect_from_feed_xml(_fixture_path(filename).read_text(encoding="utf-8"), profile=profile, limit=limit)
+    return collect_from_news_html(_fixture_path("official_news_page.html").read_text(encoding="utf-8"), profile=profile, limit=limit)
 
 
 def _fixture_path(filename: str) -> Path:
