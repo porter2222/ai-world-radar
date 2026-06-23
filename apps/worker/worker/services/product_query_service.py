@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from worker.models import AgentRun, EventCandidate, EventDossier, PipelineRun, PublishedEvent, ReviewResult
@@ -193,17 +194,30 @@ class ProductQueryService:
         limit: int = 20,
         offset: int = 0,
         category: str | None = None,
+        recent_hours: int = 48,
+        min_recent_items: int = 8,
+        backfill_days: int = 7,
+        now: datetime | None = None,
     ) -> list[ProductEventListItem]:
         """查询前台已发布事件列表。
 
-        输入：分页参数和可选 category 过滤条件。
-        输出：只包含 `published` 状态的事件卡片列表，不暴露内部排序分。
+        输入：分页参数、可选 category 和首页时效窗口内部参数。
+        输出：近期首页事件卡片列表；低量时向 7 天兜底，不暴露内部排序分。
         """
-        statement = select(PublishedEvent).where(PublishedEvent.status == "published")
-        if category:
-            statement = statement.where(PublishedEvent.category == category)
+        current_time = self._current_time(now)
+        recent_cutoff = current_time - timedelta(hours=recent_hours)
+        backfill_cutoff = current_time - timedelta(days=backfill_days)
+        base_filters = self._published_base_filters(category)
+        recent_count = self.session.scalar(
+            select(func.count())
+            .select_from(PublishedEvent)
+            .where(*base_filters, PublishedEvent.published_at >= recent_cutoff)
+        ) or 0
+        cutoff = backfill_cutoff if recent_count < min_recent_items else recent_cutoff
         statement = (
-            statement.order_by(
+            select(PublishedEvent)
+            .where(*base_filters, PublishedEvent.published_at >= cutoff)
+            .order_by(
                 PublishedEvent.homepage_rank.is_(None),
                 PublishedEvent.homepage_rank.asc(),
                 PublishedEvent.ranking_score.desc(),
@@ -214,6 +228,27 @@ class ProductQueryService:
             .offset(offset)
         )
         return [self._event_list_item(event) for event in self.session.scalars(statement).all()]
+
+    def _current_time(self, now: datetime | None) -> datetime:
+        """返回首页窗口计算使用的当前时间。
+
+        输入：测试可注入的 now；生产调用传 None。
+        输出：带 UTC 时区的 datetime，用于计算 recent/backfill cutoff。
+        """
+        if now is not None:
+            return now if now.tzinfo else now.replace(tzinfo=UTC)
+        return datetime.now(UTC)
+
+    def _published_base_filters(self, category: str | None) -> list[Any]:
+        """生成已发布事件列表的基础过滤条件。
+
+        输入：可选 category。
+        输出：SQLAlchemy where 条件列表，供近期窗口和兜底窗口复用。
+        """
+        filters: list[Any] = [PublishedEvent.status == "published"]
+        if category:
+            filters.append(PublishedEvent.category == category)
+        return filters
 
     def get_event_by_slug(self, slug: str) -> ProductEventDetail | None:
         """按 slug 查询前台事件详情。

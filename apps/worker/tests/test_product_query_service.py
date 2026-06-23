@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -200,6 +200,172 @@ def test_list_published_events_returns_public_cards_sorted_and_filtered():
     assert dumped[0]["card_summary"] == "OpenAI Agent B 引发讨论，开发者关注其工作流影响。"
     assert all("ranking_score" not in item for item in dumped)
     assert hidden.slug not in [item.slug for item in items]
+
+
+def test_list_published_events_defaults_to_recent_48_hour_window():
+    """验证首页列表默认优先使用最近 48 小时时效窗口。
+
+    输入：8 条 48 小时内事件和 1 条 72 小时前事件。
+    输出：窗口内事件出现在列表，超过 48 小时的事件不出现在默认首页列表。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
+    recent_events = []
+    for index in range(8):
+        published = publish_reviewed_dossier(
+            session,
+            create_reviewed_dossier(
+                session,
+                candidate_key=f"recent-ai-event-{index}",
+                title=f"最近 AI 事件 {index}",
+            ),
+        )
+        published.published_at = now - timedelta(hours=2 + index)
+        recent_events.append(published)
+    old = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="old-ai-event",
+            title="过期 AI 事件",
+        ),
+    )
+    old.published_at = now - timedelta(hours=72)
+    session.commit()
+
+    service = ProductQueryService(session)
+    items = service.list_published_events(limit=20, offset=0, now=now)
+    slugs = [item.slug for item in items]
+
+    assert all(event.slug in slugs for event in recent_events)
+    assert old.slug not in slugs
+
+
+def test_list_published_events_backfills_to_7_days_when_recent_count_is_low():
+    """验证 48 小时内事件不足时首页会向 7 天窗口兜底。
+
+    输入：1 条 48 小时内事件、1 条 3 天前事件和 1 条 9 天前事件。
+    输出：3 天前事件进入兜底列表，9 天前事件仍不进入首页列表。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
+    recent = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="recent-backfill-ai-event",
+            title="最近兜底 AI 事件",
+        ),
+    )
+    recent.published_at = now - timedelta(hours=3)
+    backfill = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="backfill-ai-event",
+            title="兜底 AI 事件",
+        ),
+    )
+    backfill.published_at = now - timedelta(days=3)
+    too_old = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="too-old-ai-event",
+            title="超出兜底窗口 AI 事件",
+        ),
+    )
+    too_old.published_at = now - timedelta(days=9)
+    session.commit()
+
+    service = ProductQueryService(session)
+    items = service.list_published_events(limit=20, offset=0, now=now)
+    slugs = [item.slug for item in items]
+
+    assert recent.slug in slugs
+    assert backfill.slug in slugs
+    assert too_old.slug not in slugs
+
+
+def test_get_event_by_slug_still_returns_old_published_event():
+    """验证详情页不受首页时效窗口影响。
+
+    输入：一条 9 天前已发布事件。
+    输出：`get_event_by_slug()` 仍能读取该老事件详情。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
+    old = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="old-detail-event",
+            title="老详情 AI 事件",
+        ),
+    )
+    old.published_at = now - timedelta(days=9)
+    session.commit()
+
+    service = ProductQueryService(session)
+    detail = service.get_event_by_slug(old.slug)
+
+    assert detail is not None
+    assert detail.slug == old.slug
+
+
+def test_list_published_events_applies_category_filter_with_recent_window():
+    """验证分类过滤和首页时效窗口同时生效。
+
+    输入：同一 48 小时窗口内的模型类事件和开源类事件，以及 3 天前的模型类事件。
+    输出：按模型分类查询时只返回窗口内模型类事件，不返回其他分类或过期模型类事件。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
+    model_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="recent-model-event",
+            title="近期模型事件",
+        ),
+    )
+    model_event.category = "模型与产品"
+    model_event.published_at = now - timedelta(hours=5)
+    open_source_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="recent-open-source-event",
+            title="近期开源事件",
+        ),
+    )
+    open_source_event.category = "开源项目"
+    open_source_event.published_at = now - timedelta(hours=4)
+    old_model_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="old-model-event",
+            title="过期模型事件",
+        ),
+    )
+    old_model_event.category = "模型与产品"
+    old_model_event.published_at = now - timedelta(days=3)
+    session.commit()
+
+    service = ProductQueryService(session)
+    items = service.list_published_events(
+        limit=20,
+        offset=0,
+        category="模型与产品",
+        now=now,
+        min_recent_items=0,
+    )
+    slugs = [item.slug for item in items]
+
+    assert model_event.slug in slugs
+    assert open_source_event.slug not in slugs
+    assert old_model_event.slug not in slugs
 
 
 def test_list_published_events_returns_single_line_source_hint_with_deduped_platform_count():
