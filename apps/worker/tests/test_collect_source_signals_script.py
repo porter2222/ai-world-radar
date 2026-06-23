@@ -379,3 +379,62 @@ def test_nvidia_official_profile_points_to_xml_feed():
 
     assert profile.mode == "rss"
     assert profile.entry_url == "https://nvidianews.nvidia.com/rss.xml"
+
+
+def test_expanded_official_profiles_point_to_public_rss_feeds():
+    """验证 P1-8 首批公开平台源 profile 指向稳定 RSS/XML 地址。
+    输入：P1-8 计划中选定的官方与开发者平台 profile key。
+    输出：每个 profile 均存在，且 mode 和 entry_url 与真实探测通过的公开 feed 一致。
+    """
+    expected_profiles = {
+        "openai_news": "https://openai.com/news/rss.xml",
+        "github_changelog": "https://github.blog/changelog/feed/",
+        "huggingface_blog": "https://huggingface.co/blog/feed.xml",
+        "google_ai_blog": "https://blog.google/technology/ai/rss/",
+        "aws_machine_learning_blog": "https://aws.amazon.com/blogs/machine-learning/feed/",
+        "pytorch_blog": "https://pytorch.org/blog/feed.xml",
+        "ollama_blog": "https://ollama.com/blog/rss.xml",
+    }
+
+    for profile_key, entry_url in expected_profiles.items():
+        profile = get_official_source_profile(profile_key)
+        assert profile.mode == "rss"
+        assert profile.entry_url == entry_url
+
+
+def test_collect_source_signals_script_writes_multiple_expanded_official_profiles_without_pipeline(tmp_path):
+    """验证 P1-8 新增官方源可批量用 fixture 写入 source_signals。
+    输入：临时 SQLite、fixture 模式、多个新增 official profile。
+    输出：每个 profile 都写入 1 条官方信号，且不创建 pipeline_runs / published_events。
+    """
+    db_path = tmp_path / "p1_8_expanded_official_profiles.sqlite"
+    profiles = ["openai_news", "huggingface_blog", "ollama_blog"]
+    command = [
+        sys.executable,
+        "scripts/collect_source_signals.py",
+        "--database-url",
+        f"sqlite+pysqlite:///{db_path}",
+        "--create-schema-for-smoke",
+        "--fixture-mode",
+        "--source",
+        "official_feeds",
+        "--official-limit",
+        "1",
+    ]
+    for profile in profiles:
+        command.extend(["--official-profile", profile])
+
+    result = subprocess.run(command, check=False, text=True, capture_output=True)
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    summary = json.loads(result.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+
+    assert summary["status"] == "succeeded"
+    assert summary["source_keys"] == sorted(profiles)
+    assert summary["sources_count"] == 3
+    assert summary["signals_count"] == 3
+    assert counts == {"sources": 3, "source_signals": 3, "pipeline_runs": 0, "published_events": 0}
+    assert {signal["source_key"] for signal in signals} == set(profiles)
+    assert {signal["metadata"]["mode"] for signal in signals} == {"rss"}

@@ -37,14 +37,14 @@ OFFICIAL_SOURCE_PROFILES = {
     "github_changelog": OfficialSourceProfile(
         source_key="github_changelog",
         name="GitHub Changelog",
-        mode="html",
-        entry_url="https://github.blog/changelog/",
+        mode="rss",
+        entry_url="https://github.blog/changelog/feed/",
     ),
     "openai_news": OfficialSourceProfile(
         source_key="openai_news",
         name="OpenAI News",
-        mode="html",
-        entry_url="https://openai.com/news/",
+        mode="rss",
+        entry_url="https://openai.com/news/rss.xml",
     ),
     "anthropic_news": OfficialSourceProfile(
         source_key="anthropic_news",
@@ -57,6 +57,36 @@ OFFICIAL_SOURCE_PROFILES = {
         name="Google DeepMind Blog",
         mode="html",
         entry_url="https://deepmind.google/discover/blog/",
+    ),
+    "huggingface_blog": OfficialSourceProfile(
+        source_key="huggingface_blog",
+        name="Hugging Face Blog",
+        mode="rss",
+        entry_url="https://huggingface.co/blog/feed.xml",
+    ),
+    "google_ai_blog": OfficialSourceProfile(
+        source_key="google_ai_blog",
+        name="Google AI Blog",
+        mode="rss",
+        entry_url="https://blog.google/technology/ai/rss/",
+    ),
+    "aws_machine_learning_blog": OfficialSourceProfile(
+        source_key="aws_machine_learning_blog",
+        name="AWS Machine Learning Blog",
+        mode="rss",
+        entry_url="https://aws.amazon.com/blogs/machine-learning/feed/",
+    ),
+    "pytorch_blog": OfficialSourceProfile(
+        source_key="pytorch_blog",
+        name="PyTorch Blog",
+        mode="rss",
+        entry_url="https://pytorch.org/blog/feed.xml",
+    ),
+    "ollama_blog": OfficialSourceProfile(
+        source_key="ollama_blog",
+        name="Ollama Blog",
+        mode="rss",
+        entry_url="https://ollama.com/blog/rss.xml",
     ),
 }
 

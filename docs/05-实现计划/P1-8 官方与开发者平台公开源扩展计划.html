@@ -81,8 +81,8 @@
           <thead><tr><th>Task</th><th>内容</th><th>验收重点</th></tr></thead>
           <tbody>
             <tr><td>0</td><td>计划、基线、候选探测</td><td>记录 <code>108 passed in 31.45s</code> 和候选 feed 结果。</td></tr>
-            <tr><td>1</td><td>新增 expanded official feed profiles</td><td>测试先行；新增 profile 可通过 <code>--official-profile</code> 调用。</td></tr>
-            <tr><td>2</td><td>SQLite smoke 和可选 PostgreSQL live smoke</td><td>确认只写 source layer，不误创建 pipeline 或发布。</td></tr>
+            <tr><td>1</td><td>新增 expanded official feed profiles</td><td>已完成：RED 为 <code>2 failed, 7 passed</code>；GREEN 为 <code>9 passed in 13.73s</code>，官方源回归为 <code>12 passed in 16.09s</code>。</td></tr>
+            <tr><td>2</td><td>SQLite smoke 和可选 PostgreSQL live smoke</td><td>SQLite fixture smoke 已完成：<code>source_keys=["huggingface_blog","ollama_blog","openai_news"]</code>，未创建 pipeline 或发布。</td></tr>
           </tbody>
         </table>
       </section>
@@ -95,6 +95,19 @@
           <li>不创建 <code>pipeline_runs</code> 或 <code>published_events</code>。</li>
           <li>测试记录包含真实命令、真实输出、失败修复和未覆盖范围。</li>
         </ul>
+        <h3>当前验收输出</h3>
+        <table>
+          <thead><tr><th>验证项</th><th>真实输出摘要</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td>RED</td><td><code>2 failed, 7 passed in 12.91s</code></td><td>预期失败：旧 profile 未覆盖 P1-8 平台源</td></tr>
+            <tr><td>GREEN</td><td><code>9 passed in 13.73s</code></td><td>通过</td></tr>
+            <tr><td>官方源回归</td><td><code>12 passed in 16.09s</code></td><td>通过</td></tr>
+            <tr><td>SQLite fixture smoke</td><td><code>status=succeeded</code>、<code>signals_count=3</code>、<code>pipeline_runs=0</code>、<code>published_events=0</code></td><td>通过</td></tr>
+            <tr><td>真实网络 + SQLite live smoke</td><td><code>status=succeeded</code>、<code>source_keys=["huggingface_blog","ollama_blog","openai_news"]</code>、<code>signals_count=3</code></td><td>通过；PostgreSQL smoke 因当前 worktree 无脱敏连接串暂缓</td></tr>
+            <tr><td>最终 worker 全量测试</td><td><code>110 passed in 30.44s</code></td><td>通过</td></tr>
+          </tbody>
+        </table>
+        <p>live smoke 最新标题包括 Hugging Face 的 <code>PP-OCRv6 on Hugging Face: 50-Language OCR from 1.5M to 34.5M Parameters</code>、Ollama 的 <code>Ollama's highest performance on Apple Silicon yet with MLX</code>、OpenAI 的 <code>Daybreak: Tools for securing every organization in the world</code>。</p>
       </section>
     </main>
   </div>
