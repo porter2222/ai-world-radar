@@ -190,7 +190,7 @@ DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS
 
 ### Task 2: hard filter and candidate grouping
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 覆盖：
 
@@ -199,13 +199,25 @@ DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS
 - 同 repo / 标题近似可合并为一个 group。
 - 已处理 `pipeline_run_id` 默认不重复进入 selector。
 
-- [ ] **Step 2: Implement service**
+- [x] **Step 2: Implement service**
 
 新增：
 
 ```text
 worker/services/editorial_candidate_service.py
 ```
+
+执行结果：
+
+- 新增 `tests/test_editorial_candidate_service.py`，使用内存 SQLite 和生产一致的 `autoflush=False` Session 构造 source signal 测试数据。
+- 第一段 RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v`。
+- 第一段 RED 结果：`1 error in 0.84s`；失败原因是 `worker.services.editorial_candidate_service` 尚不存在。
+- 实现范围：新增 `EditorialCandidateService` 和 `EditorialCandidateGroup`，从 `source_signals` 读取信号，执行硬过滤与内存分组，不写数据库、不发布事件。
+- 追加 lookback RED：临时移除时间窗口判断后运行同一测试，结果为 `1 failed, 4 passed in 1.00s`；失败原因是 5 天前旧信号仍进入候选 group。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v`。
+- GREEN 结果：`5 passed in 0.63s`。
+- 最终全量回归：`.\.venv\Scripts\python.exe -m pytest -v`，结果为 `116 passed in 36.87s`。
+- 覆盖结论：空标题、无 URL、已处理 `pipeline_run_id`、超过 lookback 窗口的旧信号不会进入 selector；同 canonical URL、同 GitHub repo、标题近似的信号会合并为同一 group。
 
 ### Task 3: LLM Editorial Selector
 

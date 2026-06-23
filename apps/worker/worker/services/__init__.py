@@ -1,6 +1,7 @@
+from worker.services.editorial_candidate_service import EditorialCandidateService
 from worker.services.event_service import EventService
 from worker.services.product_query_service import ProductQueryService
 from worker.services.run_log_service import RunLogService
 from worker.services.signal_service import SignalService
 
-__all__ = ["EventService", "ProductQueryService", "RunLogService", "SignalService"]
+__all__ = ["EditorialCandidateService", "EventService", "ProductQueryService", "RunLogService", "SignalService"]

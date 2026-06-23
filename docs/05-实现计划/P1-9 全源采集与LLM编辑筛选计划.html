@@ -33,6 +33,7 @@
       <a href="#strategy">筛选策略</a>
       <a href="#tasks">任务拆解</a>
       <a href="#task1-result">Task 1 结果</a>
+      <a href="#task2-result">Task 2 结果</a>
       <a href="#acceptance">验收标准</a>
     </nav>
     <main>
@@ -78,7 +79,7 @@ pytorch_blog</code></pre>
           <tbody>
             <tr><td>0</td><td>计划和基线</td><td>已完成；记录 <code>110 passed in 30.44s</code>。</td></tr>
             <tr><td>1</td><td><code>daily_all</code> source group</td><td>已完成；fixture mode 可采集当前 13 个 source key，且只写 source layer。</td></tr>
-            <tr><td>2</td><td>硬过滤和 candidate grouping</td><td>重复、过旧、已处理信号不进入 selector。</td></tr>
+            <tr><td>2</td><td>硬过滤和 candidate grouping</td><td>已完成；空标题、无 URL、过旧、已处理信号不进入 selector，同 URL / repo / 近似标题会合并。</td></tr>
             <tr><td>3</td><td>LLM Editorial Selector</td><td>fake LLM 测试 selected / rejected 结构化输出。</td></tr>
             <tr><td>4</td><td>pipeline 消费 selector 输出</td><td>只对 selected Top N 运行写作和审稿。</td></tr>
           </tbody>
@@ -94,6 +95,20 @@ pytorch_blog</code></pre>
             <tr><td>GREEN</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v</code></td><td><code>10 passed in 17.67s</code>；fixture 模式一次写入 13 个 source key 和 13 条 <code>source_signals</code>，且 <code>pipeline_runs=0</code>、<code>published_events=0</code>。</td></tr>
             <tr><td>Smoke</td><td><code>.\.venv\Scripts\python.exe scripts\collect_source_signals.py --database-url "sqlite+pysqlite:///scratch/p1_9_daily_all_smoke.sqlite" --create-schema-for-smoke --fixture-mode --source-group daily_all --hn-limit 1 --github-limit 1 --github-trend-limit 1 --official-limit 1 --snapshot-bucket 2026062312</code></td><td>stdout JSON 返回 <code>status=succeeded</code>、<code>sources_count=13</code>、<code>signals_count=13</code>；后置查询为 <code>sources=13</code>、<code>source_signals=13</code>、<code>pipeline_runs=0</code>、<code>published_events=0</code>。</td></tr>
             <tr><td>Full</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code></td><td><code>111 passed in 31.43s</code>。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="task2-result">
+        <h2>Task 2 结果</h2>
+        <table>
+          <thead><tr><th>步骤</th><th>命令</th><th>真实结果</th></tr></thead>
+          <tbody>
+            <tr><td>RED</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v</code></td><td><code>ModuleNotFoundError: No module named 'worker.services.editorial_candidate_service'</code>；最终 <code>1 error in 0.84s</code>。</td></tr>
+            <tr><td>GREEN</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v</code></td><td>实现服务后 <code>4 passed in 0.80s</code>。</td></tr>
+            <tr><td>Lookback RED</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v</code></td><td>临时移除时间窗口过滤后，旧信号进入 group，结果为 <code>1 failed, 4 passed in 1.00s</code>。</td></tr>
+            <tr><td>Final GREEN</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_editorial_candidate_service.py -v</code></td><td>恢复 lookback 过滤后 <code>5 passed in 0.63s</code>。</td></tr>
+            <tr><td>Full</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code></td><td><code>116 passed in 36.87s</code>。</td></tr>
           </tbody>
         </table>
       </section>
