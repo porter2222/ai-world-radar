@@ -34,6 +34,7 @@
       <a href="#files">文件结构</a>
       <a href="#tasks">任务拆解</a>
       <a href="#acceptance">验收标准</a>
+      <a href="#final">最终验收</a>
       <a href="#risks">风险</a>
     </nav>
     <main>
@@ -42,6 +43,7 @@
         <p class="lead">在不引入账号池、强反爬、社交平台大爬虫或新数据库表的前提下，补齐 GitHub 热门项目发现源和官网/RSS 官方源，让更多公开信号稳定进入 <code>source_signals</code>。</p>
         <p><span class="tag">github_repo_trends</span><span class="tag">official_feeds</span><span class="tag">SourceSignal</span><span class="tag">No arXiv</span></p>
         <p>本阶段继续沿用新版主链路 <code>SourceSignal -&gt; EventCandidate -&gt; EventDossier -&gt; ReviewResult -&gt; PublishedEvent</code>。新增 source layer 只负责采集和映射，不直接调用 Agent、不直接发布、不改产品接口。</p>
+        <p><strong>当前状态：</strong>P1-7 已完成。最终 worker 全量测试为 <code>108 passed in 26.23s</code>；fresh SQLite smoke 和本机 PostgreSQL live source smoke 均已通过。</p>
       </section>
 
       <section id="boundary">
@@ -98,12 +100,12 @@ docs/07-验收与运行/后端P1测试记录.md</code></pre>
         <table>
           <thead><tr><th>Task</th><th>内容</th><th>验收重点</th></tr></thead>
           <tbody>
-            <tr><td>0</td><td>计划、基线测试、文档入口</td><td>worker 基线 <code>96 passed</code>，文档无空白项</td></tr>
-            <tr><td>1</td><td>GitHub repo trends collector 与 source adapter</td><td>repo search payload 能映射为 <code>SourceSignalCreate</code>，支持 star delta</td></tr>
-            <tr><td>2</td><td>采集脚本支持 <code>github_trends</code></td><td>fixture mode 写 source/signals，不创建 pipeline/published</td></tr>
-            <tr><td>3</td><td>官网 RSS / Atom / HTML collector 与 adapter</td><td>RSS、Atom、轻量 HTML 列表页均可解析为 source signal</td></tr>
-            <tr><td>4</td><td>采集脚本支持 <code>official_feeds</code></td><td>内置官网 profile，可与 GitHub trends 组合采集</td></tr>
-            <tr><td>5</td><td>smoke、文档、交接</td><td>全量 pytest、SQLite smoke、PostgreSQL live source smoke、文档记录真实输出</td></tr>
+            <tr><td>0</td><td>计划、基线测试、文档入口</td><td>已完成：worker 基线 <code>96 passed in 53.12s</code>，文档入口已登记 P1-7。</td></tr>
+            <tr><td>1</td><td>GitHub repo trends collector 与 source adapter</td><td>已完成：repo search payload 能映射为 <code>SourceSignalCreate</code>，支持 cold-start stars 和 star delta。</td></tr>
+            <tr><td>2</td><td>采集脚本支持 <code>github_trends</code></td><td>已完成：fixture mode 写 source/signals，不创建 pipeline/published。</td></tr>
+            <tr><td>3</td><td>官网 RSS / Atom / HTML collector 与 adapter</td><td>已完成：RSS、Atom、轻量 HTML 列表页均可解析为 source signal。</td></tr>
+            <tr><td>4</td><td>采集脚本支持 <code>official_feeds</code></td><td>已完成：内置官网 profile，可与 GitHub trends 组合采集。</td></tr>
+            <tr><td>5</td><td>smoke、文档、交接</td><td>已完成：全量 pytest、SQLite smoke、PostgreSQL live source smoke、失败修复和文档记录均已完成。</td></tr>
           </tbody>
         </table>
       </section>
@@ -117,6 +119,30 @@ docs/07-验收与运行/后端P1测试记录.md</code></pre>
           <li><code>collect_source_signals.py</code> 支持 <code>github_trends</code> 和 <code>official_feeds</code>，且仍只写 <code>sources</code> / <code>source_signals</code>。</li>
           <li>全量 worker pytest 通过，fresh SQLite smoke 与 live PostgreSQL source smoke 均记录真实输出。</li>
         </ul>
+      </section>
+
+      <section id="final">
+        <h2>最终验收</h2>
+        <h3>命令结果</h3>
+        <table>
+          <thead><tr><th>验证项</th><th>真实输出摘要</th><th>结论</th></tr></thead>
+          <tbody>
+            <tr><td>最终 worker 全量测试</td><td><code>108 passed in 26.23s</code></td><td>通过</td></tr>
+            <tr><td>fresh SQLite source smoke</td><td><code>status=succeeded</code>、<code>source_keys=["github_repo_trends","nvidia_news"]</code>、<code>signals_count=2</code></td><td>通过</td></tr>
+            <tr><td>fresh SQLite pipeline smoke</td><td><code>status=succeeded</code>、<code>agent_mode=stub</code>、<code>published_count=1</code>、<code>run_id=run_dd07bc8b5dfe4a63bf615ee3d370ff00</code></td><td>通过</td></tr>
+            <tr><td>PostgreSQL live source smoke</td><td><code>status=succeeded</code>、<code>source_keys=["github_repo_trends","nvidia_news"]</code>、<code>signals_count=2</code></td><td>通过</td></tr>
+            <tr><td>PostgreSQL 后置查询</td><td><code>source_signals_count=7</code>、<code>pipeline_runs_count=5</code>、<code>published_events_count=5</code></td><td>通过；确认 source 采集未误跑 pipeline 或发布</td></tr>
+          </tbody>
+        </table>
+        <h3>失败修复</h3>
+        <p>live PostgreSQL source smoke 首次失败，因为 <code>https://nvidianews.nvidia.com/rss</code> 当前返回 HTML 订阅说明页，不是真正 XML feed。已将内置 <code>nvidia_news</code> profile 修正为 <code>https://nvidianews.nvidia.com/rss.xml</code>，并新增回归测试 <code>test_nvidia_official_profile_points_to_xml_feed</code>。</p>
+        <h3>未覆盖范围</h3>
+        <ul>
+          <li>Task 5 默认未运行真实 LLM；新 source layer 仍由后续显式 <code>--agent-mode llm</code> 才会调用真实模型。</li>
+          <li>live source smoke 只覆盖 1 条 GitHub Search query 和 1 个官方 profile <code>nvidia_news</code>。</li>
+          <li>未覆盖 GitHub API rate limit、多 query 去重、官方 HTML 结构大幅变化、网络重试队列和调度器。</li>
+        </ul>
+        <p><strong>结论：</strong>P1-7 已完成，可以进入前端联调或下一阶段 source 运行观察。</p>
       </section>
 
       <section id="risks">

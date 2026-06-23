@@ -51,7 +51,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环，以及 P1-6 产品接口层最小闭环。2026-06-23 已完成 HN 与 GitHub Releases 的全链路真实验收，并开始 P1-7 source 扩展：GitHub repo momentum / star 增长源 + 官网 RSS/Atom/轻量 HTML 官方源。P1-7 变更前 worker 基线为 `96 passed in 53.12s`。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环，以及 P1-7 source 扩展。2026-06-23 已完成 HN 与 GitHub Releases 的全链路真实验收，并完成 GitHub repo momentum / star 增长源 + 官网 RSS/Atom/轻量 HTML 官方源扩展。P1-7 最终 worker 全量测试为 `108 passed in 26.23s`，fresh SQLite smoke 和本机 PostgreSQL live source smoke 均通过。
 
 后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
 
@@ -63,4 +63,4 @@
 
 当前最新执行建议：
 
-> 进入 P1-7 Task 1，优先按 TDD 实现 `github_repo_trends` collector 和 source adapter；GitHub Releases 保留为补充 enrichment，不再作为 GitHub 主发现源；论文源、X、Reddit、YouTube 和强反爬源继续后置。
+> P1-7 source 扩展已完成。下一步优先配合前端联调现有 FastAPI 只读接口；如果继续后端侧工作，建议进入 source 运行观察和调度准备，验证更多官方 profile 的 live 稳定性，补充 source 失败重试 / 告警策略。GitHub Releases 保留为补充 enrichment，`github_repo_trends` 是当前 GitHub 主发现源；论文源、X、Reddit、YouTube 和强反爬源继续后置。

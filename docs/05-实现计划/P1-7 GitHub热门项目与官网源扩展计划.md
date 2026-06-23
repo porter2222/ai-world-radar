@@ -454,7 +454,7 @@ def test_rss_feed_entry_maps_to_source_signal():
         source_key="nvidia_news",
         name="NVIDIA News",
         mode="rss",
-        entry_url="https://nvidianews.nvidia.com/rss",
+        entry_url="https://nvidianews.nvidia.com/rss.xml",
     )
     entry = collect_from_feed_xml(load_xml("official_rss_feed.xml"), profile=profile, limit=1)[0]
     source = build_official_news_source(profile)
@@ -584,7 +584,7 @@ Add CLI options:
 Initial built-in profiles:
 
 ```text
-nvidia_news      mode=rss   entry_url=https://nvidianews.nvidia.com/rss
+nvidia_news      mode=rss   entry_url=https://nvidianews.nvidia.com/rss.xml
 github_changelog mode=html  entry_url=https://github.blog/changelog/
 openai_news      mode=html  entry_url=https://openai.com/news/
 anthropic_news   mode=html  entry_url=https://www.anthropic.com/news
@@ -626,7 +626,7 @@ git commit -m "feat(worker): collect official feed signals"
 - Modify: `docs/00-项目总览/文档索引.md`
 - Modify: `docs/README.md`
 
-- [ ] **Step 1: Run full worker pytest**
+- [x] **Step 1: Run full worker pytest**
 
 Run:
 
@@ -640,7 +640,13 @@ Expected:
 all tests passed
 ```
 
-- [ ] **Step 2: Run fresh SQLite fixture smoke**
+Actual:
+
+```text
+108 passed in 26.23s
+```
+
+- [x] **Step 2: Run fresh SQLite fixture smoke**
 
 Run:
 
@@ -656,7 +662,14 @@ collect_source_signals.py outputs status=succeeded and source_keys include githu
 run_event_pipeline.py outputs status=succeeded and published_count=1
 ```
 
-- [ ] **Step 3: Run live source smoke**
+Actual:
+
+```text
+collect_source_signals.py: status=succeeded, source_keys=["github_repo_trends","nvidia_news"], signals_count=2
+run_event_pipeline.py: status=succeeded, agent_mode=stub, signals_count=1, published_count=1
+```
+
+- [x] **Step 3: Run live source smoke**
 
 Run one live collection without real LLM:
 
@@ -674,7 +687,16 @@ PostgreSQL source_signals row count increases or same-bucket upsert is verified
 
 This task does not require real LLM by default. If real LLM is run, it must be explicit with `--agent-mode llm` and recorded separately.
 
-- [ ] **Step 4: Update docs with real outputs**
+Actual:
+
+```text
+first live official attempt failed because https://nvidianews.nvidia.com/rss returned HTML
+fixed nvidia_news profile to https://nvidianews.nvidia.com/rss.xml
+rerun succeeded: status=succeeded, source_keys=["github_repo_trends","nvidia_news"], signals_count=2
+PostgreSQL counts after source smoke: source_signals_count=7, pipeline_runs_count=5, published_events_count=5
+```
+
+- [x] **Step 4: Update docs with real outputs**
 
 `docs/07-验收与运行/后端P1测试记录.md` must state:
 
@@ -686,7 +708,7 @@ This task does not require real LLM by default. If real LLM is run, it must be e
 - 哪些范围没有覆盖。
 - 是否可以进入下一阶段或前端联调。
 
-- [ ] **Step 5: Run final checks**
+- [x] **Step 5: Run final checks**
 
 Run:
 
@@ -702,7 +724,7 @@ git diff --check exits 0
 secret scan has no matches
 ```
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 ```powershell
 git add docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-7* docs/05-实现计划/README.md docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md docs/README.md

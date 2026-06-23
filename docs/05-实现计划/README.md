@@ -33,4 +33,4 @@ P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_re
 
 `P1-6 产品接口层与最小API计划` 是后端 P1 进入产品接口层前的方案文档，定义只读产品查询边界、`ProductQueryService` 优先的实现顺序、FastAPI 薄适配层、事件列表 / 详情 / 后台审计接口草案、响应契约和验收标准。当前状态为用户已确认采用“ProductQueryService + FastAPI 薄适配层”方案，下一步进入测试先行实现。
 
-`P1-7 GitHub热门项目与官网源扩展计划` 是 P1-6 产品接口层和真实链路验收后的 source 扩展实施依据，定义 GitHub repo momentum / star 增长源、官网 RSS/Atom/轻量 HTML 官方源、采集脚本扩展、测试策略、smoke 和文档验收要求。当前状态为计划已创建，后续按 TDD task 顺序实现。
+`P1-7 GitHub热门项目与官网源扩展计划` 是 P1-6 产品接口层和真实链路验收后的 source 扩展实施依据与完成记录，定义 GitHub repo momentum / star 增长源、官网 RSS/Atom/轻量 HTML 官方源、采集脚本扩展、测试策略、smoke 和文档验收要求。P1-7 已完成：`github_repo_trends`、`official_feeds` / `official_news` 均已接入 `collect_source_signals.py`，最终 worker 全量测试为 `108 passed in 26.23s`，fresh SQLite smoke 和本机 PostgreSQL live source smoke 均通过。
