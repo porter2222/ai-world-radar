@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-8 官方与开发者平台公开源扩展计划</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; line-height: 1.65; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    nav { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 22px; background: #111827; color: #dbeafe; box-sizing: border-box; }
+    nav h1 { margin: 0 0 18px; font-size: 18px; line-height: 1.35; color: #fff; }
+    nav a { display: block; color: #bfdbfe; text-decoration: none; margin: 10px 0; font-size: 14px; }
+    main { padding: 36px 48px 72px; max-width: 1180px; box-sizing: border-box; }
+    section { background: #fff; border: 1px solid #d9e2ef; border-radius: 8px; padding: 24px 28px; margin: 0 0 18px; }
+    h2 { margin: 0 0 14px; font-size: 24px; color: #0f172a; }
+    h3 { margin: 22px 0 10px; font-size: 18px; color: #1f2937; }
+    code { background: #eef2ff; padding: 2px 5px; border-radius: 4px; font-family: Consolas, monospace; }
+    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 6px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    td, th { border: 1px solid #d9e2ef; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    ul { padding-left: 22px; }
+    .lead { font-size: 16px; color: #334155; }
+    .tag { display: inline-block; margin: 0 8px 8px 0; padding: 3px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-8 平台公开源扩展</h1>
+      <a href="#goal">目标</a>
+      <a href="#boundary">边界</a>
+      <a href="#candidates">候选探测</a>
+      <a href="#tasks">任务拆解</a>
+      <a href="#acceptance">验收标准</a>
+    </nav>
+    <main>
+      <section id="goal">
+        <h2>目标</h2>
+        <p class="lead">在 P1-7 <code>official_feeds</code> 基础上扩展更多低成本公开平台源，让更多官方和开发者平台 feed 稳定进入 <code>source_signals</code>。</p>
+        <p><span class="tag">RSS first</span><span class="tag">No anti-bot</span><span class="tag">SourceSignal only</span></p>
+        <p>本阶段继续沿用 <code>SourceSignal -&gt; EventCandidate -&gt; EventDossier -&gt; ReviewResult -&gt; PublishedEvent</code> 主链路。新增 profile 不直接运行 Agent、不直接发布、不新增数据库表。</p>
+        <p>启动基线：<code>108 passed in 31.45s</code>。</p>
+      </section>
+
+      <section id="boundary">
+        <h2>阶段边界</h2>
+        <h3>负责</h3>
+        <ul>
+          <li>新增或修正公开 RSS/XML profile。</li>
+          <li>补 profile 稳定性测试和 fixture smoke。</li>
+          <li>更新测试记录、项目状态、文档索引和 README。</li>
+        </ul>
+        <h3>不负责</h3>
+        <ul>
+          <li>不接 X、Reddit、YouTube、Facebook、TikTok。</li>
+          <li>不做账号池、代理池、验证码绕过或浏览器反爬。</li>
+          <li>不做论文源和深层爬取。</li>
+        </ul>
+      </section>
+
+      <section id="candidates">
+        <h2>候选探测</h2>
+        <table>
+          <thead><tr><th>profile</th><th>URL</th><th>结果</th><th>处理</th></tr></thead>
+          <tbody>
+            <tr><td><code>openai_news</code></td><td><code>https://openai.com/news/rss.xml</code></td><td>200 text/xml</td><td>从 HTML 改为 RSS</td></tr>
+            <tr><td><code>github_changelog</code></td><td><code>https://github.blog/changelog/feed/</code></td><td>200 application/rss+xml</td><td>从 HTML 改为 RSS</td></tr>
+            <tr><td><code>huggingface_blog</code></td><td><code>https://huggingface.co/blog/feed.xml</code></td><td>200 application/rss+xml</td><td>新增 RSS</td></tr>
+            <tr><td><code>google_ai_blog</code></td><td><code>https://blog.google/technology/ai/rss/</code></td><td>200 application/xml</td><td>新增 RSS</td></tr>
+            <tr><td><code>aws_machine_learning_blog</code></td><td><code>https://aws.amazon.com/blogs/machine-learning/feed/</code></td><td>200 application/rss+xml</td><td>新增 RSS</td></tr>
+            <tr><td><code>pytorch_blog</code></td><td><code>https://pytorch.org/blog/feed.xml</code></td><td>200 application/rss+xml</td><td>新增 RSS</td></tr>
+            <tr><td><code>ollama_blog</code></td><td><code>https://ollama.com/blog/rss.xml</code></td><td>200 text/xml</td><td>新增 RSS</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="tasks">
+        <h2>任务拆解</h2>
+        <table>
+          <thead><tr><th>Task</th><th>内容</th><th>验收重点</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>计划、基线、候选探测</td><td>记录 <code>108 passed in 31.45s</code> 和候选 feed 结果。</td></tr>
+            <tr><td>1</td><td>新增 expanded official feed profiles</td><td>测试先行；新增 profile 可通过 <code>--official-profile</code> 调用。</td></tr>
+            <tr><td>2</td><td>SQLite smoke 和可选 PostgreSQL live smoke</td><td>确认只写 source layer，不误创建 pipeline 或发布。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="acceptance">
+        <h2>验收标准</h2>
+        <ul>
+          <li>新增 profile 均有测试覆盖。</li>
+          <li>fixture mode 多 profile 采集仍只写 <code>sources</code> / <code>source_signals</code>。</li>
+          <li>不创建 <code>pipeline_runs</code> 或 <code>published_events</code>。</li>
+          <li>测试记录包含真实命令、真实输出、失败修复和未覆盖范围。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

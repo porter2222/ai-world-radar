@@ -17,9 +17,10 @@
 11. `05-实现计划/P1-4 真实LLM Agent节点替换计划.md`
 12. `05-实现计划/P1-6 产品接口层与最小API计划.md`
 13. `05-实现计划/P1-7 GitHub热门项目与官网源扩展计划.md`
-14. `05-实现计划/后端P1实现计划与功能切片拆解.md`
-15. `06-代理任务书/后端P1开发代理任务书.md`
-16. `07-验收与运行/后端P1测试记录.md`
+14. `05-实现计划/P1-8 官方与开发者平台公开源扩展计划.md`
+15. `05-实现计划/后端P1实现计划与功能切片拆解.md`
+16. `06-代理任务书/后端P1开发代理任务书.md`
+17. `07-验收与运行/后端P1测试记录.md`
 
 ## 目录说明
 
@@ -51,7 +52,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环，以及 P1-7 source 扩展。2026-06-23 已完成 HN 与 GitHub Releases 的全链路真实验收，并完成 GitHub repo momentum / star 增长源 + 官网 RSS/Atom/轻量 HTML 官方源扩展。P1-7 最终 worker 全量测试为 `108 passed in 26.23s`，fresh SQLite smoke 和本机 PostgreSQL live source smoke 均通过。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环，以及 P1-7 source 扩展。2026-06-23 已完成 HN 与 GitHub Releases 的全链路真实验收，并完成 GitHub repo momentum / star 增长源 + 官网 RSS/Atom/轻量 HTML 官方源扩展。当前进入 P1-8 官方与开发者平台公开源扩展，启动基线为 `108 passed in 31.45s`。
 
 后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
 
@@ -63,4 +64,4 @@
 
 当前最新执行建议：
 
-> P1-7 source 扩展已完成。下一步优先配合前端联调现有 FastAPI 只读接口；如果继续后端侧工作，建议进入 source 运行观察和调度准备，验证更多官方 profile 的 live 稳定性，补充 source 失败重试 / 告警策略。GitHub Releases 保留为补充 enrichment，`github_repo_trends` 是当前 GitHub 主发现源；论文源、X、Reddit、YouTube 和强反爬源继续后置。
+> 进入 P1-8 Task 1，优先按 TDD 扩展低成本公开 RSS/XML 平台源。首批目标为 OpenAI News、GitHub Changelog、Hugging Face Blog、Google AI Blog、AWS Machine Learning Blog、PyTorch Blog 和 Ollama Blog；论文源、X、Reddit、YouTube 和强反爬源继续后置。
