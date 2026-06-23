@@ -147,7 +147,7 @@ P1-8 后最新 worker 全量回归：
 110 passed in 30.44s
 ```
 
-- [ ] **Step 2: Commit plan**
+- [x] **Step 2: Commit plan**
 
 ```powershell
 git add docs/README.md docs/05-实现计划/README.md docs/05-实现计划/P1-9* docs/00-项目总览/项目状态.md docs/00-项目总览/文档索引.md docs/07-验收与运行/后端P1测试记录.md
@@ -156,7 +156,7 @@ git commit -m "docs(worker): add P1-9 all-source editorial selection plan"
 
 ### Task 1: daily_all source group
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 覆盖：
 
@@ -164,7 +164,7 @@ git commit -m "docs(worker): add P1-9 all-source editorial selection plan"
 - fixture mode 会采集当前 13 个 source key。
 - `daily_all` 仍只写 `sources` / `source_signals`，不创建 `pipeline_runs` / `published_events`。
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 新增：
 
@@ -174,6 +174,19 @@ DEFAULT_DAILY_ALL_OFFICIAL_PROFILES
 DEFAULT_DAILY_ALL_GITHUB_TREND_QUERIES
 DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS
 ```
+
+执行结果：
+
+- 新增 `tests/test_collect_source_signals_script.py::test_collect_source_signals_script_daily_all_group_writes_all_sources_without_pipeline`。
+- RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v`。
+- RED 结果：`1 failed, 9 passed in 13.83s`；失败原因是 CLI 仍要求 `--source`，尚未支持 `--source-group daily_all`。
+- 实现范围：`scripts/collect_source_signals.py` 新增 `--source-group daily_all`，并展开为 `hn`、`github`、`github_trends`、`official_feeds`；补齐 10 个官方 profile、默认 GitHub release repo 和默认 GitHub trend query。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v`。
+- GREEN 结果：`10 passed in 17.67s`。
+- 直接 smoke：`.\.venv\Scripts\python.exe scripts\collect_source_signals.py --database-url "sqlite+pysqlite:///scratch/p1_9_daily_all_smoke.sqlite" --create-schema-for-smoke --fixture-mode --source-group daily_all --hn-limit 1 --github-limit 1 --github-trend-limit 1 --official-limit 1 --snapshot-bucket 2026062312`。
+- smoke 结果：stdout JSON 返回 `status=succeeded`、`sources_count=13`、`signals_count=13`；后置查询为 `sources=13`、`source_signals=13`、`pipeline_runs=0`、`published_events=0`。
+- 最终全量回归：`.\.venv\Scripts\python.exe -m pytest -v`，结果为 `111 passed in 31.43s`。
+- 验证结论：fixture 模式一次写入 13 个 source key 和 13 条 `source_signals`，且 `pipeline_runs=0`、`published_events=0`。
 
 ### Task 2: hard filter and candidate grouping
 

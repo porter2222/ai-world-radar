@@ -438,3 +438,65 @@ def test_collect_source_signals_script_writes_multiple_expanded_official_profile
     assert counts == {"sources": 3, "source_signals": 3, "pipeline_runs": 0, "published_events": 0}
     assert {signal["source_key"] for signal in signals} == set(profiles)
     assert {signal["metadata"]["mode"] for signal in signals} == {"rss"}
+
+
+def test_collect_source_signals_script_daily_all_group_writes_all_sources_without_pipeline(tmp_path):
+    """验证 daily_all 采集组一次覆盖当前全部日常信息源。
+
+    输入：临时 SQLite、fixture 模式、`--source-group daily_all` 和各来源 limit=1。
+    输出：写入 13 个 source key 和 13 条 source_signals，不创建 pipeline_runs / published_events。
+    """
+    db_path = tmp_path / "p1_9_daily_all_collect.sqlite"
+    expected_source_keys = [
+        "anthropic_news",
+        "aws_machine_learning_blog",
+        "deepmind_blog",
+        "github_changelog",
+        "github_releases",
+        "github_repo_trends",
+        "google_ai_blog",
+        "hn_algolia",
+        "huggingface_blog",
+        "nvidia_news",
+        "ollama_blog",
+        "openai_news",
+        "pytorch_blog",
+    ]
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--create-schema-for-smoke",
+            "--fixture-mode",
+            "--source-group",
+            "daily_all",
+            "--hn-limit",
+            "1",
+            "--github-limit",
+            "1",
+            "--github-trend-limit",
+            "1",
+            "--official-limit",
+            "1",
+            "--snapshot-bucket",
+            "2026062312",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    summary = json.loads(result.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+
+    assert summary["status"] == "succeeded"
+    assert summary["source_keys"] == expected_source_keys
+    assert summary["sources_count"] == 13
+    assert summary["signals_count"] == 13
+    assert counts == {"sources": 13, "source_signals": 13, "pipeline_runs": 0, "published_events": 0}
+    assert sorted({signal["source_key"] for signal in signals}) == expected_source_keys

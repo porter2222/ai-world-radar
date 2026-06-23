@@ -90,12 +90,17 @@ OFFICIAL_SOURCE_PROFILES = {
     ),
 }
 
+DAILY_ALL_SOURCE_GROUP_SOURCES = ("hn", "github", "github_trends", "official_feeds")
+DEFAULT_DAILY_ALL_OFFICIAL_PROFILES = tuple(sorted(OFFICIAL_SOURCE_PROFILES))
+DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS = ("openai/openai-python",)
+DEFAULT_DAILY_ALL_GITHUB_TREND_QUERIES = ("topic:llm stars:>100",)
+
 
 def parse_args() -> argparse.Namespace:
     """解析来源采集脚本参数。
 
     输入：命令行参数。
-    输出：包含数据库 URL、来源选择、HN/GitHub 限制和 fixture 开关的 argparse Namespace。
+    输出：包含数据库 URL、来源选择、source group 展开结果和 fixture 开关的 argparse Namespace。
     """
     parser = argparse.ArgumentParser(description="Collect external source signals into source_signals.")
     parser.add_argument("--database-url", default=None, help="覆盖默认 DATABASE_URL。")
@@ -105,9 +110,10 @@ def parse_args() -> argparse.Namespace:
         "--source",
         action="append",
         choices=["hn", "github", "github_trends", "official_feeds"],
-        required=True,
+        default=[],
         help="要采集的来源。",
     )
+    parser.add_argument("--source-group", action="append", choices=["daily_all"], default=[], help="预置来源组。")
     parser.add_argument("--hn-days", type=int, default=7, help="HN 搜索时间窗口天数。")
     parser.add_argument("--hn-limit", type=int, default=5, help="HN 最大写入信号数。")
     parser.add_argument("--github-repo", action="append", default=[], help="GitHub 仓库，格式 owner/repo。")
@@ -120,7 +126,41 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--snapshot-bucket", default=None, help="GitHub repo trend 快照 bucket；测试或 smoke 可传固定 YYYYMMDDHH。")
     parser.add_argument("--official-profile", action="append", default=[], help="官方源 profile key，可重复传入。")
     parser.add_argument("--official-limit", type=int, default=5, help="每个官方源最大写入条目数。")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not args.source and not args.source_group:
+        parser.error("at least one --source or --source-group is required")
+    expand_source_groups(args)
+    return args
+
+
+def expand_source_groups(args: argparse.Namespace) -> None:
+    """把预置来源组展开到具体采集参数。
+
+    输入：parse_args 生成的 argparse Namespace，可包含 `source_group`。
+    输出：无返回值；原地补齐 source、官方 profile、GitHub release 仓库和 GitHub trend query。
+    """
+    if "daily_all" not in set(args.source_group):
+        return
+
+    args.source = append_missing(args.source, DAILY_ALL_SOURCE_GROUP_SOURCES)
+    args.official_profile = append_missing(args.official_profile, DEFAULT_DAILY_ALL_OFFICIAL_PROFILES)
+    args.github_repo = append_missing(args.github_repo, DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS)
+    args.github_trend_query = append_missing(args.github_trend_query, DEFAULT_DAILY_ALL_GITHUB_TREND_QUERIES)
+
+
+def append_missing(current: list[str], defaults: tuple[str, ...]) -> list[str]:
+    """按顺序追加缺失的默认值。
+
+    输入：用户已传入的字符串列表，以及来源组默认值。
+    输出：保留用户顺序并补齐默认值的新列表，不产生重复项。
+    """
+    values = list(current)
+    seen = set(values)
+    for value in defaults:
+        if value not in seen:
+            values.append(value)
+            seen.add(value)
+    return values
 
 
 def main() -> int:
