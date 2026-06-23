@@ -251,7 +251,7 @@ worker/schemas/editorial_selection.py
 
 ### Task 4: Pipeline script consumes selector output
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 覆盖：
 
@@ -259,9 +259,23 @@ worker/schemas/editorial_selection.py
 - 只对 selected group 运行 writer / reviewer。
 - rejected group 不写 `published_events`。
 
-- [ ] **Step 2: Implement script integration**
+- [x] **Step 2: Implement script integration**
 
 保持默认 `AGENT_MODE=stub`，真实 LLM 需要显式开启。
+
+执行结果：
+
+- 修改 `tests/test_run_event_pipeline_script.py`，新增 `test_run_event_pipeline_script_consumes_selector_selected_top_candidates`。
+- RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`。
+- RED 结果：`1 failed, 3 passed in 8.41s`；失败原因是 `run_event_pipeline.py` 尚不接受 `--select-top-candidates 1`。
+- 实现范围：`scripts/run_event_pipeline.py` 新增 `--select-top-candidates` 和 `--candidate-pool-limit`；selector 模式先用 `EditorialCandidateService` 构造 groups，再在默认 stub 模式下确定性选择 Top N，`--agent-mode llm` 时才显式调用 `EditorialSelectorLLMAgent`。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`。
+- GREEN 结果：`4 passed in 8.64s`。
+- 最终全量回归：`.\.venv\Scripts\python.exe -m pytest -v`，结果为 `120 passed in 36.63s`。
+- 验证结论：输入两个 candidate group、`--select-top-candidates 1` 时，stdout 返回 `selected_groups_count=1`、`rejected_groups_count=1`、`published_count=1`；数据库后置查询为 `pipeline_runs=1`、`event_candidates=1`、`published_events=1`，证明 rejected group 没有误发布。
+- 最终 fixture smoke 1：`.\.venv\Scripts\python.exe scripts\collect_source_signals.py --database-url "sqlite+pysqlite:///scratch/p1_9_final_daily_all.sqlite" --create-schema-for-smoke --fixture-mode --source-group daily_all --hn-limit 1 --github-limit 1 --github-trend-limit 1 --official-limit 1 --snapshot-bucket 2026062314`，stdout 返回 `status=succeeded`、`sources_count=13`、`signals_count=13`。
+- 最终 fixture smoke 2：`.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --database-url "sqlite+pysqlite:///scratch/p1_9_final_daily_all.sqlite" --select-top-candidates 1 --run-key manual-p1-9-final-selector-smoke`，stdout 返回 `status=succeeded`、`selector_mode=stub`、`selected_groups_count=1`、`rejected_groups_count=2`、`published_count=1`、`run_ids=["run_6624737356bd4dfe8089e127a78147d1"]`。
+- 最终 smoke 后置查询：`sources=13`、`source_signals=13`、`pipeline_runs=1`、`event_candidates=1`、`published_events=1`、`agent_runs=3`，证明 13 源采集不触发发布，selector pipeline 只发布 selected Top 1。
 
 ## 6. 验收标准
 
@@ -278,3 +292,7 @@ worker/schemas/editorial_selection.py
 - LLM selector 成本需要控制，必须限制 candidate_pool_limit。
 - LLM 输出可能波动，必须记录 agent_runs 便于审计。
 - 本阶段不做复杂事实核验，只判断事件价值和展示优先级。
+
+## 8. 当前状态
+
+P1-9 Task 1-4 已完成。已覆盖 `daily_all` 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。当前未做真实网络 13 源全采 + 真实 LLM selector smoke；默认模式仍为 `AGENT_MODE=stub`，真实 LLM 必须显式开启。

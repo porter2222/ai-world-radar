@@ -35,7 +35,9 @@
       <a href="#task1-result">Task 1 结果</a>
       <a href="#task2-result">Task 2 结果</a>
       <a href="#task3-result">Task 3 结果</a>
+      <a href="#task4-result">Task 4 结果</a>
       <a href="#acceptance">验收标准</a>
+      <a href="#current-state">当前状态</a>
     </nav>
     <main>
       <section id="goal">
@@ -82,7 +84,7 @@ pytorch_blog</code></pre>
             <tr><td>1</td><td><code>daily_all</code> source group</td><td>已完成；fixture mode 可采集当前 13 个 source key，且只写 source layer。</td></tr>
             <tr><td>2</td><td>硬过滤和 candidate grouping</td><td>已完成；空标题、无 URL、过旧、已处理信号不进入 selector，同 URL / repo / 近似标题会合并。</td></tr>
             <tr><td>3</td><td>LLM Editorial Selector</td><td>已完成；fake LLM 测试 selected / rejected / manual_review 结构化输出和越权边界。</td></tr>
-            <tr><td>4</td><td>pipeline 消费 selector 输出</td><td>只对 selected Top N 运行写作和审稿。</td></tr>
+            <tr><td>4</td><td>pipeline 消费 selector 输出</td><td>已完成；只对 selected Top N 运行写作和审稿，rejected group 不发布。</td></tr>
           </tbody>
         </table>
       </section>
@@ -126,6 +128,21 @@ pytorch_blog</code></pre>
         </table>
       </section>
 
+      <section id="task4-result">
+        <h2>Task 4 结果</h2>
+        <table>
+          <thead><tr><th>步骤</th><th>命令</th><th>真实结果</th></tr></thead>
+          <tbody>
+            <tr><td>RED</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v</code></td><td><code>1 failed, 3 passed in 8.41s</code>；失败原因是脚本不接受 <code>--select-top-candidates 1</code>。</td></tr>
+            <tr><td>GREEN</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v</code></td><td><code>4 passed in 8.64s</code>；输入两个 group、Top N 为 1 时，只生成 1 个 pipeline run 和 1 条 published_event。</td></tr>
+            <tr><td>Full</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code></td><td><code>120 passed in 36.63s</code>。</td></tr>
+            <tr><td>Smoke 1</td><td><code>.\.venv\Scripts\python.exe scripts\collect_source_signals.py --source-group daily_all --fixture-mode ...</code></td><td><code>status=succeeded</code>、<code>sources_count=13</code>、<code>signals_count=13</code>；采集层未触发 pipeline。</td></tr>
+            <tr><td>Smoke 2</td><td><code>.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --select-top-candidates 1 ...</code></td><td><code>status=succeeded</code>、<code>selector_mode=stub</code>、<code>selected_groups_count=1</code>、<code>rejected_groups_count=2</code>、<code>published_count=1</code>；run_id 为 <code>run_6624737356bd4dfe8089e127a78147d1</code>。</td></tr>
+            <tr><td>Count</td><td><code>SQLite count query</code></td><td><code>sources=13</code>、<code>source_signals=13</code>、<code>pipeline_runs=1</code>、<code>event_candidates=1</code>、<code>published_events=1</code>、<code>agent_runs=3</code>。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
       <section id="acceptance">
         <h2>验收标准</h2>
         <ul>
@@ -135,6 +152,10 @@ pytorch_blog</code></pre>
           <li>pipeline 只处理 selector 选中的 Top N。</li>
           <li>文档记录真实命令、真实输出和未覆盖范围。</li>
         </ul>
+      </section>
+      <section id="current-state">
+        <h2>当前状态</h2>
+        <p>P1-9 Task 1-4 已完成。当前已覆盖 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。未做真实网络 13 源全采 + 真实 LLM selector smoke；默认模式仍为 <code>AGENT_MODE=stub</code>，真实 LLM 必须显式开启。</p>
       </section>
     </main>
   </div>
