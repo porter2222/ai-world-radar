@@ -221,7 +221,7 @@ worker/services/editorial_candidate_service.py
 
 ### Task 3: LLM Editorial Selector
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 覆盖：
 
@@ -229,7 +229,7 @@ worker/services/editorial_candidate_service.py
 - 输出必须包含 priority_score、reason、suggested_angle。
 - LLM 只能输出建议，不能直接写库或发布。
 
-- [ ] **Step 2: Implement agent**
+- [x] **Step 2: Implement agent**
 
 新增：
 
@@ -237,6 +237,17 @@ worker/services/editorial_candidate_service.py
 worker/agents/editorial_selector_agent.py
 worker/schemas/editorial_selection.py
 ```
+
+执行结果：
+
+- 新增 `tests/test_editorial_selector_agent.py`，用 fake LLM 覆盖 selected / rejected / manual_review 输出、selected 必填解释字段和 prompt 越权边界。
+- RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_editorial_selector_agent.py -v`。
+- RED 结果：`1 error in 0.37s`；失败原因是 `worker.agents.editorial_selector_agent` 尚不存在。
+- 实现范围：新增 `worker/schemas/editorial_selection.py`，定义 `EditorialSelectionResult`、selected/rejected/manual_review item；新增 `EditorialSelectorLLMAgent`，复用 `LLMJsonAgent` 结构化 JSON 调用。
+- GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_editorial_selector_agent.py -v`。
+- GREEN 结果：`3 passed in 0.11s`。
+- 最终全量回归：`.\.venv\Scripts\python.exe -m pytest -v`，结果为 `119 passed in 83.79s (0:01:23)`。
+- 验证结论：selector 能返回 selected / rejected / manual_review；selected 项必须包含 `priority_score`、`reason`、`suggested_angle`；prompt 明确包含“只能输出编辑筛选建议、不要写数据库、不要直接发布、不要修改 source_signals”。
 
 ### Task 4: Pipeline script consumes selector output
 
