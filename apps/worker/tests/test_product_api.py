@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import warnings
 
 from sqlalchemy import create_engine
@@ -237,6 +238,39 @@ def test_public_event_api_returns_events_detail_and_404():
 
     missing_response = client.get("/events/not-found")
     assert missing_response.status_code == 404
+
+
+def test_events_api_defaults_to_recent_homepage_window():
+    """验证事件列表 API 默认使用首页近期窗口。
+
+    输入：一条 1 小时前事件和一条 9 天前事件。
+    输出：`GET /events` 只返回近期事件；老事件详情仍可通过 slug 读取。
+    """
+    session_factory = make_session_factory()
+    now = datetime.now(UTC)
+    with session_factory() as session:
+        recent = create_published_event(session, "api-recent-event")
+        recent.published_at = now - timedelta(hours=1)
+        old = create_published_event(session, "api-old-event")
+        old.published_at = now - timedelta(days=9)
+        session.commit()
+
+    client = TestClient(create_app(session_factory=session_factory))
+
+    events_response = client.get("/events")
+    assert events_response.status_code == 200
+    events_payload = events_response.json()
+    slugs = [item["slug"] for item in events_payload["items"]]
+
+    assert recent.slug in slugs
+    assert old.slug not in slugs
+    assert "ranking_score" not in events_payload["items"][0]
+    assert "heat_score" not in events_payload["items"][0]
+    assert "importance_score" not in events_payload["items"][0]
+
+    detail_response = client.get(f"/events/{old.slug}")
+    assert detail_response.status_code == 200
+    assert detail_response.json()["slug"] == old.slug
 
 
 def test_admin_read_only_api_returns_runs_agent_runs_and_review_queue():
