@@ -349,6 +349,7 @@ PostgreSQL smoke 只做读取，不触发 Agent：
 - worker 全量回归命令：`.\.venv\Scripts\python.exe -m pytest -v`，最新真实结果为 `96 passed in 23.40s`。
 - PostgreSQL 只读 smoke 命令：`.\.venv\Scripts\python.exe scripts\smoke_product_queries.py --database-url postgresql+psycopg://postgres:<password>@localhost:5432/ai_world_radar`，真实 stdout 为 `status=succeeded`、`events_count=3`、`detail_found=true`、`pipeline_runs_count=3`、`agent_runs_count=7`、`review_queue_count=0`、`first_event_slug=demo-openai-releases-a-new-developer-tool`、`first_pipeline_run_id=run_9edd05cbf4aa464593172c01911fa068`。
 - PostgreSQL 核心表只读计数查询真实输出：`sources_count=2`、`source_signals_count=3`、`source_signal_counts_by_source={"demo":1,"hn_algolia":2}`、`event_candidates_count=3`、`event_candidate_signals_count=3`、`event_dossiers_count=6`、`review_results_count=6`、`published_events_count=3`、`pipeline_runs_count=3`、`agent_runs_count=15`。
+- 真实 HTTP 运行验收（2026-06-23）：启动 `uvicorn worker.api.app:create_app --factory --host 127.0.0.1 --port 8016` 连接本机 PostgreSQL `ai_world_radar`，逐个请求 `/health`、`/events`、`/events/{slug}`、`/admin/pipeline-runs`、`/admin/pipeline-runs/{run_id}`、`/admin/pipeline-runs/{run_id}/agent-runs`、`/admin/review-queue` 均通过。真实 HN 事件详情 `hn-developers-debate-openai-coding-agents-2026-06-22` 返回 `status_code=200`、正文长度 `1359`、`source_refs_count=1`、`follow_up_points_count=4`。验收结束后已停止 uvicorn。
 
 ## 7. 验收标准
 
@@ -375,7 +376,7 @@ P1-6 完成后至少满足：
 
 ## 9. 当前执行结论
 
-P1-6 后端产品接口层已完成最小闭环：查询服务、响应 schema、FastAPI 只读 HTTP endpoint、脚本化 PostgreSQL 只读 smoke 和验收文档均已落地。当前可以进入产品页面联调或前端页面开发，但公开部署前仍必须补 API 鉴权和管理员权限。
+P1-6 后端产品接口层已完成最小闭环：查询服务、响应 schema、FastAPI 只读 HTTP endpoint、脚本化 PostgreSQL 只读 smoke、真实 HTTP 运行验收和验收文档均已落地。当前可以进入产品页面联调或前端页面开发，但公开部署前仍必须补 API 鉴权和管理员权限。
 
 后续继续守住三条边界：
 
