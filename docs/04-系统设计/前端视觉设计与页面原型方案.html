@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(1 0 0);
+      --surface: oklch(0.988 0.002 245);
+      --panel: oklch(0.955 0.003 245);
+      --ink: oklch(0.19 0.014 245);
+      --muted: oklch(0.45 0.018 245);
+      --faint: oklch(0.66 0.014 245);
+      --line: oklch(0.90 0.006 245);
+      --primary: oklch(0.38 0.055 120);
+      --primary-soft: oklch(0.94 0.018 120);
+      --accent: oklch(0.52 0.09 230);
+      --accent-soft: oklch(0.94 0.022 230);
+      --radius: 8px;
+      --header-h: 64px;
+      --max: 1080px;
+      --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-width: 1120px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.65;
+      letter-spacing: 0;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::selection {
+      background: var(--primary-soft);
+      color: var(--ink);
+    }
+
+    button,
+    a {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: var(--header-h);
+      border-bottom: 1px solid var(--line);
+      background: var(--bg);
+    }
+
+    .topbar-inner {
+      width: min(var(--max), calc(100% - 40px));
+      height: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      position: relative;
+      width: 26px;
+      height: 26px;
+      border: 1px solid color-mix(in oklch, var(--ink) 72%, var(--line));
+      border-radius: 50%;
+      display: inline-block;
+      color: transparent;
+      font-size: 0;
+      line-height: 0;
+    }
+
+    .brand-mark::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border: 1px solid color-mix(in oklch, var(--primary) 70%, var(--ink));
+      border-radius: 50%;
+    }
+
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .top-meta {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .top-meta strong {
+      color: var(--ink);
+      font-weight: 640;
+    }
+
+    .shell {
+      width: min(var(--max), calc(100% - 72px));
+      margin: 0 auto;
+      padding: 40px 0 64px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.is-active {
+      display: block;
+    }
+
+    .portal-hero {
+      display: block;
+      padding: 12px 0 30px;
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .portal-title {
+      margin: 0;
+      max-width: 13em;
+      color: var(--ink);
+      font-size: 46px;
+      line-height: 1.14;
+      font-weight: 720;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .portal-index {
+      margin: 0;
+      padding-top: 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .event-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .event-card {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      padding: 18px 0;
+      background: transparent;
+      color: var(--ink);
+      display: grid;
+      grid-template-columns: 204px minmax(0, 1fr) 148px;
+      gap: 24px;
+      align-items: start;
+      text-align: left;
+      cursor: pointer;
+      transition: color 150ms ease, background-color 150ms ease;
+    }
+
+    .event-card:hover {
+      background: linear-gradient(90deg, transparent, var(--surface) 8%, var(--surface) 92%, transparent);
+    }
+
+    .event-card:hover .card-title {
+      color: var(--primary);
+    }
+
+    .event-card:focus-visible {
+      outline: 3px solid color-mix(in oklch, var(--primary) 32%, transparent);
+      outline-offset: 2px;
+    }
+
+    .cover {
+      position: relative;
+      overflow: hidden;
+      min-height: 124px;
+      aspect-ratio: 16 / 10;
+      border-radius: 5px;
+      background: var(--panel);
+      isolation: isolate;
+    }
+
+    .cover img {
+      width: 100%;
+      height: 100%;
+      min-height: 124px;
+      display: block;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .cover.fit-contain img {
+      object-fit: contain;
+      background: var(--surface);
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border: 1px solid color-mix(in oklch, var(--ink) 10%, transparent);
+      border-radius: inherit;
+      pointer-events: none;
+    }
+
+    .cover-fallback {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: end;
+      padding: 12px;
+      background:
+        linear-gradient(135deg, color-mix(in oklch, var(--panel) 72%, var(--primary-soft)), var(--surface));
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 680;
+    }
+
+    .cover.is-fallback img {
+      display: none;
+    }
+
+    .cover.is-fallback .cover-fallback {
+      display: flex;
+    }
+
+    .card-body {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: auto;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.35;
+      white-space: nowrap;
+    }
+
+    .pill.signal {
+      background: transparent;
+      color: var(--primary);
+    }
+
+    .time {
+      color: var(--faint);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .card-title {
+      margin: 0;
+      color: var(--ink);
+      max-width: 38em;
+      font-size: 18px;
+      line-height: 1.45;
+      font-weight: 660;
+      letter-spacing: 0;
+    }
+
+    .card-summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+      max-width: 64ch;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-side {
+      min-width: 0;
+      padding-top: 5px;
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .card-side strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 560;
+    }
+
+    .card-side span {
+      display: block;
+    }
+
+    .dossier-pane {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      background: var(--bg);
+    }
+
+    .dossier {
+      padding: 0 0 18px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .back-link:hover,
+    .back-link:focus-visible {
+      color: var(--primary);
+      outline: 0;
+    }
+
+    .detail-cover {
+      min-height: 280px;
+      aspect-ratio: 16 / 7.5;
+      margin-bottom: 24px;
+    }
+
+    .detail-cover img {
+      min-height: 280px;
+    }
+
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 12px;
+    }
+
+    .detail-title {
+      margin: 0;
+      max-width: 17em;
+      font-size: 32px;
+      line-height: 1.34;
+      font-weight: 720;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .detail-summary {
+      margin: 15px 0 0;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.78;
+      text-wrap: pretty;
+    }
+
+    .article-body {
+      margin-top: 28px;
+      padding-top: 26px;
+      border-top: 1px solid var(--line);
+      color: color-mix(in oklch, var(--ink) 91%, var(--muted));
+    }
+
+    .article-body p {
+      margin: 0 0 19px;
+      max-width: 66ch;
+      font-size: 16px;
+      line-height: 1.92;
+      text-wrap: pretty;
+    }
+
+    .note-box {
+      margin-top: 28px;
+      padding: 18px 0 0;
+      border-top: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+    }
+
+    .note-title {
+      margin: 0 0 9px;
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 680;
+    }
+
+    .note-box p {
+      margin: 0;
+      max-width: 66ch;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.76;
+    }
+
+    .follow-list,
+    .source-list {
+      list-style: none;
+      padding: 0;
+      margin: 12px 0 0;
+      display: grid;
+      gap: 9px;
+    }
+
+    .follow-list li {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr);
+      gap: 9px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.62;
+    }
+
+    .follow-list li::before {
+      content: "";
+      width: 4px;
+      height: 4px;
+      margin-top: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+    }
+
+    .source-list a {
+      display: grid;
+      gap: 2px;
+      padding: 9px 0 10px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: transparent;
+      transition: color 150ms ease;
+    }
+
+    .source-list a:hover {
+      color: var(--accent);
+    }
+
+    .source-list a:focus-visible {
+      outline: 3px solid color-mix(in oklch, var(--accent) 28%, transparent);
+      outline-offset: 2px;
+    }
+
+    .source-name {
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .source-domain {
+      color: var(--faint);
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .detail-footer {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+      color: var(--faint);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#home" aria-label="AI World Radar 首页">
+          <span class="brand-mark">AI</span>
+          <span class="brand-name">AI World Radar</span>
+        </a>
+        <div class="top-meta" aria-label="页面日期">
+          <span>2026.06.23</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell" id="appMain">
+      <section class="feed-pane view is-active" id="homeView" aria-labelledby="portalTitle">
+        <section class="portal-hero" aria-labelledby="portalTitle">
+          <h1 class="portal-title" id="portalTitle">全球 AI 事件雷达</h1>
+          <p class="portal-index">Agent 工程 / SDK 演进 / 开源运行时</p>
+        </section>
+        <div class="event-list" id="eventList" aria-label="事件列表"></div>
+      </section>
+
+      <section class="dossier-pane view" id="detailView" aria-live="polite">
+        <article class="dossier" id="detail">
+          <a class="back-link" href="#home">← 返回事件流</a>
+          <div class="cover detail-cover" id="detailCover">
+            <img id="detailImage" src="https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=82" alt="开发者社区讨论 OpenAI 编码 Agent 对日常开发流程的影响 封面图">
+            <div class="cover-fallback" id="detailFallback"></div>
+          </div>
+          <div class="detail-meta" id="detailMeta"></div>
+          <h2 class="detail-title" id="detailTitle"></h2>
+          <p class="detail-summary" id="detailSummary"></p>
+          <div class="article-body" id="detailBody"></div>
+          <section class="note-box" aria-labelledby="whyTitle">
+            <h3 class="note-title" id="whyTitle">为什么值得看</h3>
+            <p id="whyText"></p>
+          </section>
+          <section class="note-box" aria-labelledby="followTitle">
+            <h3 class="note-title" id="followTitle">继续观察</h3>
+            <ul class="follow-list" id="followList"></ul>
+          </section>
+          <section class="note-box" aria-labelledby="sourceTitle">
+            <h3 class="note-title" id="sourceTitle">来源</h3>
+            <ul class="source-list" id="sourceList"></ul>
+          </section>
+          <div class="detail-footer" id="detailFooter"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const events = [
+      {
+        slug: "hn-openai-coding-agents",
+        title: "开发者社区讨论 OpenAI 式编码 Agent 对日常开发流程的影响",
+        cardSummary: "讨论焦点从工具能力转向团队协作、代码审查和长期上下文管理。",
+        detailSummary: "Hacker News 上关于编码 Agent 的讨论继续升温，重点已经不只是模型能写多少代码，而是它如何改变团队里的任务分配、代码审查和知识沉淀。",
+        category: "Agent 与开发",
+        signal: "高热讨论",
+        signalTone: "warm",
+        sourceHint: "Hacker News 等 2 源",
+        time: "6 小时前",
+        image: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=900&q=82",
+        body: [
+          "围绕编码 Agent 的讨论正在从“能不能自动写代码”转向更具体的工程协作问题。社区里被反复提到的不是单次生成能力，而是 Agent 如何理解一个持续演进的仓库，如何保留项目习惯，以及如何在多人协作中不制造额外的审查负担。",
+          "这类讨论对中文开发者有参考价值，因为很多团队正在把 AI 编码工具从个人提效带入真实项目。单人试用时看起来顺滑的能力，一旦进入多人代码库，就会遇到上下文污染、重复修改、风格漂移和责任边界不清等问题。",
+          "更值得注意的是，社区正在把“记忆”“本地上下文”“任务拆分”和“审查记录”放在同一个问题里讨论。也就是说，下一阶段的竞争点可能不是谁的补全更快，而是谁能把 Agent 放进可追踪、可回滚、可解释的工程流程里。",
+          "目前这些讨论仍然主要来自开发者社区经验，并不等同于某家公司已经给出标准方案。它更像是一个早期信号：编码 Agent 正在从演示工具进入工程制度层面，团队需要提前考虑使用边界。"
+        ],
+        why: "它提示编码 Agent 的真正落地难点正在从模型能力转向工程治理。对正在做 Agent 项目、简历项目或团队试点的人来说，这比单纯看新模型发布更有行动价值。",
+        follow: [
+          "主流 IDE 和代码托管平台是否会加入更明确的 Agent 审计记录。",
+          "本地优先记忆、仓库级上下文和权限边界是否会成为新基础设施。",
+          "团队是否会形成专门面向 Agent 产物的代码审查规范。"
+        ],
+        sources: [
+          ["Hacker News 讨论", "https://news.ycombinator.com/"],
+          ["OpenAI 开发者动态", "https://platform.openai.com/"]
+        ],
+        updated: "最后更新 2026.06.23 10:40"
+      },
+      {
+        slug: "openai-python-v243",
+        title: "openai-python 发布 v2.43.0，SDK 继续补齐 Responses 与工具调用能力",
+        cardSummary: "这次更新本身不算大，但体现 OpenAI SDK 正在围绕 Agent 工作流继续稳定接口。",
+        detailSummary: "OpenAI Python SDK 的版本更新继续围绕 Responses、工具调用和类型定义做补齐，对依赖官方 SDK 构建应用的开发者来说，重点是接口稳定性和迁移成本。",
+        category: "开发者工具",
+        signal: "官方发布",
+        signalTone: "primary",
+        sourceHint: "GitHub Release",
+        time: "昨日",
+        image: "https://opengraph.githubassets.com/ai-world-radar/openai/openai-python",
+        fit: "contain",
+        body: [
+          "openai-python 的版本更新通常不会像模型发布那样引发广泛讨论，但它直接影响开发者如何在真实项目里接入新接口。对于正在使用 Responses、工具调用或流式输出的应用来说，SDK 的类型、错误处理和兼容策略会决定后续维护体验。",
+          "这次发布的意义不在于某一个单点能力，而在于官方 SDK 仍在持续围绕 Agent 型应用补齐边界。开发者如果还停留在旧式 chat completion 封装上，后续接入多工具、多轮任务和结构化输出时，可能会遇到额外迁移成本。",
+          "对中文学习者来说，这类更新值得关注的方式不是逐条追 changelog，而是观察官方 SDK 把哪些模式变成稳定接口。稳定接口往往意味着下一批教程、框架和企业项目会围绕这些接口展开。"
+        ],
+        why: "SDK 更新是应用生态变化的底层信号。它不一定热闹，但会影响开发者项目的接口选择、迁移成本和工程实践。",
+        follow: [
+          "Responses API 相关示例是否进一步取代旧式聊天接口示例。",
+          "主流框架是否同步升级对工具调用和结构化输出的封装。",
+          "版本更新是否引入需要业务代码调整的兼容变化。"
+        ],
+        sources: [
+          ["openai-python 仓库", "https://github.com/openai/openai-python"],
+          ["OpenAI API 文档", "https://platform.openai.com/docs"]
+        ],
+        updated: "最后更新 2026.06.23 09:20"
+      },
+      {
+        slug: "pmb-local-first-memory",
+        title: "PMB 展示面向 AI coding agent 的本地优先记忆方案",
+        cardSummary: "项目把记忆放回本地工作区，试图解决 Agent 长期协作中的上下文连续性。",
+        detailSummary: "PMB 把本地优先记忆和 MCP 放在一起讨论，目标是让编码 Agent 在不完全依赖云端状态的情况下理解项目历史和用户偏好。",
+        category: "开源项目",
+        signal: "开发者关注",
+        signalTone: "accent",
+        sourceHint: "HN / GitHub",
+        time: "今日",
+        image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=900&q=82",
+        body: [
+          "本地优先记忆的吸引力在于，它把 Agent 的上下文能力从一次性聊天窗口延伸到项目工作区。对编码 Agent 来说，能否记住项目约定、目录结构、历史决策和用户偏好，往往比单轮生成更影响实际体验。",
+          "PMB 这类项目的出现说明，围绕 MCP 的生态正在从“连接工具”扩展到“管理长期上下文”。如果记忆可以被版本化、迁移和审查，那么 Agent 的行为就更容易被团队理解和控制。",
+          "不过这仍然是早期方向。记忆系统如果设计不好，也可能带来错误偏好固化、隐私边界不清和调试困难。真正值得观察的是它能否和编辑器、代码库、任务记录形成清晰边界。"
+        ],
+        why: "它把 Agent 记忆从抽象能力变成工程组件，正好对应开发者最关心的长期上下文和团队可控性问题。",
+        follow: [
+          "项目是否提供清晰的记忆可视化和删除机制。",
+          "MCP 接入方式是否能被其他编码工具复用。",
+          "本地数据和云端模型调用之间的边界是否足够清楚。"
+        ],
+        sources: [
+          ["Hacker News 项目讨论", "https://news.ycombinator.com/"],
+          ["Model Context Protocol", "https://modelcontextprotocol.io/"]
+        ],
+        updated: "最后更新 2026.06.23 08:55"
+      },
+      {
+        slug: "claude-code-context",
+        title: "Claude Code 用户开始总结多仓库协作中的上下文治理经验",
+        cardSummary: "讨论集中在提示文件、任务边界和审查习惯，而不是单纯比较模型输出。",
+        detailSummary: "随着 AI 编码工具进入复杂仓库，用户开始分享如何维护上下文、拆分任务和减少误改，这类经验正在形成早期工程习惯。",
+        category: "Agent 工程",
+        signal: "观察中",
+        signalTone: "primary",
+        sourceHint: "社区文章等 3 源",
+        time: "12 小时前",
+        image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=82",
+        body: [
+          "围绕 Claude Code 等工具的真实经验正在变得更工程化。用户不再只展示一次生成了多少代码，而是开始讨论怎样写项目级说明、如何让 Agent 避免越界修改，以及如何把任务切成更容易验证的小块。",
+          "这类经验和普通工具教程不同，它更接近团队工作规范。对于正在做 AI 应用或准备简历项目的开发者来说，掌握这些流程可能比追逐某个 prompt 更有复用价值。",
+          "目前这些经验仍然分散在博客、讨论串和项目 README 中，还没有稳定标准。它们的价值在于暴露真实使用中的摩擦点：上下文会膨胀，任务会漂移，代码审查会变重，而这些都需要产品和工程共同处理。"
+        ],
+        why: "它说明 AI 编码工具正在进入“流程设计”阶段，开发者需要关心协作边界，而不只是工具本身。",
+        follow: [
+          "是否出现更统一的项目级 Agent 指令文件实践。",
+          "多仓库任务是否会推动更强的权限和差异审查设计。",
+          "团队是否会把 Agent 使用规范写入工程手册。"
+        ],
+        sources: [
+          ["Claude Code 相关文档", "https://docs.anthropic.com/"],
+          ["开发者社区讨论", "https://news.ycombinator.com/"]
+        ],
+        updated: "最后更新 2026.06.22 22:10"
+      },
+      {
+        slug: "huggingface-agent-runtime",
+        title: "开源社区继续围绕轻量 Agent runtime 争论抽象边界",
+        cardSummary: "争议点在于 runtime 应该管状态、工具还是只负责最小调度。",
+        detailSummary: "多个开源项目正在尝试给 Agent 应用提供更轻的运行时抽象，但开发者对它应当承担多少状态管理仍没有共识。",
+        category: "开源生态",
+        signal: "多源提及",
+        signalTone: "accent",
+        sourceHint: "GitHub / 论坛",
+        time: "1 天前",
+        image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=82",
+        body: [
+          "轻量 Agent runtime 的争议集中在边界。有人希望 runtime 只解决调度、重试和工具调用记录，也有人希望它同时管理记忆、权限、成本和可观测性。边界越大，上手越方便，但也越容易绑死应用架构。",
+          "这件事对初级开发者尤其重要，因为很多人会从开源模板开始做 Agent 项目。如果一开始选了过重的 runtime，后面很可能为了适配框架而修改业务逻辑；如果 runtime 太薄，又需要自己补齐大量工程细节。",
+          "短期来看，社区还会继续分化。更稳妥的做法是观察哪些抽象跨项目复用最频繁，例如工具注册、运行记录、错误重试和结构化输出校验。"
+        ],
+        why: "它关系到 Agent 应用的工程底座选择。对于项目落地而言，runtime 的边界往往比单个模型能力更影响长期维护。",
+        follow: [
+          "哪些 runtime 开始提供稳定的工具注册和审计接口。",
+          "轻量框架是否会和 MCP、LangGraph 等生态形成清晰分工。",
+          "开发者是否更偏向可组合小库，而不是一体化大框架。"
+        ],
+        sources: [
+          ["Hugging Face 社区", "https://huggingface.co/"],
+          ["GitHub 相关项目", "https://github.com/"]
+        ],
+        updated: "最后更新 2026.06.22 18:30"
+      }
+    ];
+
+    const homeView = document.getElementById("homeView");
+    const detailView = document.getElementById("detailView");
+    const eventList = document.getElementById("eventList");
+    const detailImage = document.getElementById("detailImage");
+    const detailCover = document.getElementById("detailCover");
+    const detailFallback = document.getElementById("detailFallback");
+    const detailMeta = document.getElementById("detailMeta");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailSummary = document.getElementById("detailSummary");
+    const detailBody = document.getElementById("detailBody");
+    const whyText = document.getElementById("whyText");
+    const followList = document.getElementById("followList");
+    const sourceList = document.getElementById("sourceList");
+    const detailFooter = document.getElementById("detailFooter");
+
+    function pill(text, tone = "primary") {
+      const span = document.createElement("span");
+      span.className = `pill ${tone === "primary" ? "" : tone}`.trim();
+      span.textContent = text;
+      return span;
+    }
+
+    function renderCards() {
+      eventList.innerHTML = "";
+
+      events.forEach((event) => {
+        const card = document.createElement("button");
+        card.className = "event-card";
+        card.type = "button";
+        card.dataset.slug = event.slug;
+        card.setAttribute("aria-label", `打开事件详情：${event.title}`);
+
+        const cover = document.createElement("div");
+        cover.className = "cover";
+        if (event.fit === "contain") {
+          cover.classList.add("fit-contain");
+        }
+        const img = document.createElement("img");
+        img.src = event.image;
+        img.alt = `${event.title} 封面图`;
+        img.loading = "lazy";
+        img.addEventListener("error", () => cover.classList.add("is-fallback"), { once: true });
+        const fallback = document.createElement("div");
+        fallback.className = "cover-fallback";
+        fallback.textContent = event.category;
+        cover.append(img, fallback);
+
+        const body = document.createElement("div");
+        body.className = "card-body";
+
+        const meta = document.createElement("div");
+        meta.className = "meta-row";
+        meta.append(pill(event.category));
+
+        const title = document.createElement("h2");
+        title.className = "card-title";
+        title.textContent = event.title;
+
+        const summary = document.createElement("p");
+        summary.className = "card-summary";
+        summary.textContent = event.cardSummary;
+
+        const side = document.createElement("div");
+        side.className = "card-side";
+        const source = document.createElement("strong");
+        source.textContent = event.sourceHint;
+        const time = document.createElement("span");
+        time.textContent = event.time;
+        side.append(source, time);
+
+        body.append(meta, title, summary);
+        card.append(cover, body, side);
+        card.addEventListener("click", () => {
+          location.hash = event.slug;
+        });
+        eventList.append(card);
+      });
+    }
+
+    function renderDetail(event) {
+      detailCover.classList.remove("is-fallback");
+      detailCover.classList.toggle("fit-contain", event.fit === "contain");
+      detailImage.src = event.image;
+      detailImage.alt = `${event.title} 封面图`;
+      detailImage.onerror = () => {
+        detailFallback.textContent = event.category;
+        detailCover.classList.add("is-fallback");
+      };
+      detailFallback.textContent = event.category;
+
+      detailMeta.innerHTML = "";
+      detailMeta.append(pill(event.category));
+      const time = document.createElement("span");
+      time.className = "time";
+      time.textContent = `${event.time} · ${event.sourceHint}`;
+      detailMeta.append(time);
+
+      detailTitle.textContent = event.title;
+      detailSummary.textContent = event.detailSummary;
+
+      detailBody.innerHTML = "";
+      event.body.forEach((paragraph) => {
+        const p = document.createElement("p");
+        p.textContent = paragraph;
+        detailBody.append(p);
+      });
+
+      whyText.textContent = event.why;
+
+      followList.innerHTML = "";
+      event.follow.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        followList.append(li);
+      });
+
+      sourceList.innerHTML = "";
+      event.sources.forEach(([name, url]) => {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        const label = document.createElement("span");
+        label.className = "source-name";
+        label.textContent = name;
+        const domain = document.createElement("span");
+        domain.className = "source-domain";
+        domain.textContent = url.replace(/^https?:\/\//, "");
+        link.append(label, domain);
+        li.append(link);
+        sourceList.append(li);
+      });
+
+      detailFooter.textContent = event.updated;
+    }
+
+    function showHome() {
+      document.title = "AI World Radar";
+      homeView.classList.add("is-active");
+      detailView.classList.remove("is-active");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    function showDetail(event) {
+      renderDetail(event);
+      document.title = `${event.title} - AI World Radar`;
+      homeView.classList.remove("is-active");
+      detailView.classList.add("is-active");
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+
+    function route() {
+      const slug = decodeURIComponent(location.hash.replace("#", ""));
+      if (!slug || slug === "home" || slug === "feed") {
+        showHome();
+        return;
+      }
+
+      const event = events.find((item) => item.slug === slug);
+      if (!event) {
+        showHome();
+        return;
+      }
+
+      showDetail(event);
+    }
+
+    window.addEventListener("hashchange", route);
+
+    renderCards();
+    route();
+  </script>
+</body>
+</html>

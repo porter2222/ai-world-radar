@@ -6,10 +6,20 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+node_modules/
+apps/web/.next/
+apps/web/out/
+apps/web/coverage/
+apps/web/npm-debug.log*
+apps/web/*.tsbuildinfo
 
 apps/worker/scratch/*.py
 apps/worker/scratch/*.json
 apps/worker/scratch/*.txt
+apps/worker/scratch/*.log
+apps/worker/scratch/*.sqlite
+
+output/
 
 runtime/*
 !runtime/.gitkeep
