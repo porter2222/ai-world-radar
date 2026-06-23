@@ -1,0 +1,46 @@
+{
+  "total_count": 2,
+  "incomplete_results": false,
+  "items": [
+    {
+      "id": 98765001,
+      "name": "fast-llm",
+      "full_name": "example/fast-llm",
+      "html_url": "https://github.com/example/fast-llm?utm_source=radar#readme",
+      "description": "A fast local LLM serving runtime for AI agents.",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 1250,
+      "forks_count": 120,
+      "open_issues_count": 42,
+      "language": "Python",
+      "topics": ["llm", "agents", "inference"],
+      "created_at": "2026-03-01T08:00:00Z",
+      "updated_at": "2026-06-23T10:30:00Z",
+      "pushed_at": "2026-06-23T09:45:00Z",
+      "owner": {
+        "login": "example"
+      }
+    },
+    {
+      "id": 98765002,
+      "name": "tiny-ai-tool",
+      "full_name": "example/tiny-ai-tool",
+      "html_url": "https://github.com/example/tiny-ai-tool",
+      "description": "Small AI helper below the configured star threshold.",
+      "fork": false,
+      "archived": false,
+      "stargazers_count": 80,
+      "forks_count": 3,
+      "open_issues_count": 1,
+      "language": "TypeScript",
+      "topics": ["ai"],
+      "created_at": "2026-05-01T08:00:00Z",
+      "updated_at": "2026-06-22T10:30:00Z",
+      "pushed_at": "2026-06-22T09:45:00Z",
+      "owner": {
+        "login": "example"
+      }
+    }
+  ]
+}

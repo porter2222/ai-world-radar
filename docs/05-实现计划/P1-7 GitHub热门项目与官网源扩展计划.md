@@ -233,7 +233,7 @@ git commit -m "docs(worker): add P1-7 source expansion plan"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-7 GitHub热门项目与官网源扩展计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Test target:
 
@@ -260,7 +260,7 @@ def test_github_search_repo_maps_to_trend_signal():
     assert signal.metadata["query"] == "topic:llm stars:>100"
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -274,7 +274,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.collectors.github_repo_trends'
 ```
 
-- [ ] **Step 3: Implement collector and adapter**
+- [x] **Step 3: Implement collector and adapter**
 
 `github_repo_trends.py` must expose:
 
@@ -314,7 +314,7 @@ def github_repo_trend_to_signal(
 
 Every new function must have Chinese docstrings describing input and output.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -328,7 +328,15 @@ Expected:
 3 passed
 ```
 
-- [ ] **Step 5: Commit**
+Actual:
+
+```text
+4 passed
+```
+
+执行偏差：原计划只要求 3 个测试；实际额外补了“首次采集无历史快照时 star delta 为 null”的边界测试，因此 GREEN 结果为 4 passed。
+
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/worker/collectors/github_repo_trends.py apps/worker/worker/sources/github_trends_source.py apps/worker/worker/sources/__init__.py apps/worker/tests/fixtures/github_repo_search_response.json apps/worker/tests/test_github_repo_trends_collector.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-7*
