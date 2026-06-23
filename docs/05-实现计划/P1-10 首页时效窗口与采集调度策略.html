@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-10 首页时效窗口与采集调度策略</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; line-height: 1.65; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    nav { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 22px; background: #111827; color: #dbeafe; box-sizing: border-box; }
+    nav h1 { margin: 0 0 18px; font-size: 18px; line-height: 1.35; color: #fff; }
+    nav a { display: block; color: #bfdbfe; text-decoration: none; margin: 10px 0; font-size: 14px; }
+    main { padding: 36px 48px 72px; max-width: 1180px; box-sizing: border-box; }
+    section { background: #fff; border: 1px solid #d9e2ef; border-radius: 8px; padding: 24px 28px; margin: 0 0 18px; }
+    h2 { margin: 0 0 14px; font-size: 24px; color: #0f172a; }
+    h3 { margin: 22px 0 10px; font-size: 18px; color: #1f2937; }
+    code { background: #eef2ff; padding: 2px 5px; border-radius: 4px; font-family: Consolas, monospace; }
+    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 6px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    td, th { border: 1px solid #d9e2ef; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    ul { padding-left: 22px; }
+    .lead { font-size: 16px; color: #334155; }
+    .tag { display: inline-block; margin: 0 8px 8px 0; padding: 3px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-10 首页时效窗口</h1>
+      <a href="#decision">策略结论</a>
+      <a href="#current">项目现状</a>
+      <a href="#feasibility">可行性</a>
+      <a href="#product">产品策略</a>
+      <a href="#schedule">采集调度</a>
+      <a href="#implementation">实施方案</a>
+      <a href="#acceptance">验收标准</a>
+      <a href="#next">后续演进</a>
+    </nav>
+    <main>
+      <section id="decision">
+        <h2>策略结论</h2>
+        <p class="lead">PublishedEvent 是长期事件档案库；首页事件流只展示最近发生、仍值得用户现在看的事件。</p>
+        <p><span class="tag">48 小时窗口</span><span class="tag">每天 3 次采集</span><span class="tag">不改表</span></p>
+        <ul>
+          <li>采集频率：每天 09:00、14:00、21:00。</li>
+          <li>首页默认窗口：最近 48 小时内发布的事件。</li>
+          <li>低量兜底：48 小时内少于 8 条时，向前放宽到 7 天。</li>
+          <li>老事件不删除，详情页仍可按 slug 访问。</li>
+        </ul>
+      </section>
+
+      <section id="current">
+        <h2>项目现状分析</h2>
+        <p>当前 <code>GET /events</code> 经由 <code>ProductQueryService.list_published_events()</code> 查询 <code>PublishedEvent.status == "published"</code> 的全部历史事件，并按 <code>homepage_rank</code>、<code>ranking_score</code>、<code>published_at</code> 排序。</p>
+        <pre><code>apps/worker/worker/api/app.py
+-> ProductQueryService.list_published_events(limit, offset, category)
+-> published_events</code></pre>
+        <p><code>PublishedEvent</code> 已有 <code>published_at</code>、<code>status</code>、<code>homepage_rank</code>、<code>ranking_score</code>、<code>slug</code>，所以无需新增数据库表即可做首页时效窗口。</p>
+      </section>
+
+      <section id="feasibility">
+        <h2>可行性分析</h2>
+        <table>
+          <thead><tr><th>判断</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>低风险</td><td>只改只读查询层，不改生产链路、不改 Agent、不改数据库结构。</td></tr>
+            <tr><td>前端影响小</td><td>前端继续请求 <code>GET /events?limit=20&offset=0</code>，后端改变默认集合即可。</td></tr>
+            <tr><td>详情稳定</td><td><code>GET /events/{slug}</code> 不走时效窗口，老事件仍可访问。</td></tr>
+            <tr><td>可测试</td><td>service 层可注入固定 <code>now</code>，避免时间相关测试不稳定。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="product">
+        <h2>产品策略</h2>
+        <pre><code>default_window_hours = 48
+min_recent_items = 8
+backfill_window_days = 7
+default_limit = 20</code></pre>
+        <ol>
+          <li>优先查询 48 小时内的 published events。</li>
+          <li>如果少于 8 条，放宽到 7 天窗口。</li>
+          <li>排序规则保持现有顺序。</li>
+          <li>详情页和后台接口不受窗口影响。</li>
+        </ol>
+      </section>
+
+      <section id="schedule">
+        <h2>采集调度策略</h2>
+        <p>P1 先不引入调度器或队列，使用现有脚本链路，后续部署时再挂 Windows Task Scheduler、cron 或云端定时任务。</p>
+        <pre><code>09:00 collect_source_signals.py --source-group daily_all
+14:00 collect_source_signals.py --source-group daily_all
+21:00 collect_source_signals.py --source-group daily_all
+
+run_event_pipeline.py --select-top-candidates 5</code></pre>
+      </section>
+
+      <section id="implementation">
+        <h2>实施方案</h2>
+        <table>
+          <thead><tr><th>Task</th><th>修改点</th><th>验收重点</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><code>tests/test_product_query_service.py</code></td><td>补 48 小时过滤、7 天低量兜底、老事件详情可访问测试。</td></tr>
+            <tr><td>2</td><td><code>product_query_service.py</code></td><td>实现 <code>recent_hours/min_recent_items/backfill_days/now</code>。</td></tr>
+            <tr><td>3</td><td><code>tests/test_product_api.py</code></td><td>验证 <code>GET /events</code> 默认不返回过期事件，详情接口不受影响。</td></tr>
+            <tr><td>4</td><td>项目文档</td><td>记录真实测试命令、输出、失败修复和未覆盖范围。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="acceptance">
+        <h2>验收标准</h2>
+        <pre><code>cd apps/worker
+.\.venv\Scripts\python.exe -m pytest tests/test_product_query_service.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_product_api.py -v
+.\.venv\Scripts\python.exe -m pytest -v</code></pre>
+      </section>
+
+      <section id="next">
+        <h2>后续演进</h2>
+        <p>P1-10 只做近期首页窗口。后续再做 <code>DailyEdition</code>、首页版面后台管理、历史归档 / 搜索和晨报。</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
