@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>NVIDIA News</title>
+    <link>https://nvidianews.nvidia.com/</link>
+    <description>NVIDIA press room</description>
+    <item>
+      <guid isPermaLink="false">nvidia-ai-factory-2026</guid>
+      <title>NVIDIA unveils new AI factory platform</title>
+      <link>https://nvidianews.nvidia.com/news/ai-factory-platform?utm_source=rss</link>
+      <pubDate>Tue, 23 Jun 2026 09:00:00 GMT</pubDate>
+      <description>NVIDIA announced a platform for building AI factories with new networking and inference systems.</description>
+    </item>
+    <item>
+      <guid isPermaLink="false">nvidia-second-item</guid>
+      <title>NVIDIA expands robotics tools</title>
+      <link>https://nvidianews.nvidia.com/news/robotics-tools</link>
+      <pubDate>Mon, 22 Jun 2026 08:00:00 GMT</pubDate>
+      <description>Robotics tools update.</description>
+    </item>
+  </channel>
+</rss>

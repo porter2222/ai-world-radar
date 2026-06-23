@@ -440,7 +440,7 @@ git commit -m "feat(worker): collect github repo trend signals"
 - Modify: `docs/07-验收与运行/后端P1测试记录.md`
 - Modify: `docs/05-实现计划/P1-7 GitHub热门项目与官网源扩展计划.md`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Test target:
 
@@ -465,7 +465,7 @@ def test_rss_feed_entry_maps_to_source_signal():
     assert signal.heat_metrics["official_source"] is True
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 Run:
 
@@ -479,7 +479,7 @@ Expected:
 ModuleNotFoundError: No module named 'worker.collectors.official_news'
 ```
 
-- [ ] **Step 3: Implement collector and adapter**
+- [x] **Step 3: Implement collector and adapter**
 
 `official_news.py` must expose:
 
@@ -511,7 +511,7 @@ HTML parsing boundary:
 - Do not follow every article page.
 - Do not run a browser.
 
-- [ ] **Step 4: Run GREEN**
+- [x] **Step 4: Run GREEN**
 
 Run:
 
@@ -525,7 +525,7 @@ Expected:
 all tests passed
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```powershell
 git add apps/worker/worker/collectors/official_news.py apps/worker/worker/sources/official_news_source.py apps/worker/worker/sources/__init__.py apps/worker/tests/fixtures/official_rss_feed.xml apps/worker/tests/fixtures/official_atom_feed.xml apps/worker/tests/fixtures/official_news_page.html apps/worker/tests/test_official_news_collector.py docs/07-验收与运行/后端P1测试记录.md docs/05-实现计划/P1-7*

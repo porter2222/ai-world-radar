@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>GitHub Changelog</title>
+  <id>https://github.blog/changelog/</id>
+  <entry>
+    <id>tag:github.blog,2026:copilot-workspace-update</id>
+    <title>GitHub Copilot adds workspace planning updates</title>
+    <link href="https://github.blog/changelog/2026-06-23-copilot-workspace-update/?utm_source=atom" rel="alternate" />
+    <updated>2026-06-23T11:15:00Z</updated>
+    <summary>GitHub updated Copilot workspace planning for larger AI coding tasks.</summary>
+  </entry>
+  <entry>
+    <id>tag:github.blog,2026:models-api-update</id>
+    <title>GitHub Models API gets evaluation tools</title>
+    <link href="https://github.blog/changelog/2026-06-22-models-api-update/" rel="alternate" />
+    <updated>2026-06-22T10:00:00Z</updated>
+    <summary>Evaluation tools update.</summary>
+  </entry>
+</feed>
