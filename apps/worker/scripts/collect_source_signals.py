@@ -3,17 +3,20 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import sessionmaker
 
 from worker.collectors.github_releases import collect_from_github_releases_payload, fetch_github_releases
+from worker.collectors.github_repo_trends import collect_from_github_search_payload, fetch_github_repository_trends
 from worker.collectors.hn_algolia import collect_from_algolia_payload, fetch_hn_stories
 from worker.db.session import create_worker_engine
 from worker.models import Base, Source, SourceSignal
 from worker.services.signal_service import SignalService
 from worker.sources.github_source import build_github_releases_source, github_release_to_signal
+from worker.sources.github_trends_source import build_github_repo_trends_source, github_repo_trend_to_signal
 from worker.sources.hn_source import build_hn_source, hn_story_to_signal
 
 
@@ -27,12 +30,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--database-url", default=None, help="覆盖默认 DATABASE_URL。")
     parser.add_argument("--create-schema-for-smoke", action="store_true", help="仅本地 smoke 使用：直接 create_all。")
     parser.add_argument("--fixture-mode", action="store_true", help="仅测试和本地 smoke 使用：读取本地 fixture，不访问外网。")
-    parser.add_argument("--source", action="append", choices=["hn", "github"], required=True, help="要采集的来源。")
+    parser.add_argument(
+        "--source",
+        action="append",
+        choices=["hn", "github", "github_trends"],
+        required=True,
+        help="要采集的来源。",
+    )
     parser.add_argument("--hn-days", type=int, default=7, help="HN 搜索时间窗口天数。")
     parser.add_argument("--hn-limit", type=int, default=5, help="HN 最大写入信号数。")
     parser.add_argument("--github-repo", action="append", default=[], help="GitHub 仓库，格式 owner/repo。")
     parser.add_argument("--github-limit", type=int, default=3, help="每个 GitHub 仓库最大 release 数。")
     parser.add_argument("--github-token-env", default="GITHUB_TOKEN", help="读取 GitHub token 的环境变量名。")
+    parser.add_argument("--github-trend-query", action="append", default=[], help="GitHub repo trends 搜索 query，可重复传入。")
+    parser.add_argument("--github-trend-limit", type=int, default=5, help="每个 GitHub repo trend query 最大写入仓库数。")
+    parser.add_argument("--github-trend-min-stars", type=int, default=100, help="GitHub repo trend 最低 star 阈值。")
+    parser.add_argument("--github-trend-token-env", default="GITHUB_TOKEN", help="读取 GitHub repo trend token 的环境变量名。")
+    parser.add_argument("--snapshot-bucket", default=None, help="GitHub repo trend 快照 bucket；测试或 smoke 可传固定 YYYYMMDDHH。")
     return parser.parse_args()
 
 
@@ -88,6 +102,18 @@ def collect_selected_sources(session_service: SignalService, args: argparse.Name
         )
         source_keys.add("github_releases")
 
+    if "github_trends" in selected_sources:
+        collect_github_repo_trend_signals(
+            session_service,
+            queries=args.github_trend_query,
+            limit=args.github_trend_limit,
+            min_stars=args.github_trend_min_stars,
+            token=os.getenv(args.github_trend_token_env),
+            fixture_mode=args.fixture_mode,
+            snapshot_bucket=args.snapshot_bucket or build_snapshot_bucket(),
+        )
+        source_keys.add("github_repo_trends")
+
     return source_keys
 
 
@@ -131,6 +157,46 @@ def collect_github_signals(
             service.upsert_signal(github_release_to_signal(release))
 
 
+def collect_github_repo_trend_signals(
+    service: SignalService,
+    *,
+    queries: list[str],
+    limit: int,
+    min_stars: int,
+    token: str | None,
+    fixture_mode: bool,
+    snapshot_bucket: str,
+) -> None:
+    """采集 GitHub repo trends 并写入 SourceSignal。
+
+    输入：SignalService、搜索 query 列表、数量限制、star 阈值、可选 token、fixture 开关和快照 bucket。
+    输出：无返回值；通过服务层 upsert `github_repo_trends` source 和 signal。
+    """
+    if not queries:
+        raise ValueError("--github-trend-query is required when --source github_trends is used")
+
+    service.upsert_source(build_github_repo_trends_source())
+    for query in queries:
+        trends = (
+            load_fixture_github_repo_trends(query=query, limit=limit, min_stars=min_stars)
+            if fixture_mode
+            else fetch_github_repository_trends(query=query, limit=limit, min_stars=min_stars, token=token)
+        )
+        for repo in trends:
+            previous_stargazers_count = find_previous_stargazers_count(
+                service,
+                source_item_id=repo.full_name,
+                snapshot_bucket=snapshot_bucket,
+            )
+            service.upsert_signal(
+                github_repo_trend_to_signal(
+                    repo,
+                    snapshot_bucket=snapshot_bucket,
+                    previous_stargazers_count=previous_stargazers_count,
+                )
+            )
+
+
 def parse_repo(value: str) -> tuple[str, str]:
     """解析 owner/repo 格式。
 
@@ -141,6 +207,50 @@ def parse_repo(value: str) -> tuple[str, str]:
     if len(parts) != 2 or not parts[0] or not parts[1]:
         raise ValueError(f"Invalid GitHub repo format: {value}")
     return parts[0], parts[1]
+
+
+def build_snapshot_bucket(now: datetime | None = None) -> str:
+    """生成 GitHub repo trend 默认快照 bucket。
+
+    输入：可选当前时间；为空时使用 UTC 当前时间。
+    输出：`YYYYMMDDHH` 格式的小时级 bucket 字符串。
+    """
+    current = now or datetime.now(UTC)
+    return current.strftime("%Y%m%d%H")
+
+
+def find_previous_stargazers_count(
+    service: SignalService,
+    *,
+    source_item_id: str,
+    snapshot_bucket: str,
+) -> int | None:
+    """查询同一仓库上一轮不同 bucket 的 star 快照。
+
+    输入：SignalService、仓库 full_name 和当前 snapshot_bucket。
+    输出：上一条不同 bucket signal 的 `stargazers_count`；没有历史时返回 None。
+    """
+    service.session.flush()
+    source = service.session.scalar(select(Source).where(Source.source_key == "github_repo_trends"))
+    if source is None:
+        return None
+
+    current_hash = f"github_repo_trends:{source_item_id}:{snapshot_bucket}"
+    previous_signal = service.session.scalars(
+        select(SourceSignal)
+        .where(
+            SourceSignal.source_id == source.id,
+            SourceSignal.source_item_id == source_item_id,
+            SourceSignal.source_hash != current_hash,
+        )
+        .order_by(SourceSignal.collected_at.desc(), SourceSignal.id.desc())
+        .limit(1)
+    ).first()
+    if previous_signal is None:
+        return None
+
+    value = (previous_signal.heat_metrics or {}).get("stargazers_count")
+    return int(value) if value is not None else None
 
 
 def build_summary(session, *, source_keys: set[str]) -> dict[str, object]:
@@ -184,6 +294,16 @@ def load_fixture_github_releases(*, owner: str, repo: str, limit: int):
     """
     payload = json.loads(_fixture_path("github_releases_response.json").read_text(encoding="utf-8"))
     return collect_from_github_releases_payload(payload, owner=owner, repo=repo, limit=limit)
+
+
+def load_fixture_github_repo_trends(*, query: str, limit: int, min_stars: int):
+    """读取 GitHub repo search fixture 并转换为 GitHubRepositoryTrend。
+
+    输入：搜索 query、最大数量和最低 star 阈值。
+    输出：从测试 fixture 解析出的 GitHubRepositoryTrend 列表。
+    """
+    payload = json.loads(_fixture_path("github_repo_search_response.json").read_text(encoding="utf-8"))
+    return collect_from_github_search_payload(payload, query=query, limit=limit, min_stars=min_stars)
 
 
 def _fixture_path(filename: str) -> Path:

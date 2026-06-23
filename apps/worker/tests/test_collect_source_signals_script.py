@@ -23,6 +23,65 @@ def query_counts(db_path):
         connection.close()
 
 
+def query_signals(db_path):
+    """查询采集脚本写入的来源信号明细。
+    输入：SQLite 数据库文件路径。
+    输出：按 source_hash 排序后的信号列表，包含来源 key、hash、热度指标和 metadata。
+    """
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        cursor = connection.cursor()
+        rows = cursor.execute(
+            """
+            select
+                sources.source_key,
+                source_signals.source_item_id,
+                source_signals.source_hash,
+                source_signals.heat_metrics,
+                source_signals.metadata
+            from source_signals
+            join sources on sources.id = source_signals.source_id
+            order by source_signals.source_hash
+            """
+        ).fetchall()
+        return [
+            {
+                "source_key": row["source_key"],
+                "source_item_id": row["source_item_id"],
+                "source_hash": row["source_hash"],
+                "heat_metrics": json.loads(row["heat_metrics"]),
+                "metadata": json.loads(row["metadata"]),
+            }
+            for row in rows
+        ]
+    finally:
+        connection.close()
+
+
+def set_signal_stars(db_path, *, source_hash, stars):
+    """修改测试数据库中某条 signal 的 star 快照。
+    输入：SQLite 数据库路径、目标 source_hash 和要写入的 star 数。
+    输出：无返回值；用于准备“上一轮快照比当前更低”的脚本回归场景。
+    """
+    connection = sqlite3.connect(db_path)
+    try:
+        cursor = connection.cursor()
+        raw_metrics = cursor.execute(
+            "select heat_metrics from source_signals where source_hash = ?",
+            (source_hash,),
+        ).fetchone()[0]
+        metrics = json.loads(raw_metrics)
+        metrics["stargazers_count"] = stars
+        cursor.execute(
+            "update source_signals set heat_metrics = ? where source_hash = ?",
+            (json.dumps(metrics), source_hash),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def test_collect_source_signals_script_writes_fixture_signals_without_running_pipeline(tmp_path):
     """验证采集脚本只写来源和信号，不运行事件生产 workflow。
 
@@ -97,3 +156,122 @@ def test_collect_source_signals_script_upserts_fixture_signals_idempotently(tmp_
     assert second.returncode == 0, second.stderr
     assert json.loads(second.stdout)["signals_count"] == 4
     assert query_counts(db_path)["source_signals"] == 4
+
+
+def test_collect_source_signals_script_writes_github_trends_fixture_without_running_pipeline(tmp_path):
+    """验证 GitHub repo trends fixture 采集只写 source_signals。
+    输入：临时 SQLite、fixture 模式、github_trends source、固定 query 和 snapshot bucket。
+    输出：stdout 返回 github_repo_trends，数据库只新增来源信号，不新增 pipeline_runs / published_events。
+    """
+    db_path = tmp_path / "p1_7_github_trends_collect.sqlite"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--create-schema-for-smoke",
+            "--fixture-mode",
+            "--source",
+            "github_trends",
+            "--github-trend-query",
+            "topic:llm stars:>100",
+            "--github-trend-limit",
+            "1",
+            "--github-trend-min-stars",
+            "100",
+            "--snapshot-bucket",
+            "2026062311",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+    assert result.returncode == 0, result.stderr or result.stdout
+    summary = json.loads(result.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+
+    assert summary["status"] == "succeeded"
+    assert summary["source_keys"] == ["github_repo_trends"]
+    assert summary["sources_count"] == 1
+    assert summary["signals_count"] == 1
+    assert counts == {"sources": 1, "source_signals": 1, "pipeline_runs": 0, "published_events": 0}
+    assert signals[0]["source_key"] == "github_repo_trends"
+    assert signals[0]["source_item_id"] == "example/fast-llm"
+    assert signals[0]["source_hash"] == "github_repo_trends:example/fast-llm:2026062311"
+    assert signals[0]["heat_metrics"]["stargazers_count"] == 1250
+    assert signals[0]["heat_metrics"]["stars_delta_since_last"] is None
+    assert signals[0]["metadata"]["query"] == "topic:llm stars:>100"
+    assert signals[0]["metadata"]["snapshot_bucket"] == "2026062311"
+
+
+def test_collect_source_signals_script_calculates_github_trend_delta_from_previous_snapshot(tmp_path):
+    """验证 GitHub repo trends 二次采集会读取上一轮星数计算增量。
+    输入：同一 SQLite，先写入旧 bucket 并把旧快照 star 数设为 1000，再运行 fixture 采集新 bucket。
+    输出：第二条 signal 的 `stars_delta_since_last=250`，采集脚本仍不运行发布 pipeline。
+    """
+    db_path = tmp_path / "p1_7_github_trends_delta.sqlite"
+    seed = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--create-schema-for-smoke",
+            "--fixture-mode",
+            "--source",
+            "github_trends",
+            "--github-trend-query",
+            "topic:llm stars:>100",
+            "--github-trend-limit",
+            "1",
+            "--github-trend-min-stars",
+            "100",
+            "--snapshot-bucket",
+            "2026062310",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert seed.returncode == 0, seed.stderr or seed.stdout
+    set_signal_stars(
+        db_path,
+        source_hash="github_repo_trends:example/fast-llm:2026062310",
+        stars=1000,
+    )
+    current = subprocess.run(
+        [
+            sys.executable,
+            "scripts/collect_source_signals.py",
+            "--database-url",
+            f"sqlite+pysqlite:///{db_path}",
+            "--fixture-mode",
+            "--source",
+            "github_trends",
+            "--github-trend-query",
+            "topic:llm stars:>100",
+            "--github-trend-limit",
+            "1",
+            "--github-trend-min-stars",
+            "100",
+            "--snapshot-bucket",
+            "2026062311",
+        ],
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+    assert current.returncode == 0, current.stderr or current.stdout
+    summary = json.loads(current.stdout)
+    counts = query_counts(db_path)
+    signals = query_signals(db_path)
+    latest_signal = next(signal for signal in signals if signal["source_hash"].endswith(":2026062311"))
+
+    assert summary["source_keys"] == ["github_repo_trends"]
+    assert counts == {"sources": 1, "source_signals": 2, "pipeline_runs": 0, "published_events": 0}
+    assert latest_signal["heat_metrics"]["previous_stargazers_count"] == 1000
+    assert latest_signal["heat_metrics"]["stars_delta_since_last"] == 250
+    assert latest_signal["heat_metrics"]["stars_delta_rate"] == 0.25
