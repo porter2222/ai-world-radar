@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-9 全源采集与 LLM 编辑筛选计划</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; line-height: 1.65; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    nav { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 22px; background: #111827; color: #dbeafe; box-sizing: border-box; }
+    nav h1 { margin: 0 0 18px; font-size: 18px; line-height: 1.35; color: #fff; }
+    nav a { display: block; color: #bfdbfe; text-decoration: none; margin: 10px 0; font-size: 14px; }
+    main { padding: 36px 48px 72px; max-width: 1180px; box-sizing: border-box; }
+    section { background: #fff; border: 1px solid #d9e2ef; border-radius: 8px; padding: 24px 28px; margin: 0 0 18px; }
+    h2 { margin: 0 0 14px; font-size: 24px; color: #0f172a; }
+    h3 { margin: 22px 0 10px; font-size: 18px; color: #1f2937; }
+    code { background: #eef2ff; padding: 2px 5px; border-radius: 4px; font-family: Consolas, monospace; }
+    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 6px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    td, th { border: 1px solid #d9e2ef; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    ul { padding-left: 22px; }
+    .lead { font-size: 16px; color: #334155; }
+    .tag { display: inline-block; margin: 0 8px 8px 0; padding: 3px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-9 全源 + LLM 筛选</h1>
+      <a href="#goal">目标</a>
+      <a href="#sources">13 个源</a>
+      <a href="#strategy">筛选策略</a>
+      <a href="#tasks">任务拆解</a>
+      <a href="#acceptance">验收标准</a>
+    </nav>
+    <main>
+      <section id="goal">
+        <h2>目标</h2>
+        <p class="lead">日常采集全部 13 个信息源，再由 LLM Editorial Selector 从多来源信号中筛选真正值得展示的候选事件。</p>
+        <p><span class="tag">采集求全</span><span class="tag">展示求精</span><span class="tag">LLM editor</span></p>
+        <p>工程层只做硬过滤和去重；是否值得展示主要由 LLM 编辑判断。启动基线：<code>110 passed in 30.44s</code>。</p>
+      </section>
+
+      <section id="sources">
+        <h2>13 个源</h2>
+        <pre><code>hn_algolia
+github_releases
+github_repo_trends
+anthropic_news
+aws_machine_learning_blog
+deepmind_blog
+github_changelog
+google_ai_blog
+huggingface_blog
+nvidia_news
+ollama_blog
+openai_news
+pytorch_blog</code></pre>
+      </section>
+
+      <section id="strategy">
+        <h2>筛选策略</h2>
+        <ol>
+          <li>全源采集：全部 enabled sources 写入 <code>source_signals</code>。</li>
+          <li>硬过滤：去空标题、无追踪 URL、重复 hash / URL、过旧和已处理信号。</li>
+          <li>候选分组：按 canonical URL、repo / product / model 名和标题近似合并。</li>
+          <li>LLM Selector：从 candidate groups 中选 Top N，输出 selected / rejected / reason。</li>
+          <li>后续 pipeline：只对 selected group 运行 writer / reviewer。</li>
+        </ol>
+      </section>
+
+      <section id="tasks">
+        <h2>任务拆解</h2>
+        <table>
+          <thead><tr><th>Task</th><th>内容</th><th>验收重点</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>计划和基线</td><td>记录 <code>110 passed in 30.44s</code>。</td></tr>
+            <tr><td>1</td><td><code>daily_all</code> source group</td><td>fixture mode 可采集当前 13 个 source key，且只写 source layer。</td></tr>
+            <tr><td>2</td><td>硬过滤和 candidate grouping</td><td>重复、过旧、已处理信号不进入 selector。</td></tr>
+            <tr><td>3</td><td>LLM Editorial Selector</td><td>fake LLM 测试 selected / rejected 结构化输出。</td></tr>
+            <tr><td>4</td><td>pipeline 消费 selector 输出</td><td>只对 selected Top N 运行写作和审稿。</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="acceptance">
+        <h2>验收标准</h2>
+        <ul>
+          <li><code>collect_source_signals.py --source-group daily_all --fixture-mode</code> 可采集当前 13 个 source key。</li>
+          <li>selector 前硬过滤和 grouping 有单测。</li>
+          <li>LLM Editorial Selector 有 fake LLM 回归测试。</li>
+          <li>pipeline 只处理 selector 选中的 Top N。</li>
+          <li>文档记录真实命令、真实输出和未覆盖范围。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
