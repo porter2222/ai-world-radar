@@ -16,6 +16,8 @@
 - `P1-4 真实LLM Agent节点替换计划.html`
 - `P1-6 产品接口层与最小API计划.md`
 - `P1-6 产品接口层与最小API计划.html`
+- `P1-7 GitHub热门项目与官网源扩展计划.md`
+- `P1-7 GitHub热门项目与官网源扩展计划.html`
 
 `后端P1实现计划与功能切片拆解` 定义旧版后端 P1 第一条纵向功能切片：HN AI 事件生产闭环。该文档保留为历史参考。
 
@@ -30,3 +32,5 @@
 P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_review/reject` 非发布分支、slug 冲突和幂等发布、LangGraph 修订循环深度、agent run 耗时和 token usage 审计；本机 PostgreSQL `ai_world_radar` 高热度 HN real provider smoke 已通过，`run_id=run_9edd05cbf4aa464593172c01911fa068`、`published_count=1`、`agent_runs_count=7`。最新 worker 全量复验为 `89 passed in 19.66s`。
 
 `P1-6 产品接口层与最小API计划` 是后端 P1 进入产品接口层前的方案文档，定义只读产品查询边界、`ProductQueryService` 优先的实现顺序、FastAPI 薄适配层、事件列表 / 详情 / 后台审计接口草案、响应契约和验收标准。当前状态为用户已确认采用“ProductQueryService + FastAPI 薄适配层”方案，下一步进入测试先行实现。
+
+`P1-7 GitHub热门项目与官网源扩展计划` 是 P1-6 产品接口层和真实链路验收后的 source 扩展实施依据，定义 GitHub repo momentum / star 增长源、官网 RSS/Atom/轻量 HTML 官方源、采集脚本扩展、测试策略、smoke 和文档验收要求。当前状态为计划已创建，后续按 TDD task 顺序实现。

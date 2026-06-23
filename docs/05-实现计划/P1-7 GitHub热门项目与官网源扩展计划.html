@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-7 GitHub 热门项目与官网源扩展计划</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: #f6f8fb; line-height: 1.65; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+    nav { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 28px 22px; background: #111827; color: #dbeafe; box-sizing: border-box; }
+    nav h1 { margin: 0 0 18px; font-size: 18px; line-height: 1.35; color: #fff; }
+    nav a { display: block; color: #bfdbfe; text-decoration: none; margin: 10px 0; font-size: 14px; }
+    main { padding: 36px 48px 72px; max-width: 1180px; box-sizing: border-box; }
+    section { background: #fff; border: 1px solid #d9e2ef; border-radius: 8px; padding: 24px 28px; margin: 0 0 18px; }
+    h2 { margin: 0 0 14px; font-size: 24px; color: #0f172a; }
+    h3 { margin: 22px 0 10px; font-size: 18px; color: #1f2937; }
+    code { background: #eef2ff; padding: 2px 5px; border-radius: 4px; font-family: Consolas, monospace; }
+    pre { overflow: auto; background: #0f172a; color: #e5e7eb; padding: 14px; border-radius: 6px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    td, th { border: 1px solid #d9e2ef; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    ul { padding-left: 22px; }
+    .lead { font-size: 16px; color: #334155; }
+    .tag { display: inline-block; margin: 0 8px 8px 0; padding: 3px 8px; border-radius: 999px; background: #e0f2fe; color: #075985; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-7 信息源扩展</h1>
+      <a href="#goal">目标</a>
+      <a href="#boundary">边界</a>
+      <a href="#data">数据口径</a>
+      <a href="#files">文件结构</a>
+      <a href="#tasks">任务拆解</a>
+      <a href="#acceptance">验收标准</a>
+      <a href="#risks">风险</a>
+    </nav>
+    <main>
+      <section id="goal">
+        <h2>目标</h2>
+        <p class="lead">在不引入账号池、强反爬、社交平台大爬虫或新数据库表的前提下，补齐 GitHub 热门项目发现源和官网/RSS 官方源，让更多公开信号稳定进入 <code>source_signals</code>。</p>
+        <p><span class="tag">github_repo_trends</span><span class="tag">official_feeds</span><span class="tag">SourceSignal</span><span class="tag">No arXiv</span></p>
+        <p>本阶段继续沿用新版主链路 <code>SourceSignal -&gt; EventCandidate -&gt; EventDossier -&gt; ReviewResult -&gt; PublishedEvent</code>。新增 source layer 只负责采集和映射，不直接调用 Agent、不直接发布、不改产品接口。</p>
+      </section>
+
+      <section id="boundary">
+        <h2>阶段边界</h2>
+        <h3>负责</h3>
+        <ul>
+          <li>新增 <code>github_repo_trends</code> source，通过 GitHub Search API 搜索 AI 相关仓库，并从第二次采集开始计算 star 增量。</li>
+          <li>新增 <code>official_feeds</code> / <code>official_news</code> source，优先 RSS / Atom，对无 RSS 的官网仅做轻量 HTML 列表页解析。</li>
+          <li>扩展 <code>collect_source_signals.py</code>，支持 <code>--source github_trends</code> 与 <code>--source official_feeds</code>。</li>
+          <li>更新验收记录、项目状态、文档索引、实现计划 README。</li>
+        </ul>
+        <h3>不负责</h3>
+        <ul>
+          <li>不接 X / Reddit / YouTube，不做账号池、代理池、验证码绕过、浏览器自动化反爬。</li>
+          <li>不做 GitHub Trending HTML 页面解析；先用官方 Search API 和本地快照计算趋势。</li>
+          <li>不新增数据库表；趋势快照先复用 <code>source_signals</code>。</li>
+          <li>不做 arXiv / papers / 论文总结。</li>
+        </ul>
+      </section>
+
+      <section id="data">
+        <h2>数据口径</h2>
+        <h3>GitHub repo momentum</h3>
+        <pre><code>source_key=github_repo_trends
+source_hash=github_repo_trends:&lt;owner/repo&gt;:&lt;snapshot_bucket&gt;
+heat_metrics={
+  "stargazers_count": int,
+  "stars_delta_since_last": int | null,
+  "previous_stargazers_count": int | null,
+  "stars_delta_rate": float | null
+}</code></pre>
+        <p>同一 repo 同一 bucket 幂等 upsert；下一轮采集按 <code>source_item_id</code> 查询上一条不同 bucket 的 signal 计算 delta。</p>
+        <h3>官网 / RSS / HTML 新闻源</h3>
+        <pre><code>source_hash=official_news:&lt;source_key&gt;:&lt;entry id/hash&gt;
+heat_metrics={"official_source": true}
+metadata={"source": "official_news", "mode": "rss|atom|html"}</code></pre>
+      </section>
+
+      <section id="files">
+        <h2>文件结构</h2>
+        <pre><code>apps/worker/worker/collectors/github_repo_trends.py
+apps/worker/worker/sources/github_trends_source.py
+apps/worker/worker/collectors/official_news.py
+apps/worker/worker/sources/official_news_source.py
+apps/worker/scripts/collect_source_signals.py
+apps/worker/tests/test_github_repo_trends_collector.py
+apps/worker/tests/test_official_news_collector.py
+apps/worker/tests/test_collect_source_signals_script.py
+docs/07-验收与运行/后端P1测试记录.md</code></pre>
+      </section>
+
+      <section id="tasks">
+        <h2>任务拆解</h2>
+        <table>
+          <thead><tr><th>Task</th><th>内容</th><th>验收重点</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>计划、基线测试、文档入口</td><td>worker 基线 <code>96 passed</code>，文档无空白项</td></tr>
+            <tr><td>1</td><td>GitHub repo trends collector 与 source adapter</td><td>repo search payload 能映射为 <code>SourceSignalCreate</code>，支持 star delta</td></tr>
+            <tr><td>2</td><td>采集脚本支持 <code>github_trends</code></td><td>fixture mode 写 source/signals，不创建 pipeline/published</td></tr>
+            <tr><td>3</td><td>官网 RSS / Atom / HTML collector 与 adapter</td><td>RSS、Atom、轻量 HTML 列表页均可解析为 source signal</td></tr>
+            <tr><td>4</td><td>采集脚本支持 <code>official_feeds</code></td><td>内置官网 profile，可与 GitHub trends 组合采集</td></tr>
+            <tr><td>5</td><td>smoke、文档、交接</td><td>全量 pytest、SQLite smoke、PostgreSQL live source smoke、文档记录真实输出</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="acceptance">
+        <h2>验收标准</h2>
+        <ul>
+          <li><code>github_repo_trends</code> 可以从 GitHub Search API payload 映射为 <code>SourceSignalCreate</code>。</li>
+          <li>GitHub repo trend 快照支持冷启动星数记录和二次采集 star delta。</li>
+          <li><code>official_news</code> 可以解析 RSS、Atom 和轻量 HTML 列表页。</li>
+          <li><code>collect_source_signals.py</code> 支持 <code>github_trends</code> 和 <code>official_feeds</code>，且仍只写 <code>sources</code> / <code>source_signals</code>。</li>
+          <li>全量 worker pytest 通过，fresh SQLite smoke 与 live PostgreSQL source smoke 均记录真实输出。</li>
+        </ul>
+      </section>
+
+      <section id="risks">
+        <h2>风险与处理方式</h2>
+        <ul>
+          <li>GitHub Search API 有限流：默认使用少量 query profile 和小 limit；可选 <code>GITHUB_TOKEN</code>，不要求账号池。</li>
+          <li>GitHub Search 不能直接返回近日 star 增长：系统用本地 <code>source_signals</code> 快照计算 delta。</li>
+          <li>官网 HTML 结构可能变化：live smoke 如果抓不到条目，要记录真实失败，不假装通过。</li>
+          <li>噪声和重复：本阶段只进入 <code>source_signals</code>，事件合并和发布仍由后续 pipeline/Agent 控制。</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
