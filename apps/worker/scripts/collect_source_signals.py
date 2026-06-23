@@ -32,7 +32,7 @@ OFFICIAL_SOURCE_PROFILES = {
         source_key="nvidia_news",
         name="NVIDIA News",
         mode="rss",
-        entry_url="https://nvidianews.nvidia.com/rss",
+        entry_url="https://nvidianews.nvidia.com/rss.xml",
     ),
     "github_changelog": OfficialSourceProfile(
         source_key="github_changelog",

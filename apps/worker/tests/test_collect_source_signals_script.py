@@ -3,6 +3,8 @@ import sqlite3
 import subprocess
 import sys
 
+from scripts.collect_source_signals import get_official_source_profile
+
 
 def query_counts(db_path):
     """查询采集脚本 smoke 数据库计数。
@@ -366,3 +368,14 @@ def test_collect_source_signals_script_combines_github_trends_and_official_feeds
     assert summary["signals_count"] == 2
     assert counts == {"sources": 2, "source_signals": 2, "pipeline_runs": 0, "published_events": 0}
     assert {signal["source_key"] for signal in signals} == {"github_repo_trends", "nvidia_news"}
+
+
+def test_nvidia_official_profile_points_to_xml_feed():
+    """验证 NVIDIA 官方源 profile 指向实际 XML feed。
+    输入：内置 `nvidia_news` profile key。
+    输出：entry_url 使用 `/rss.xml`，避免误指向返回 HTML 订阅说明页的 `/rss`。
+    """
+    profile = get_official_source_profile("nvidia_news")
+
+    assert profile.mode == "rss"
+    assert profile.entry_url == "https://nvidianews.nvidia.com/rss.xml"
