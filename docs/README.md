@@ -56,7 +56,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-23 已完成 P1-10 首页时效窗口与采集调度策略设计：基于当前 `ProductQueryService`、`PublishedEvent.published_at` 和 FastAPI `GET /events` 现状，确定首页默认展示最近 48 小时 published events，低量时向 7 天窗口兜底；该策略尚未改后端代码，下一步由后端代理按计划实现和验收。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-23 已完成 P1-10 首页时效窗口与采集调度策略设计和代码落地：`GET /events` 默认展示最近 48 小时 published events，低量时向 7 天窗口兜底；`GET /events/{slug}` 仍可访问历史事件；本轮 worker 全量回归为 `141 passed, 1 skipped in 55.11s`。
 
 后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
 
@@ -68,4 +68,4 @@
 
 当前最新执行建议：
 
-> 后端代理优先按 `docs/superpowers/plans/2026-06-23-首页时效窗口与采集调度实施计划.md` 执行 P1-10：先为 `ProductQueryService.list_published_events()` 补 48 小时窗口、7 天低量兜底和老事件详情可访问测试，再实现只读查询层过滤，并补 FastAPI 回归和验收记录。前端公共首页和事件详情页可继续基于 FastAPI Product API 做页面级联调截图和视觉微调。论文源、X、Reddit、YouTube、强反爬源、DailyEdition、历史归档和队列调度器继续后置。
+> P1-10 首页时效窗口已完成，前端公共首页和事件详情页可继续基于真实 FastAPI Product API 做页面级联调截图和视觉微调。后端侧下一步可进入真实网络 13 源运行观察、调度脚本编排、失败重试和成本监控。论文源、X、Reddit、YouTube、强反爬源、DailyEdition、历史归档和队列调度器继续后置。
