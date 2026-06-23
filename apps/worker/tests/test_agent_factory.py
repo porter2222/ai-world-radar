@@ -30,13 +30,31 @@ class FakeLLMClient:
         return "{}"
 
 
-def test_create_event_agents_defaults_to_stub_mode():
-    """验证默认 agent mode 是 stub，避免无 API key 环境破坏回归。
+def test_create_event_agents_defaults_to_llm_mode_with_shared_client():
+    """验证默认 agent mode 是 llm。
 
-    输入：不传 mode 和 LLM client。
+    输入：不传 mode，只传入测试 fake LLM client。
+    输出：三类 LLM Agent，且共享同一个 fake client。
+    """
+    fake_client = FakeLLMClient()
+
+    agents = create_event_agents(llm_client=fake_client)
+
+    assert isinstance(agents.editor, OnDutyEditorLLMAgent)
+    assert isinstance(agents.writer, ResearchWriterLLMAgent)
+    assert isinstance(agents.reviewer, ReviewPublisherLLMAgent)
+    assert agents.editor.llm_client is fake_client
+    assert agents.writer.llm_client is fake_client
+    assert agents.reviewer.llm_client is fake_client
+
+
+def test_create_event_agents_explicit_stub_mode_for_offline_tests():
+    """验证 stub 只作为显式离线测试模式保留。
+
+    输入：mode=stub。
     输出：三类确定性 stub agent。
     """
-    agents = create_event_agents()
+    agents = create_event_agents(mode="stub")
 
     assert isinstance(agents.editor, OnDutyEditorAgentStub)
     assert isinstance(agents.writer, ResearchWriterAgentStub)

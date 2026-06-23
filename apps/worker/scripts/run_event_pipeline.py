@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import create_engine, select
@@ -22,6 +23,19 @@ from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
 
 
+@dataclass(frozen=True)
+class SelectorSelectionOutcome:
+    """封装 selector 选择结果和运行模式。
+
+    输入：结构化选择结果、selector 实际模式和可选 fallback 原因。
+    输出：供 selector pipeline 汇总 stdout 使用的不可变结果对象。
+    """
+
+    selection: EditorialSelectionResult
+    selector_mode: str
+    fallback_reason: str | None = None
+
+
 def parse_args() -> argparse.Namespace:
     """解析新版事件 pipeline 脚本参数。
 
@@ -38,6 +52,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--select-top-candidates", type=int, default=None, help="从 selector 输出中选择 Top N 候选组运行 pipeline。")
     parser.add_argument("--candidate-pool-limit", type=int, default=60, help="selector 前候选池最大 source_signals 数。")
     parser.add_argument("--agent-mode", choices=["stub", "llm"], default=None, help="覆盖 AGENT_MODE，选择 stub 或 llm。")
+    parser.add_argument("--disable-agent-fallback", action="store_true", help="Strict real LLM smoke: disable stub fallback.")
     return parser.parse_args()
 
 
@@ -58,7 +73,12 @@ def main() -> int:
     session = session_factory()
     try:
         if args.select_top_candidates is not None:
-            summary = run_selector_pipeline(session, args=args, agent_mode=agent_mode)
+            summary = run_selector_pipeline(
+                session,
+                args=args,
+                agent_mode=agent_mode,
+                allow_fallback=not args.disable_agent_fallback,
+            )
             session.commit()
             print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
             return 0
@@ -80,6 +100,7 @@ def main() -> int:
             run_key=run_key,
             source_scope=source_scope,
             agent_mode=agent_mode,
+            allow_fallback=not args.disable_agent_fallback,
         )
         session.commit()
 
@@ -151,10 +172,17 @@ def load_signal_ids_by_source_key(session, *, source_key: str, limit: int) -> li
     return list(session.scalars(statement).all())
 
 
-def run_selector_pipeline(session, *, args: argparse.Namespace, agent_mode: str) -> dict[str, object]:
+def run_selector_pipeline(
+    session,
+    *,
+    args: argparse.Namespace,
+    agent_mode: str,
+    selector_agent: object | None = None,
+    allow_fallback: bool = True,
+) -> dict[str, object]:
     """从 selector 结果运行一个或多个事件 pipeline。
 
-    输入：Session、脚本参数和 agent_mode。
+    输入：Session、脚本参数、agent_mode、可选 selector agent 和是否允许 stub fallback。
     输出：stdout 使用的 JSON summary 字典；只对 selected Top N group 运行 workflow。
     """
     if args.select_top_candidates <= 0:
@@ -162,7 +190,14 @@ def run_selector_pipeline(session, *, args: argparse.Namespace, agent_mode: str)
 
     candidate_service = EditorialCandidateService(session)
     groups = candidate_service.build_candidate_groups(candidate_pool_limit=args.candidate_pool_limit)
-    selection = select_candidate_groups(groups, top_n=args.select_top_candidates, agent_mode=agent_mode)
+    outcome = select_candidate_groups(
+        groups,
+        top_n=args.select_top_candidates,
+        agent_mode=agent_mode,
+        selector_agent=selector_agent,
+        allow_fallback=allow_fallback,
+    )
+    selection = outcome.selection
     selected_items = selection.selected[: args.select_top_candidates]
     if not selected_items:
         raise ValueError("No selected candidate groups available")
@@ -177,6 +212,7 @@ def run_selector_pipeline(session, *, args: argparse.Namespace, agent_mode: str)
             run_key=run_key,
             source_scope={"source": "editorial_selector", "candidate_group_id": item.candidate_group_id},
             agent_mode=agent_mode,
+            allow_fallback=allow_fallback,
         )
         states.append(state)
         session.flush()
@@ -184,10 +220,10 @@ def run_selector_pipeline(session, *, args: argparse.Namespace, agent_mode: str)
     run_ids = [state.run_id for state in states if state.run_id is not None]
     runs = list(session.scalars(select(PipelineRun).where(PipelineRun.id.in_(run_ids))).all()) if run_ids else []
     status = "succeeded" if all(state.status == "succeeded" for state in states) else "partial_failed"
-    return {
+    summary = {
         "status": status,
         "agent_mode": agent_mode,
-        "selector_mode": agent_mode,
+        "selector_mode": outcome.selector_mode,
         "selected_groups_count": len(selected_items),
         "rejected_groups_count": len(selection.rejected),
         "manual_review_groups_count": len(selection.manual_review),
@@ -195,6 +231,9 @@ def run_selector_pipeline(session, *, args: argparse.Namespace, agent_mode: str)
         "run_ids": run_ids,
         "published_count": sum(run.published_count for run in runs),
     }
+    if outcome.fallback_reason is not None:
+        summary["selector_fallback_reason"] = outcome.fallback_reason
+    return summary
 
 
 def select_candidate_groups(
@@ -202,16 +241,28 @@ def select_candidate_groups(
     *,
     top_n: int,
     agent_mode: str,
-) -> EditorialSelectionResult:
+    selector_agent: object | None = None,
+    allow_fallback: bool = True,
+) -> SelectorSelectionOutcome:
     """运行 selector 或 stub selector。
 
-    输入：候选分组、Top N 和 agent_mode。
-    输出：EditorialSelectionResult；stub 模式不调用真实 LLM，llm 模式显式调用 LLM selector。
+    输入：候选分组、Top N、agent_mode、可选 selector agent 和是否允许 stub fallback。
+    输出：SelectorSelectionOutcome；stub 模式不调用真实 LLM，llm 模式调用 LLM selector，异常时按 allow_fallback 决定是否兜底。
     """
     if agent_mode == "llm":
-        agent = EditorialSelectorLLMAgent()
-        return agent.select([candidate_group_to_selector_input(group) for group in groups])
-    return build_stub_selection(groups, top_n=top_n)
+        agent = selector_agent or EditorialSelectorLLMAgent()
+        try:
+            selection = agent.select([candidate_group_to_selector_input(group) for group in groups])
+            return SelectorSelectionOutcome(selection=selection, selector_mode="llm")
+        except Exception as exc:
+            if not allow_fallback:
+                raise
+            return SelectorSelectionOutcome(
+                selection=build_stub_selection(groups, top_n=top_n),
+                selector_mode="stub_fallback",
+                fallback_reason=str(exc),
+            )
+    return SelectorSelectionOutcome(selection=build_stub_selection(groups, top_n=top_n), selector_mode="stub")
 
 
 def build_stub_selection(groups: list[EditorialCandidateGroup], *, top_n: int) -> EditorialSelectionResult:

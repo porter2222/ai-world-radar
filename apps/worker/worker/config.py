@@ -55,7 +55,7 @@ def load_settings() -> Settings:
         ),
         llm_provider=llm_provider,
         llm_model=llm_model,
-        agent_mode=os.getenv("AGENT_MODE", "stub"),
+        agent_mode=os.getenv("AGENT_MODE", "llm"),
     )
 
 

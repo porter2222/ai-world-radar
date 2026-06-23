@@ -18,18 +18,21 @@ def run_event_pipeline(
     signal_ids: list[str],
     run_key: str,
     source_scope: dict[str, Any] | None = None,
-    agent_mode: str = "stub",
+    agent_mode: str = "llm",
     llm_client: Any | None = None,
     tools: EventPipelineTools | None = None,
+    allow_fallback: bool = True,
 ) -> EventPipelineState:
     """运行 P1-2 事件档案生产工作流。
 
     输入：数据库 Session、待处理 SourceSignal ID、run_key、来源范围、Agent 模式和可选注入 tools。
     输出：最终 EventPipelineState，包含 run、candidate、dossier、review 和发布结果。
     """
-    pipeline_tools = tools or EventPipelineTools(
+    pipeline_tools = tools or _build_event_pipeline_tools(
         session,
-        agents=create_event_agents(mode=agent_mode, llm_client=llm_client),
+        agent_mode=agent_mode,
+        llm_client=llm_client,
+        allow_fallback=allow_fallback,
     )
     graph = _build_event_pipeline_graph(pipeline_tools)
     initial_state = EventPipelineState(
@@ -99,6 +102,42 @@ def _build_event_pipeline_graph(tools: EventPipelineTools):
     return graph.compile()
 
 
+def _build_event_pipeline_tools(
+    session: Session,
+    *,
+    agent_mode: str,
+    llm_client: Any | None,
+    allow_fallback: bool,
+) -> EventPipelineTools:
+    """创建 workflow 使用的工具层，并在允许时处理 LLM Agent 初始化失败。
+
+    输入：数据库 Session、Agent 模式、可选 LLM client、是否允许 fallback。
+    输出：绑定主 Agent 或 stub fallback 的 EventPipelineTools。
+    """
+    try:
+        return EventPipelineTools(
+            session,
+            agents=create_event_agents(mode=agent_mode, llm_client=llm_client),
+            allow_fallback=allow_fallback,
+        )
+    except Exception as exc:
+        if agent_mode != "llm" or not allow_fallback:
+            raise
+        tools = EventPipelineTools(session, agents=create_event_agents(mode="stub"), allow_fallback=allow_fallback)
+        for role, failed_name, fallback_agent in [
+            ("editor", "on_duty_editor_llm", tools.editor),
+            ("writer", "research_writer_llm", tools.writer),
+            ("reviewer", "review_publisher_llm", tools.reviewer),
+        ]:
+            tools._record_fallback_event(
+                role=role,
+                primary_agent=type("UnavailableLLMAgent", (), {"name": failed_name})(),
+                fallback_agent=fallback_agent,
+                reason=str(exc),
+            )
+        return tools
+
+
 def _collect_signals_node(tools: EventPipelineTools):
     """创建 collect_signals 节点。
 
@@ -160,7 +199,13 @@ def _editorial_triage_node(tools: EventPipelineTools):
         parsed = EventPipelineState.model_validate(state)
         signals = tools.load_signals(parsed.signal_ids)
         try:
-            draft = tools.editor.triage(signals)
+            draft = tools._call_agent_with_fallback(
+                role="editor",
+                primary_agent=tools.editor,
+                fallback_agent=tools.fallback_agents.editor,
+                method_name="triage",
+                args=(signals,),
+            )
         except LLMAgentOutputError as exc:
             if parsed.run_id is not None:
                 tools.record_agent_failure(
@@ -172,13 +217,14 @@ def _editorial_triage_node(tools: EventPipelineTools):
                 )
             raise
         if parsed.run_id is not None:
+            effective_agent = tools.effective_agent_for_role("editor")
             tools.record_agent_result(
                 parsed.run_id,
-                tools.editor.name,
+                getattr(effective_agent, "name", tools.editor.name),
                 "editor",
                 f"triage {len(signals)} source signals",
                 draft.model_dump(),
-                agent=tools.editor,
+                agent=effective_agent,
             )
         return {
             **parsed.model_dump(),
@@ -282,9 +328,10 @@ def _draft_event_dossier_node(tools: EventPipelineTools):
                 )
             raise
         if parsed.run_id is not None:
+            effective_agent = tools.effective_agent_for_role("writer")
             tools.record_agent_result(
                 parsed.run_id,
-                tools.writer.name,
+                getattr(effective_agent, "name", tools.writer.name),
                 "writer",
                 f"draft dossier for candidate {candidate.id}",
                 {
@@ -294,7 +341,7 @@ def _draft_event_dossier_node(tools: EventPipelineTools):
                 },
                 candidate_id=candidate.id,
                 dossier_id=dossier.id,
-                agent=tools.writer,
+                agent=effective_agent,
             )
         return {
             **parsed.model_dump(),
@@ -340,9 +387,10 @@ def _review_event_dossier_node(tools: EventPipelineTools):
                 )
             raise
         if parsed.run_id is not None:
+            effective_agent = tools.effective_agent_for_role("reviewer")
             tools.record_agent_result(
                 parsed.run_id,
-                tools.reviewer.name,
+                getattr(effective_agent, "name", tools.reviewer.name),
                 "reviewer",
                 f"review dossier {event_dossier.id}",
                 {
@@ -353,7 +401,7 @@ def _review_event_dossier_node(tools: EventPipelineTools):
                 },
                 candidate_id=event_dossier.candidate_id,
                 dossier_id=event_dossier.id,
-                agent=tools.reviewer,
+                agent=effective_agent,
             )
         return {
             **parsed.model_dump(),

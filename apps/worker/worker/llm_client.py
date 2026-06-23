@@ -32,6 +32,7 @@ class LLMProviderConfig:
     api_key: str
     base_url: str
     user_agent: str | None = None
+    timeout_seconds: float | None = None
 
 
 class LLMClient:
@@ -124,6 +125,7 @@ def resolve_provider_config(
             model=model or "qwen-plus",
             api_key=_required_api_key(api_key, "DASHSCOPE_API_KEY", provider),
             base_url=base_url or os.getenv("DASHSCOPE_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+            timeout_seconds=_optional_request_timeout(),
         )
     if provider == "deepseek":
         return LLMProviderConfig(
@@ -131,6 +133,7 @@ def resolve_provider_config(
             model=model or "deepseek-chat",
             api_key=_required_api_key(api_key, "DEEPSEEK_API_KEY", provider),
             base_url=base_url or os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+            timeout_seconds=_optional_request_timeout(),
         )
     if provider == "openai":
         return LLMProviderConfig(
@@ -139,6 +142,7 @@ def resolve_provider_config(
             api_key=_required_api_key(api_key, "OPENAI_API_KEY", provider),
             base_url=base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
             user_agent=os.getenv("OPENAI_USER_AGENT") or None,
+            timeout_seconds=_optional_request_timeout(),
         )
     raise ValueError(f"Unsupported provider: {provider}")
 
@@ -155,6 +159,21 @@ def _required_api_key(explicit_key: str | None, env_name: str, provider: str) ->
     return key
 
 
+def _optional_request_timeout() -> float | None:
+    """读取可选 LLM 请求超时配置。
+
+    输入：环境变量 LLM_REQUEST_TIMEOUT_SECONDS。
+    输出：未配置时返回 None；已配置时返回正数秒数，非法值抛出 ValueError。
+    """
+    raw_timeout = os.getenv("LLM_REQUEST_TIMEOUT_SECONDS")
+    if raw_timeout is None or raw_timeout.strip() == "":
+        return None
+    timeout_seconds = float(raw_timeout)
+    if timeout_seconds <= 0:
+        raise ValueError("LLM_REQUEST_TIMEOUT_SECONDS must be greater than 0.")
+    return timeout_seconds
+
+
 def _create_openai_client(config: LLMProviderConfig):
     """创建 OpenAI SDK client。
 
@@ -166,6 +185,8 @@ def _create_openai_client(config: LLMProviderConfig):
     kwargs = {"api_key": config.api_key, "base_url": config.base_url}
     if config.user_agent:
         kwargs["default_headers"] = {"User-Agent": config.user_agent}
+    if config.timeout_seconds is not None:
+        kwargs["timeout"] = config.timeout_seconds
     return OpenAI(**kwargs)
 
 

@@ -142,6 +142,20 @@ def test_openai_provider_config_reads_optional_user_agent(monkeypatch):
     assert config.user_agent == "python-httpx/0.28.1"
 
 
+def test_openai_provider_config_reads_optional_request_timeout(monkeypatch):
+    """验证 OpenAI provider 会读取可选请求超时配置。
+
+    输入：OPENAI_API_KEY 和 LLM_REQUEST_TIMEOUT_SECONDS 环境变量。
+    输出：provider config 携带 timeout_seconds，供 SDK 初始化使用。
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_REQUEST_TIMEOUT_SECONDS", "12.5")
+
+    config = resolve_provider_config("openai")
+
+    assert config.timeout_seconds == 12.5
+
+
 def test_create_openai_client_passes_user_agent_as_default_header(monkeypatch):
     """验证 OpenAI SDK 初始化时会带上 User-Agent 覆盖。
 
@@ -173,3 +187,34 @@ def test_create_openai_client_passes_user_agent_as_default_header(monkeypatch):
     assert client.kwargs["api_key"] == "test-key"
     assert client.kwargs["base_url"] == "https://api.codexapi.space/v1"
     assert client.kwargs["default_headers"] == {"User-Agent": "python-httpx/0.28.1"}
+
+
+def test_create_openai_client_passes_request_timeout(monkeypatch):
+    """验证 OpenAI SDK 初始化时会带请求超时。
+
+    输入：携带 timeout_seconds 的 LLMProviderConfig 和 fake OpenAI 构造器。
+    输出：构造 OpenAI client 时传入 timeout 参数，避免真实 smoke 长时间悬挂。
+    """
+
+    class FakeOpenAI:
+        """记录 OpenAI SDK 初始化参数的 fake 构造器。
+
+        输入：OpenAI SDK 构造参数。
+        输出：保存 kwargs，便于测试断言。
+        """
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
+    config = LLMProviderConfig(
+        provider="openai",
+        model="gpt-test",
+        api_key="test-key",
+        base_url="https://api.openai.com/v1",
+        timeout_seconds=12.5,
+    )
+
+    client = _create_openai_client(config)
+
+    assert client.kwargs["timeout"] == 12.5

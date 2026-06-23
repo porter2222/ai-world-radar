@@ -37,7 +37,7 @@ P1-9 要解决两个问题：
 - 不做复杂工程热度公式，不为每个 source 维护一套主观权重。
 - 不让 LLM 直接写库或发布。
 - 不新增数据库表；P1-9 优先复用现有 `source_signals`、`event_candidates`、`pipeline_runs` 和 `agent_runs`。
-- 不改变默认 `AGENT_MODE=stub`；真实 LLM 仍需显式开启。
+- 2026-06-23 用户确认后，运行态默认 Agent 模式改为 `AGENT_MODE=llm`；`stub` 保留为显式测试 / 离线 fixture 模式，以及真实 LLM 异常时的工程 fallback。
 
 ## 3. 当前 13 个信息源
 
@@ -261,20 +261,20 @@ worker/schemas/editorial_selection.py
 
 - [x] **Step 2: Implement script integration**
 
-保持默认 `AGENT_MODE=stub`，真实 LLM 需要显式开启。
+当前运行态默认 `AGENT_MODE=llm`。本 Task 的离线 fixture smoke 若需要保持稳定、避免真实 provider 调用，必须显式传 `--agent-mode stub`；不传 `--agent-mode` 时会进入真实 LLM Agent 路径。默认运行允许 stub fallback 作为工程兜底，严格真实验收必须使用 `--disable-agent-fallback` 或专用 smoke 脚本禁用 fallback。
 
 执行结果：
 
 - 修改 `tests/test_run_event_pipeline_script.py`，新增 `test_run_event_pipeline_script_consumes_selector_selected_top_candidates`。
 - RED 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`。
 - RED 结果：`1 failed, 3 passed in 8.41s`；失败原因是 `run_event_pipeline.py` 尚不接受 `--select-top-candidates 1`。
-- 实现范围：`scripts/run_event_pipeline.py` 新增 `--select-top-candidates` 和 `--candidate-pool-limit`；selector 模式先用 `EditorialCandidateService` 构造 groups，再在默认 stub 模式下确定性选择 Top N，`--agent-mode llm` 时才显式调用 `EditorialSelectorLLMAgent`。
+- 实现范围：`scripts/run_event_pipeline.py` 新增 `--select-top-candidates` 和 `--candidate-pool-limit`；selector 模式先用 `EditorialCandidateService` 构造 groups。2026-06-23 口径切换后，不传 `--agent-mode` 时默认进入 `llm`，会调用 `EditorialSelectorLLMAgent`；只有显式 `--agent-mode stub` 才使用确定性 selector。
 - GREEN 命令：`.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v`。
 - GREEN 结果：`4 passed in 8.64s`。
 - 最终全量回归：`.\.venv\Scripts\python.exe -m pytest -v`，结果为 `120 passed in 36.63s`。
 - 验证结论：输入两个 candidate group、`--select-top-candidates 1` 时，stdout 返回 `selected_groups_count=1`、`rejected_groups_count=1`、`published_count=1`；数据库后置查询为 `pipeline_runs=1`、`event_candidates=1`、`published_events=1`，证明 rejected group 没有误发布。
 - 最终 fixture smoke 1：`.\.venv\Scripts\python.exe scripts\collect_source_signals.py --database-url "sqlite+pysqlite:///scratch/p1_9_final_daily_all.sqlite" --create-schema-for-smoke --fixture-mode --source-group daily_all --hn-limit 1 --github-limit 1 --github-trend-limit 1 --official-limit 1 --snapshot-bucket 2026062314`，stdout 返回 `status=succeeded`、`sources_count=13`、`signals_count=13`。
-- 最终 fixture smoke 2：`.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --database-url "sqlite+pysqlite:///scratch/p1_9_final_daily_all.sqlite" --select-top-candidates 1 --run-key manual-p1-9-final-selector-smoke`，stdout 返回 `status=succeeded`、`selector_mode=stub`、`selected_groups_count=1`、`rejected_groups_count=2`、`published_count=1`、`run_ids=["run_6624737356bd4dfe8089e127a78147d1"]`。
+- 最终 fixture smoke 2：历史执行命令为 `.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --database-url "sqlite+pysqlite:///scratch/p1_9_final_daily_all.sqlite" --select-top-candidates 1 --run-key manual-p1-9-final-selector-smoke`，当时默认模式为 `stub`，stdout 返回 `status=succeeded`、`selector_mode=stub`、`selected_groups_count=1`、`rejected_groups_count=2`、`published_count=1`、`run_ids=["run_6624737356bd4dfe8089e127a78147d1"]`。当前重新运行同类离线 fixture smoke 时需显式追加 `--agent-mode stub`；不追加则会真实调用 LLM。
 - 最终 smoke 后置查询：`sources=13`、`source_signals=13`、`pipeline_runs=1`、`event_candidates=1`、`published_events=1`、`agent_runs=3`，证明 13 源采集不触发发布，selector pipeline 只发布 selected Top 1。
 
 ## 6. 验收标准
@@ -295,4 +295,4 @@ worker/schemas/editorial_selection.py
 
 ## 8. 当前状态
 
-P1-9 Task 1-4 已完成。已覆盖 `daily_all` 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。当前未做真实网络 13 源全采 + 真实 LLM selector smoke；默认模式仍为 `AGENT_MODE=stub`，真实 LLM 必须显式开启。
+P1-9 Task 1-4 已完成。已覆盖 `daily_all` 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。2026-06-23 已按用户要求把运行态默认 Agent 模式切换为 `AGENT_MODE=llm`；当前未做真实网络 13 源全采 + 默认 LLM selector smoke，后续真实运行会默认调用 LLM，离线 fixture 才显式使用 `--agent-mode stub`。stub fallback 不是主路径，只在真实 LLM 异常时兜底；严格真实 smoke 已用 `allow_fallback=False` 验证真实 LLM pipeline 可发布。

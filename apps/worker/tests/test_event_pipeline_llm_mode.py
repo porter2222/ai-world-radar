@@ -171,10 +171,10 @@ def review_json() -> str:
 """.strip()
 
 
-def test_event_pipeline_can_run_with_injected_llm_agents():
-    """验证 workflow 可通过注入 fake LLM agents 跑通，不依赖真实网络。
+def test_event_pipeline_defaults_to_llm_with_injected_fake_client():
+    """验证 workflow 默认使用 LLM Agent。
 
-    输入：一条 SourceSignal、agent_mode=llm 和共享 fake LLM client。
+    输入：一条 SourceSignal、不传 agent_mode、共享 fake LLM client。
     输出：PublishedEvent 入库，AgentRun 记录三类 LLM Agent 名称。
     """
     session = make_session()
@@ -186,7 +186,6 @@ def test_event_pipeline_can_run_with_injected_llm_agents():
         signal_ids=[signal.id],
         run_key="manual-p1-4-llm-mode",
         source_scope={"source": "hn_algolia"},
-        agent_mode="llm",
         llm_client=fake_client,
     )
 
@@ -267,6 +266,7 @@ def test_llm_agent_failure_records_failed_agent_run():
         source_scope={"source": "hn_algolia"},
         agent_mode="llm",
         llm_client=fake_client,
+        allow_fallback=False,
     )
 
     failed_run = session.scalar(select(AgentRun).where(AgentRun.status == "failed"))
@@ -287,3 +287,36 @@ def test_llm_agent_failure_records_failed_agent_run():
     assert pipeline_run.status == "failed"
     assert pipeline_run.failed_count == 1
     assert published_count == 0
+
+
+def test_default_llm_pipeline_falls_back_to_stub_and_audits_trace():
+    """验证默认业务运行会在 LLM 节点失败时使用 stub 兜底并审计。
+
+    输入：reviewer 阶段连续返回非法 JSON 的 fake LLM client，且不关闭 fallback。
+    输出：workflow 仍可发布，reviewer AgentRun 显示 stub 名称并在 trace_json 写入 fallback 原因。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    fake_client = FakeLLMClient(
+        [candidate_json(), candidate_json(), dossier_json(), "not json", "still not json", "bad again"]
+    )
+
+    state = run_event_pipeline(
+        session,
+        signal_ids=[signal.id],
+        run_key="manual-p1-4-default-fallback",
+        source_scope={"source": "hn_algolia"},
+        agent_mode="llm",
+        llm_client=fake_client,
+    )
+
+    reviewer_run = session.scalar(select(AgentRun).where(AgentRun.agent_role == "reviewer"))
+    published_count = len(session.scalars(select(PublishedEvent)).all())
+
+    assert state.status == "succeeded"
+    assert published_count == 1
+    assert reviewer_run.agent_name == "review_publisher_stub"
+    assert reviewer_run.trace_json["fallback"]["agent_role"] == "reviewer"
+    assert reviewer_run.trace_json["fallback"]["failed_agent_name"] == "review_publisher_llm"
+    assert reviewer_run.trace_json["fallback"]["fallback_agent_name"] == "review_publisher_stub"
+    assert "ReviewResultDraft" in reviewer_run.trace_json["fallback"]["reason"]

@@ -83,6 +83,7 @@ def main() -> int:
             source_scope={"source": "p1-4-smoke", "mode": mode_label},
             agent_mode="llm",
             llm_client=llm_client,
+            allow_fallback=False,
         )
         session.commit()
         summary = build_summary(session, state.run_id, mode_label=mode_label)

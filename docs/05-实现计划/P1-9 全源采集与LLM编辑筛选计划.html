@@ -137,7 +137,7 @@ pytorch_blog</code></pre>
             <tr><td>GREEN</td><td><code>.\.venv\Scripts\python.exe -m pytest tests/test_run_event_pipeline_script.py -v</code></td><td><code>4 passed in 8.64s</code>；输入两个 group、Top N 为 1 时，只生成 1 个 pipeline run 和 1 条 published_event。</td></tr>
             <tr><td>Full</td><td><code>.\.venv\Scripts\python.exe -m pytest -v</code></td><td><code>120 passed in 36.63s</code>。</td></tr>
             <tr><td>Smoke 1</td><td><code>.\.venv\Scripts\python.exe scripts\collect_source_signals.py --source-group daily_all --fixture-mode ...</code></td><td><code>status=succeeded</code>、<code>sources_count=13</code>、<code>signals_count=13</code>；采集层未触发 pipeline。</td></tr>
-            <tr><td>Smoke 2</td><td><code>.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --select-top-candidates 1 ...</code></td><td><code>status=succeeded</code>、<code>selector_mode=stub</code>、<code>selected_groups_count=1</code>、<code>rejected_groups_count=2</code>、<code>published_count=1</code>；run_id 为 <code>run_6624737356bd4dfe8089e127a78147d1</code>。</td></tr>
+            <tr><td>Smoke 2</td><td><code>.\.venv\Scripts\python.exe scripts\run_event_pipeline.py --select-top-candidates 1 ...</code></td><td>历史执行时默认模式为 <code>stub</code>，返回 <code>status=succeeded</code>、<code>selector_mode=stub</code>、<code>selected_groups_count=1</code>、<code>rejected_groups_count=2</code>、<code>published_count=1</code>；当前重新运行离线 fixture smoke 需显式追加 <code>--agent-mode stub</code>，否则会真实调用 LLM。</td></tr>
             <tr><td>Count</td><td><code>SQLite count query</code></td><td><code>sources=13</code>、<code>source_signals=13</code>、<code>pipeline_runs=1</code>、<code>event_candidates=1</code>、<code>published_events=1</code>、<code>agent_runs=3</code>。</td></tr>
           </tbody>
         </table>
@@ -155,7 +155,7 @@ pytorch_blog</code></pre>
       </section>
       <section id="current-state">
         <h2>当前状态</h2>
-        <p>P1-9 Task 1-4 已完成。当前已覆盖 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。未做真实网络 13 源全采 + 真实 LLM selector smoke；默认模式仍为 <code>AGENT_MODE=stub</code>，真实 LLM 必须显式开启。</p>
+        <p>P1-9 Task 1-4 已完成。当前已覆盖 13 源 fixture 采集、selector 前硬过滤和分组、LLM Editorial Selector 结构化建议、pipeline 消费 selected Top N，以及 rejected group 不发布的回归。2026-06-23 已按用户要求把运行态默认 Agent 模式切换为 <code>AGENT_MODE=llm</code>；后续真实运行默认调用 LLM，离线 fixture 才显式使用 <code>--agent-mode stub</code>。stub fallback 不是主路径，只在真实 LLM 异常时兜底；严格真实 smoke 已用 <code>allow_fallback=False</code> 验证真实 LLM pipeline 可发布。</p>
       </section>
     </main>
   </div>

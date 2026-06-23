@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
-from worker.agents.event_pipeline_agents import ResearchWriterAgentStub
+from worker.agents.event_pipeline_agents import OnDutyEditorAgentStub, ResearchWriterAgentStub, ReviewPublisherAgentStub
+from worker.agents.factory import EventAgentSet
 from worker.models import AgentRun, Base, EventCandidate, EventDossier, PipelineRun, PublishedEvent, ReviewResult
 from worker.schemas.event import EventDossierDraft, ReviewResultDraft
 from worker.schemas.source import SourceCreate, SourceSignalCreate
@@ -39,6 +40,19 @@ def seed_signal(session):
             source_hash="demo:1",
             heat_metrics={"points": 120, "comments": 45},
         )
+    )
+
+
+def stub_agent_set() -> EventAgentSet:
+    """创建 workflow 离线测试用 stub agent 集合。
+
+    输入：无。
+    输出：显式 EventAgentSet，用于不访问真实 LLM 的历史回归。
+    """
+    return EventAgentSet(
+        editor=OnDutyEditorAgentStub(),
+        writer=ResearchWriterAgentStub(),
+        reviewer=ReviewPublisherAgentStub(),
     )
 
 
@@ -141,6 +155,7 @@ def test_langgraph_pipeline_publishes_event_and_records_counts():
         signal_ids=[signal.id],
         run_key="manual-p1-2-workflow",
         source_scope={"source": "demo"},
+        agent_mode="stub",
     )
 
     published_count = len(session.scalars(select(PublishedEvent)).all())
@@ -167,7 +182,7 @@ def test_langgraph_pipeline_revises_once_then_publishes():
     session = make_session()
     signal = seed_signal(session)
     reviewer = FixedDecisionReviewer(["revise", "publish"])
-    tools = EventPipelineTools(session, reviewer=reviewer)
+    tools = EventPipelineTools(session, agents=stub_agent_set(), reviewer=reviewer)
 
     state = run_event_pipeline(
         session,
@@ -204,7 +219,7 @@ def test_langgraph_pipeline_passes_revision_instructions_to_writer():
     signal = seed_signal(session)
     writer = RecordingWriter()
     reviewer = FixedDecisionReviewer(["revise", "publish"])
-    tools = EventPipelineTools(session, writer=writer, reviewer=reviewer)
+    tools = EventPipelineTools(session, agents=stub_agent_set(), writer=writer, reviewer=reviewer)
 
     state = run_event_pipeline(
         session,
@@ -227,7 +242,7 @@ def test_langgraph_pipeline_stops_after_max_revision_attempts_without_publishing
     session = make_session()
     signal = seed_signal(session)
     writer = RecordingWriter()
-    tools = EventPipelineTools(session, writer=writer, reviewer=AlwaysReviseReviewer())
+    tools = EventPipelineTools(session, agents=stub_agent_set(), writer=writer, reviewer=AlwaysReviseReviewer())
 
     state = run_event_pipeline(
         session,
@@ -267,7 +282,7 @@ def test_langgraph_pipeline_manual_review_does_not_publish():
     """
     session = make_session()
     signal = seed_signal(session)
-    tools = EventPipelineTools(session, reviewer=FixedDecisionReviewer(["manual_review"]))
+    tools = EventPipelineTools(session, agents=stub_agent_set(), reviewer=FixedDecisionReviewer(["manual_review"]))
 
     state = run_event_pipeline(
         session,
@@ -298,7 +313,7 @@ def test_langgraph_pipeline_reject_does_not_publish():
     """
     session = make_session()
     signal = seed_signal(session)
-    tools = EventPipelineTools(session, reviewer=FixedDecisionReviewer(["reject"]))
+    tools = EventPipelineTools(session, agents=stub_agent_set(), reviewer=FixedDecisionReviewer(["reject"]))
 
     state = run_event_pipeline(
         session,

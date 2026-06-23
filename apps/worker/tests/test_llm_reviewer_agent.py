@@ -158,3 +158,21 @@ def test_review_publisher_prompt_allows_bounded_heat_discussion_publish():
     assert "不要求每条热议型事件都有官方事实源" in combined_prompt
     assert "不能把社区讨论写成官方已确认事实" in combined_prompt
     assert "表达是否和来源强度匹配" in combined_prompt
+
+
+def test_review_publisher_prompt_does_not_require_fact_source_for_heat_discussion():
+    """验证审稿 prompt 不把热议稿误判为必须补官方事实源。
+
+    输入：HN 风格事件档案和 fake LLM。
+    输出：prompt 明确单一高热来源可支撑热议型事件，表达受限即可发布。
+    """
+    fake_client = FakeLLMClient([review_json()])
+    agent = ReviewPublisherLLMAgent(fake_client)
+
+    agent.review(sample_dossier(), revision_count=2)
+
+    combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
+    assert "不要因为缺少官方事实源而要求修订" in combined_prompt
+    assert "单一高热来源可以支撑热议型事件" in combined_prompt
+    assert "正文已经限定为讨论、争论、观点分歧时应倾向 publish" in combined_prompt
+    assert "只有出现未受限的确定性事实或无法理解的风险时才 manual_review" in combined_prompt

@@ -178,6 +178,23 @@ def test_research_writer_prompt_bounds_community_heat_language():
     assert "不要写成官方已确认事实" in combined_prompt
 
 
+def test_research_writer_prompt_treats_heat_events_as_discussion_reporting():
+    """验证热度事件正文聚焦“讨论内容”而不是趋势判断。
+
+    输入：HN 来源信号和 fake LLM。
+    输出：prompt 明确热度事件要叙述外网正在讨论什么，并避免趋势结论。
+    """
+    fake_client = FakeLLMClient([dossier_json()])
+    agent = ResearchWriterLLMAgent(fake_client)
+
+    agent.draft(candidate_draft(), [sample_signal()])
+
+    combined_prompt = fake_client.calls[0]["system_prompt"] + "\n" + fake_client.calls[0]["message"]
+    assert "把热度事件写成外网正在讨论什么" in combined_prompt
+    assert "不要判断趋势是否已经成立" in combined_prompt
+    assert "避免使用持续升温、行业改变、正在重塑等趋势结论" in combined_prompt
+
+
 def test_research_writer_prompt_requires_information_dense_detail_body():
     """验证写作 prompt 要求详情正文具备足够信息密度。
 
