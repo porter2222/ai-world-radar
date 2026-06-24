@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import DateTime, create_engine, inspect
 
 from worker.models import Base
 
@@ -52,3 +52,19 @@ def test_models_can_create_schema_in_test_database():
 
     created_tables = set(inspect(engine).get_table_names())
     assert P1_CORE_TABLES.issubset(created_tables)
+
+
+def test_timestamp_columns_do_not_use_database_transaction_now_defaults():
+    """Timestamp fields should not use Postgres now(), which freezes at transaction start."""
+    transaction_time_columns = []
+    for table in Base.metadata.sorted_tables:
+        for column in table.columns:
+            if not isinstance(column.type, DateTime):
+                continue
+            if column.server_default is None:
+                continue
+            default_sql = str(column.server_default.arg).lower()
+            if "now" in default_sql:
+                transaction_time_columns.append(f"{table.name}.{column.name}")
+
+    assert transaction_time_columns == []

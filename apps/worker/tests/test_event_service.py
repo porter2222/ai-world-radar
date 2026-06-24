@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
@@ -129,6 +131,69 @@ def test_candidate_dossier_review_and_publish_flow_is_idempotent():
     assert review.decision == "publish"
     assert first_publish.id == second_publish.id
     assert first_publish.published_title == "OpenAI 新模型为什么引发开发者关注"
+
+
+def test_publish_dossier_uses_publish_action_time_for_timestamps():
+    """PublishedEvent timestamps should reflect publish time, not transaction start time."""
+    publish_time = datetime(2026, 6, 24, 18, 45, tzinfo=UTC)
+    session = make_session()
+    signal = seed_signal(session)
+    service = EventService(session, now_provider=lambda: publish_time)
+    reviewed = _create_reviewed_candidate(service, signal.id, "openai-publish-time")
+
+    published = service.publish_dossier(
+        PublishEventCommand(
+            candidate_id=reviewed["candidate"].id,
+            dossier_id=reviewed["dossier"].id,
+            publish_mode="auto",
+        )
+    )
+
+    assert published.created_at == publish_time
+    assert published.published_at == publish_time
+
+
+def test_candidate_last_seen_at_updates_when_candidate_is_seen_again():
+    """EventCandidate last_seen_at should move forward when the same event is merged again."""
+    seen_times = [
+        datetime(2026, 6, 24, 10, 0, tzinfo=UTC),
+        datetime(2026, 6, 24, 12, 0, tzinfo=UTC),
+    ]
+    session = make_session()
+    signal = seed_signal(session)
+    service = EventService(session, now_provider=lambda: seen_times[0])
+
+    first = service.create_candidate_with_signals(
+        EventCandidateDraft(
+            candidate_key="openai-repeated-signal",
+            title="OpenAI repeated signal",
+            category="models",
+            heat_score=60,
+            importance_score=70,
+            audience_value_score=80,
+            ranking_score=75,
+            ranking_reason="initial signal",
+        ),
+        signal_ids=[signal.id],
+    )
+    service.now_provider = lambda: seen_times[1]
+    second = service.create_candidate_with_signals(
+        EventCandidateDraft(
+            candidate_key="openai-repeated-signal",
+            title="OpenAI repeated signal updated",
+            category="models",
+            heat_score=65,
+            importance_score=72,
+            audience_value_score=81,
+            ranking_score=77,
+            ranking_reason="updated signal",
+        ),
+        signal_ids=[signal.id],
+    )
+
+    assert second.id == first.id
+    assert second.first_seen_at == seen_times[0]
+    assert second.last_seen_at == seen_times[1]
 
 
 @pytest.mark.parametrize(

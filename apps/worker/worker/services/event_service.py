@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -23,13 +25,14 @@ class EventService:
     输出：提供候选事件、事件档案、审稿结果和发布快照的受控写入能力。
     """
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, now_provider: Callable[[], datetime] | None = None):
         """初始化服务。
 
         输入：外部传入且由调用方管理事务的 Session。
         输出：可复用的 EventService 实例。
         """
         self.session = session
+        self.now_provider = now_provider or (lambda: datetime.now(UTC))
 
     def create_candidate_with_signals(
         self,
@@ -45,9 +48,16 @@ class EventService:
         candidate = self.session.scalar(
             select(EventCandidate).where(EventCandidate.candidate_key == payload.candidate_key)
         )
+        seen_at = self._current_time()
         if candidate is None:
-            candidate = EventCandidate(candidate_key=payload.candidate_key)
+            candidate = EventCandidate(
+                candidate_key=payload.candidate_key,
+                first_seen_at=seen_at,
+                last_seen_at=seen_at,
+            )
             self.session.add(candidate)
+        else:
+            candidate.last_seen_at = seen_at
 
         candidate.title = payload.title
         candidate.event_type = payload.event_type
@@ -188,6 +198,7 @@ class EventService:
             raise ValueError("Dossier has no publish review result")
 
         slug = self._unique_slug(candidate.candidate_key, candidate.id)
+        publish_time = self._current_time()
         published = PublishedEvent(
             candidate_id=candidate.id,
             dossier_id=dossier.id,
@@ -203,12 +214,20 @@ class EventService:
             ranking_score=candidate.ranking_score,
             status="published",
             publish_mode=payload.publish_mode,
+            published_at=publish_time,
+            created_at=publish_time,
         )
         candidate.status = "published"
         dossier.status = "published_snapshot"
         self.session.add(published)
         self.session.flush()
         return published
+
+    def _current_time(self) -> datetime:
+        current = self.now_provider()
+        if current.tzinfo is None:
+            return current.replace(tzinfo=UTC)
+        return current.astimezone(UTC)
 
     def _next_dossier_version(self, candidate_id: str) -> int:
         """计算候选事件的下一版 dossier version。

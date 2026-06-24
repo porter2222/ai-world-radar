@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from worker.db.base import Base, TimestampMixin, new_id
+from worker.db.base import Base, TimestampMixin, new_id, utc_now
 
 
 class Source(Base, TimestampMixin):
@@ -51,7 +51,7 @@ class SourceSignal(Base, TimestampMixin):
     original_url: Mapped[str | None] = mapped_column(Text)
     canonical_url: Mapped[str | None] = mapped_column(Text)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    collected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     language: Mapped[str | None] = mapped_column(String(32))
     raw_summary: Mapped[str | None] = mapped_column(Text)
     content_excerpt: Mapped[str | None] = mapped_column(Text)
@@ -91,8 +91,8 @@ class EventCandidate(Base, TimestampMixin):
     ranking_reason: Mapped[str | None] = mapped_column(Text)
     merge_reason: Mapped[str | None] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="new")
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     created_by_run_id: Mapped[str | None] = mapped_column(ForeignKey("pipeline_runs.id"))
 
 
@@ -113,7 +113,7 @@ class EventCandidateSignal(Base):
     merge_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
     merge_reason: Mapped[str | None] = mapped_column(Text)
     added_by: Mapped[str] = mapped_column(String(64), nullable=False, default="system")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class EventDossier(Base, TimestampMixin):
@@ -164,7 +164,7 @@ class ReviewResult(Base):
     issues: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     revision_instructions: Mapped[str] = mapped_column(Text, nullable=False, default="")
     checked_items: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class PublishedEvent(Base, TimestampMixin):
@@ -196,7 +196,7 @@ class PublishedEvent(Base, TimestampMixin):
     ranking_score: Mapped[float] = mapped_column(Float, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="published")
     publish_mode: Mapped[str] = mapped_column(String(64), nullable=False, default="auto")
-    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
 class PipelineRun(Base, TimestampMixin):
@@ -213,7 +213,7 @@ class PipelineRun(Base, TimestampMixin):
     trigger_type: Mapped[str] = mapped_column(String(64), nullable=False, default="manual")
     source_scope: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="running")
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     signals_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     candidates_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -271,4 +271,4 @@ class AdminAction(Base):
     after_snapshot: Mapped[dict | None] = mapped_column(JSON)
     status: Mapped[str] = mapped_column(String(64), nullable=False, default="success")
     error_message: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
