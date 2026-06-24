@@ -51,8 +51,8 @@ P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_re
 
 `P1-10 首页时效窗口与采集调度策略` 是 P1-9 后针对首页“只展示新发生的事”的策略与实施依据，基于当前 `ProductQueryService.list_published_events()`、FastAPI `GET /events`、`PublishedEvent.published_at` 和现有 13 源采集脚本设计。P1-10 已完成代码落地，配套实施记录已迁入 `docs/05-实现计划/P1-10 首页时效窗口与采集调度实施计划.md`。
 
-`P1-11 采集层8小时时效窗口设计` 是 P1-10 后针对 source_signals 混入旧信号的设计文档，定义普通来源默认只写入最近 8 小时信号，GitHub repo trends 使用本轮 detected time。
+`P1-11 采集层8小时时效窗口设计` 是 P1-10 后针对 source_signals 混入旧信号的设计文档，定义普通来源默认只写入最近 8 小时信号，GitHub repo trends 使用本轮 detected time。P1-11 已于 2026-06-24 完成。
 
-`P1-11 采集层8小时时效窗口实施计划` 是 P1-11 的测试先行执行清单，定义采集窗口过滤、GitHub trends 时间语义、summary 统计、真实 PostgreSQL smoke 和验收文档更新步骤。
+`P1-11 采集层8小时时效窗口实施计划` 是 P1-11 的测试先行执行清单，定义采集窗口过滤、GitHub trends 时间语义、summary 统计、真实 PostgreSQL smoke 和验收文档更新步骤。最终验收：采集脚本回归 `15 passed in 21.91s`、官方源/GitHub trends 回归 `9 passed in 0.53s`、pipeline 脚本回归 `8 passed in 13.56s`、worker 全量回归 `149 passed, 1 skipped in 63.57s`；真实 PostgreSQL smoke 中普通源窗口外写入为 0。
 
 `P1-前端公共事件页面实施计划` 是 `apps/web` 公共首页事件流和事件详情页的实施计划，已迁入本目录作为项目正式实现计划文档。
