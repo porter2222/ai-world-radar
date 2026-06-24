@@ -57,13 +57,68 @@ class EditorialCandidateService:
         输入：时间窗口、候选池上限、是否排除已处理信号和可选当前时间。
         输出：经过硬过滤和分组合并后的 EditorialCandidateGroup 列表。
         """
+        signal_rows = self._load_signals(limit=candidate_pool_limit)
+        return self.build_candidate_groups_from_rows(
+            signal_rows,
+            lookback_hours=lookback_hours,
+            exclude_processed=exclude_processed,
+            now=now,
+        )
+
+    def build_candidate_groups_from_rows(
+        self,
+        signal_rows: list[tuple[SourceSignal, str]],
+        *,
+        lookback_hours: int = 48,
+        exclude_processed: bool = True,
+        now: datetime | None = None,
+    ) -> list[EditorialCandidateGroup]:
+        """从调用方显式传入的信号行构造 selector 候选分组。
+
+        输入：`(SourceSignal, source_key)` 行列表、时间窗口、是否排除已处理信号和当前时间。
+        输出：复用同一套硬过滤与合并规则得到的 EditorialCandidateGroup 列表。
+        """
+        return self._build_candidate_groups_from_rows(
+            signal_rows,
+            lookback_hours=lookback_hours,
+            exclude_processed=exclude_processed,
+            now=now,
+        )
+
+    def _load_signals(self, *, limit: int) -> list[tuple[SourceSignal, str]]:
+        """读取候选池内来源信号。
+
+        输入：候选池最大行数。
+        输出：按采集时间正序排列的 `(SourceSignal, source_key)` 列表。
+        """
+        rows = self.session.execute(
+            select(SourceSignal, Source.source_key)
+            .join(Source, Source.id == SourceSignal.source_id)
+            .order_by(SourceSignal.collected_at.asc(), SourceSignal.id.asc())
+            .limit(limit)
+        ).all()
+        return [(row[0], row[1]) for row in rows]
+
+    def _build_candidate_groups_from_rows(
+        self,
+        signal_rows: list[tuple[SourceSignal, str]],
+        *,
+        lookback_hours: int,
+        exclude_processed: bool,
+        now: datetime | None,
+    ) -> list[EditorialCandidateGroup]:
+        """把来源信号行转换为候选分组。
+
+        输入：已排序的 `(SourceSignal, source_key)` 行列表、窗口和过滤开关。
+        输出：经过硬过滤、URL/repo/标题合并后的候选 group 列表。
+        """
         groups: list[EditorialCandidateGroup] = []
         url_index: dict[str, EditorialCandidateGroup] = {}
         repo_index: dict[str, EditorialCandidateGroup] = {}
         seen_source_hashes: set[str] = set()
         cutoff = self._build_cutoff(lookback_hours=lookback_hours, now=now)
 
-        for signal, source_key in self._load_signals(limit=candidate_pool_limit):
+        for signal, source_key in signal_rows:
             if not self._is_eligible_signal(
                 signal,
                 cutoff=cutoff,
@@ -95,20 +150,6 @@ class EditorialCandidateService:
                 repo_index[repo_full_name] = group
 
         return groups
-
-    def _load_signals(self, *, limit: int) -> list[tuple[SourceSignal, str]]:
-        """读取候选池内来源信号。
-
-        输入：候选池最大行数。
-        输出：按采集时间正序排列的 `(SourceSignal, source_key)` 列表。
-        """
-        rows = self.session.execute(
-            select(SourceSignal, Source.source_key)
-            .join(Source, Source.id == SourceSignal.source_id)
-            .order_by(SourceSignal.collected_at.asc(), SourceSignal.id.asc())
-            .limit(limit)
-        ).all()
-        return [(row[0], row[1]) for row in rows]
 
     def _is_eligible_signal(
         self,
