@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from worker.collectors.github_repo_trends import GITHUB_REPOSITORY_SEARCH_ENDPOINT, GitHubRepositoryTrend
 from worker.collectors.hn_algolia import normalize_url
 from worker.schemas.source import SourceCreate, SourceSignalCreate
@@ -26,14 +28,16 @@ def github_repo_trend_to_signal(
     *,
     snapshot_bucket: str,
     previous_stargazers_count: int | None = None,
+    detected_at: datetime | None = None,
 ) -> SourceSignalCreate:
     """把 GitHubRepositoryTrend 映射成新版来源信号。
 
-    输入：规范化仓库趋势对象、当前快照 bucket，以及可选的上一轮 star 数。
+    输入：规范化仓库趋势对象、当前快照 bucket、可选上一轮 star 数和本轮探测时间。
     输出：可交给 SignalService.upsert_signal 的 SourceSignalCreate。
     """
     stars_delta = _calculate_stars_delta(repo.stargazers_count, previous_stargazers_count)
     stars_delta_rate = _calculate_stars_delta_rate(stars_delta, previous_stargazers_count)
+    trend_detected_at = detected_at or datetime.now(UTC)
 
     return SourceSignalCreate(
         source_key="github_repo_trends",
@@ -41,7 +45,7 @@ def github_repo_trend_to_signal(
         original_title=f"{repo.full_name} is gaining attention on GitHub",
         original_url=repo.html_url,
         canonical_url=normalize_url(repo.html_url),
-        published_at=repo.pushed_at or repo.updated_at,
+        published_at=trend_detected_at,
         language="en",
         raw_summary=_build_raw_summary(repo),
         source_hash=f"github_repo_trends:{repo.full_name}:{snapshot_bucket}",
@@ -65,6 +69,7 @@ def github_repo_trend_to_signal(
             "topics": repo.topics,
             "query": repo.query,
             "snapshot_bucket": snapshot_bucket,
+            "detected_at": trend_detected_at.isoformat(),
             "pushed_at": repo.pushed_at.isoformat() if repo.pushed_at else None,
             "created_at": repo.created_at.isoformat() if repo.created_at else None,
             "updated_at": repo.updated_at.isoformat() if repo.updated_at else None,

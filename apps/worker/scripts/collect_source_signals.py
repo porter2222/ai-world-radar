@@ -3,7 +3,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from datetime import UTC, datetime
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from sqlalchemy import func, select
@@ -96,6 +97,41 @@ DEFAULT_DAILY_ALL_GITHUB_RELEASE_REPOS = ("openai/openai-python",)
 DEFAULT_DAILY_ALL_GITHUB_TREND_QUERIES = ("topic:llm stars:>100",)
 
 
+@dataclass
+class CollectionWindow:
+    """采集窗口。
+    输入：窗口开始、结束和允许未来偏移。
+    输出：供信号入库前判断是否写入。
+    """
+
+    start: datetime
+    end: datetime
+    allowed_future_skew: timedelta = timedelta(minutes=5)
+
+
+@dataclass
+class CollectionStats:
+    """采集跳过统计。
+    输入：无。
+    输出：记录 stale、missing_published_at、future 三类跳过数量。
+    """
+
+    stale: int = 0
+    missing_published_at: int = 0
+    future: int = 0
+
+    def as_dict(self) -> dict[str, int]:
+        """转换为 stdout JSON 字段。
+        输入：当前统计对象。
+        输出：稳定 key 顺序的 dict。
+        """
+        return {
+            "stale": self.stale,
+            "missing_published_at": self.missing_published_at,
+            "future": self.future,
+        }
+
+
 def parse_args() -> argparse.Namespace:
     """解析来源采集脚本参数。
 
@@ -126,6 +162,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--snapshot-bucket", default=None, help="GitHub repo trend 快照 bucket；测试或 smoke 可传固定 YYYYMMDDHH。")
     parser.add_argument("--official-profile", action="append", default=[], help="官方源 profile key，可重复传入。")
     parser.add_argument("--official-limit", type=int, default=5, help="每个官方源最大写入条目数。")
+    parser.add_argument("--lookback-hours", type=int, default=8, help="采集层默认时效窗口小时数。")
+    parser.add_argument("--now", default=None, help="测试专用：覆盖当前 UTC 时间，ISO 8601 格式。")
+    parser.add_argument(
+        "--continue-on-source-error",
+        action="store_true",
+        help="生产式采集：单个来源失败时记录失败并继续采集其他来源。",
+    )
     args = parser.parse_args()
     if not args.source and not args.source_group:
         parser.error("at least one --source or --source-group is required")
@@ -170,6 +213,10 @@ def main() -> int:
     输出：向 stdout 打印 JSON 摘要，并用进程退出码表达成功或失败。
     """
     args = parse_args()
+    args.source_failures = []
+    current_time = parse_utc_datetime(args.now)
+    args.collection_window = build_collection_window(now=current_time, lookback_hours=args.lookback_hours)
+    args.collection_stats = CollectionStats()
     engine = create_worker_engine(args.database_url) if args.database_url else create_worker_engine()
     if args.create_schema_for_smoke:
         Base.metadata.create_all(engine)
@@ -181,6 +228,15 @@ def main() -> int:
         source_keys = collect_selected_sources(session_service=service, args=args)
         session.commit()
         summary = build_summary(session, source_keys=source_keys)
+        summary["window"] = {
+            "lookback_hours": args.lookback_hours,
+            "start": args.collection_window.start.isoformat(),
+            "end": args.collection_window.end.isoformat(),
+        }
+        summary["skipped_signals"] = args.collection_stats.as_dict()
+        if args.source_failures:
+            summary["failed_sources_count"] = len(args.source_failures)
+            summary["failed_sources"] = args.source_failures
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True))
         return 0
     except Exception as exc:
@@ -200,32 +256,79 @@ def collect_selected_sources(session_service: SignalService, args: argparse.Name
     """
     source_keys: set[str] = set()
     selected_sources = set(args.source)
+    continue_on_source_error = bool(getattr(args, "continue_on_source_error", False))
+    source_failures = getattr(args, "source_failures", None)
+    window = getattr(args, "collection_window", build_collection_window(now=datetime.now(UTC), lookback_hours=8))
+    stats = getattr(args, "collection_stats", CollectionStats())
 
     if "hn" in selected_sources:
-        collect_hn_signals(session_service, days=args.hn_days, limit=args.hn_limit, fixture_mode=args.fixture_mode)
-        source_keys.add("hn_algolia")
+        try:
+            written_count = collect_hn_signals(
+                session_service,
+                hours=getattr(args, "lookback_hours", 8),
+                limit=args.hn_limit,
+                fixture_mode=args.fixture_mode,
+                window=window,
+                stats=stats,
+            )
+            mark_source_status(session_service, source_key="hn_algolia", status="succeeded")
+            if written_count:
+                source_keys.add("hn_algolia")
+        except Exception as exc:
+            handle_source_error(
+                session_service,
+                source_key="hn_algolia",
+                exc=exc,
+                continue_on_source_error=continue_on_source_error,
+                source_failures=source_failures,
+            )
 
     if "github" in selected_sources:
-        collect_github_signals(
-            session_service,
-            repos=args.github_repo,
-            limit=args.github_limit,
-            token=os.getenv(args.github_token_env),
-            fixture_mode=args.fixture_mode,
-        )
-        source_keys.add("github_releases")
+        try:
+            written_count = collect_github_signals(
+                session_service,
+                repos=args.github_repo,
+                limit=args.github_limit,
+                token=os.getenv(args.github_token_env),
+                fixture_mode=args.fixture_mode,
+                window=window,
+                stats=stats,
+            )
+            mark_source_status(session_service, source_key="github_releases", status="succeeded")
+            if written_count:
+                source_keys.add("github_releases")
+        except Exception as exc:
+            handle_source_error(
+                session_service,
+                source_key="github_releases",
+                exc=exc,
+                continue_on_source_error=continue_on_source_error,
+                source_failures=source_failures,
+            )
 
     if "github_trends" in selected_sources:
-        collect_github_repo_trend_signals(
-            session_service,
-            queries=args.github_trend_query,
-            limit=args.github_trend_limit,
-            min_stars=args.github_trend_min_stars,
-            token=os.getenv(args.github_trend_token_env),
-            fixture_mode=args.fixture_mode,
-            snapshot_bucket=args.snapshot_bucket or build_snapshot_bucket(),
-        )
-        source_keys.add("github_repo_trends")
+        try:
+            written_count = collect_github_repo_trend_signals(
+                session_service,
+                queries=args.github_trend_query,
+                limit=args.github_trend_limit,
+                min_stars=args.github_trend_min_stars,
+                token=os.getenv(args.github_trend_token_env),
+                fixture_mode=args.fixture_mode,
+                snapshot_bucket=args.snapshot_bucket or build_snapshot_bucket(now=window.end),
+                detected_at=window.end,
+            )
+            mark_source_status(session_service, source_key="github_repo_trends", status="succeeded")
+            if written_count:
+                source_keys.add("github_repo_trends")
+        except Exception as exc:
+            handle_source_error(
+                session_service,
+                source_key="github_repo_trends",
+                exc=exc,
+                continue_on_source_error=continue_on_source_error,
+                source_failures=source_failures,
+            )
 
     if "official_feeds" in selected_sources:
         official_source_keys = collect_official_feed_signals(
@@ -233,22 +336,147 @@ def collect_selected_sources(session_service: SignalService, args: argparse.Name
             profile_keys=args.official_profile,
             limit=args.official_limit,
             fixture_mode=args.fixture_mode,
+            continue_on_source_error=continue_on_source_error,
+            source_failures=source_failures,
+            window=window,
+            stats=stats,
         )
         source_keys.update(official_source_keys)
 
     return source_keys
 
 
-def collect_hn_signals(service: SignalService, *, days: int, limit: int, fixture_mode: bool) -> None:
-    """采集 HN story 并写入 SourceSignal。
+def parse_utc_datetime(value: str | None) -> datetime:
+    """解析命令行传入的 UTC 时间。
+    输入：ISO datetime 字符串；为空时使用当前 UTC。
+    输出：timezone-aware UTC datetime。
+    """
+    if not value:
+        return datetime.now(UTC)
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
-    输入：SignalService、时间窗口、数量限制和 fixture 开关。
-    输出：无返回值；通过服务层 upsert `hn_algolia` source 和 signal。
+
+def build_collection_window(*, now: datetime, lookback_hours: int) -> CollectionWindow:
+    """构造本轮采集窗口。
+    输入：当前时间和窗口小时数。
+    输出：CollectionWindow，start 为 now-lookback_hours，end 为 now。
+    """
+    return CollectionWindow(start=now - timedelta(hours=lookback_hours), end=now)
+
+
+def normalize_datetime(value: datetime | None) -> datetime | None:
+    """统一 datetime 时区。
+    输入：可选 datetime。
+    输出：timezone-aware UTC datetime；空值返回 None。
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def should_write_signal(payload, *, window: CollectionWindow, stats: CollectionStats) -> bool:
+    """判断信号是否应写入 source_signals。
+    输入：SourceSignalCreate、采集窗口和统计对象。
+    输出：可写入返回 True；否则递增对应跳过计数并返回 False。
+    """
+    published_at = normalize_datetime(payload.published_at)
+    if published_at is None:
+        stats.missing_published_at += 1
+        return False
+    if published_at < window.start:
+        stats.stale += 1
+        return False
+    if published_at > window.end + window.allowed_future_skew:
+        stats.future += 1
+        return False
+    return True
+
+
+def upsert_signal_if_in_window(
+    service: SignalService,
+    payload,
+    *,
+    window: CollectionWindow,
+    stats: CollectionStats,
+) -> bool:
+    """按采集窗口有条件写入信号。
+    输入：SignalService、SourceSignalCreate、窗口和统计对象。
+    输出：写入返回 True；被窗口过滤返回 False。
+    """
+    if not should_write_signal(payload, window=window, stats=stats):
+        return False
+    service.upsert_signal(payload)
+    return True
+
+
+def handle_source_error(
+    service: SignalService,
+    *,
+    source_key: str,
+    exc: Exception,
+    continue_on_source_error: bool,
+    source_failures: list[dict[str, str]] | None,
+) -> None:
+    """处理单个来源采集失败。
+    输入：SignalService、来源 key、异常、是否继续和可选失败摘要列表。
+    输出：严格模式重新抛错；继续模式记录 source 失败状态并把失败摘要交给调用方。
+    """
+    mark_source_status(service, source_key=source_key, status="failed", failure_reason=str(exc))
+    if not continue_on_source_error:
+        raise exc
+    if source_failures is not None:
+        source_failures.append({"source_key": source_key, "error": str(exc)})
+
+
+def mark_source_status(
+    service: SignalService,
+    *,
+    source_key: str,
+    status: str,
+    failure_reason: str | None = None,
+) -> None:
+    """更新来源最近一次采集状态。
+    输入：SignalService、来源 key、状态和可选失败原因。
+    输出：若来源已存在则更新 last_status/failure_reason；来源不存在时不创建占位来源。
+    """
+    source = service.session.scalar(select(Source).where(Source.source_key == source_key))
+    if source is None:
+        return
+    source.last_status = status
+    source.failure_reason = failure_reason
+    service.session.flush()
+
+
+def collect_hn_signals(
+    service: SignalService,
+    *,
+    hours: int,
+    limit: int,
+    fixture_mode: bool,
+    window: CollectionWindow,
+    stats: CollectionStats,
+) -> int:
+    """采集 HN story 并按采集窗口写入 SourceSignal。
+
+    输入：SignalService、小时窗口、数量限制、fixture 开关、采集窗口和统计对象。
+    输出：实际写入或幂等命中的信号数量。
     """
     service.upsert_source(build_hn_source())
-    stories = load_fixture_hn_stories(limit=limit) if fixture_mode else fetch_hn_stories(days=days, limit=limit)
+    stories = (
+        load_fixture_hn_stories(limit=limit)
+        if fixture_mode
+        else fetch_hn_stories(hours=hours, limit=limit, queries=None, now=window.end)
+    )
+    written_count = 0
     for story in stories:
-        service.upsert_signal(hn_story_to_signal(story))
+        if upsert_signal_if_in_window(service, hn_story_to_signal(story), window=window, stats=stats):
+            written_count += 1
+    return written_count
 
 
 def collect_github_signals(
@@ -258,16 +486,19 @@ def collect_github_signals(
     limit: int,
     token: str | None,
     fixture_mode: bool,
-) -> None:
-    """采集 GitHub releases 并写入 SourceSignal。
+    window: CollectionWindow,
+    stats: CollectionStats,
+) -> int:
+    """采集 GitHub releases 并按采集窗口写入 SourceSignal。
 
-    输入：SignalService、仓库列表、数量限制、可选 token 和 fixture 开关。
-    输出：无返回值；通过服务层 upsert `github_releases` source 和 signal。
+    输入：SignalService、仓库列表、数量限制、可选 token、fixture 开关、采集窗口和统计对象。
+    输出：实际写入或幂等命中的信号数量。
     """
     if not repos:
         raise ValueError("--github-repo is required when --source github is used")
 
     service.upsert_source(build_github_releases_source())
+    written_count = 0
     for repo in repos:
         owner, repo_name = parse_repo(repo)
         releases = (
@@ -276,7 +507,9 @@ def collect_github_signals(
             else fetch_github_releases(owner=owner, repo=repo_name, limit=limit, token=token)
         )
         for release in releases:
-            service.upsert_signal(github_release_to_signal(release))
+            if upsert_signal_if_in_window(service, github_release_to_signal(release), window=window, stats=stats):
+                written_count += 1
+    return written_count
 
 
 def collect_github_repo_trend_signals(
@@ -288,16 +521,18 @@ def collect_github_repo_trend_signals(
     token: str | None,
     fixture_mode: bool,
     snapshot_bucket: str,
-) -> None:
+    detected_at: datetime,
+) -> int:
     """采集 GitHub repo trends 并写入 SourceSignal。
 
-    输入：SignalService、搜索 query 列表、数量限制、star 阈值、可选 token、fixture 开关和快照 bucket。
-    输出：无返回值；通过服务层 upsert `github_repo_trends` source 和 signal。
+    输入：SignalService、搜索 query 列表、数量限制、star 阈值、可选 token、fixture 开关、快照 bucket 和探测时间。
+    输出：实际写入或幂等命中的信号数量。
     """
     if not queries:
         raise ValueError("--github-trend-query is required when --source github_trends is used")
 
     service.upsert_source(build_github_repo_trends_source())
+    written_count = 0
     for query in queries:
         trends = (
             load_fixture_github_repo_trends(query=query, limit=limit, min_stars=min_stars)
@@ -315,8 +550,11 @@ def collect_github_repo_trend_signals(
                     repo,
                     snapshot_bucket=snapshot_bucket,
                     previous_stargazers_count=previous_stargazers_count,
+                    detected_at=detected_at,
                 )
             )
+            written_count += 1
+    return written_count
 
 
 def collect_official_feed_signals(
@@ -325,25 +563,44 @@ def collect_official_feed_signals(
     profile_keys: list[str],
     limit: int,
     fixture_mode: bool,
+    continue_on_source_error: bool = False,
+    source_failures: list[dict[str, str]] | None = None,
+    window: CollectionWindow | None = None,
+    stats: CollectionStats | None = None,
 ) -> set[str]:
-    """采集官方 RSS/Atom/HTML 来源并写入 SourceSignal。
+    """采集官方 RSS/Atom/HTML 来源并按采集窗口写入 SourceSignal。
 
-    输入：SignalService、官方 profile key 列表、每个 profile 的数量限制和 fixture 开关。
-    输出：本轮实际写入或尝试写入的官方 source_key 集合。
+    输入：SignalService、官方 profile key 列表、每个 profile 的数量限制、fixture 开关、窗口和统计对象。
+    输出：本轮实际写入官方信号的 source_key 集合。
     """
     if not profile_keys:
         raise ValueError("--official-profile is required when --source official_feeds is used")
 
+    window = window or build_collection_window(now=datetime.now(UTC), lookback_hours=8)
+    stats = stats or CollectionStats()
     source_keys: set[str] = set()
     for profile_key in profile_keys:
         profile = get_official_source_profile(profile_key)
         service.upsert_source(build_official_news_source(profile))
-        entries = load_fixture_official_news(profile=profile, limit=limit) if fixture_mode else fetch_official_news(profile, limit=limit)
-        if not entries:
-            raise ValueError(f"No official entries collected for profile={profile.source_key}")
-        for entry in entries:
-            service.upsert_signal(official_news_entry_to_signal(entry))
-        source_keys.add(profile.source_key)
+        try:
+            entries = load_fixture_official_news(profile=profile, limit=limit) if fixture_mode else fetch_official_news(profile, limit=limit)
+            if not entries:
+                raise ValueError(f"No official entries collected for profile={profile.source_key}")
+            written_count = 0
+            for entry in entries:
+                if upsert_signal_if_in_window(service, official_news_entry_to_signal(entry), window=window, stats=stats):
+                    written_count += 1
+            mark_source_status(service, source_key=profile.source_key, status="succeeded")
+            if written_count:
+                source_keys.add(profile.source_key)
+        except Exception as exc:
+            handle_source_error(
+                service,
+                source_key=profile.source_key,
+                exc=exc,
+                continue_on_source_error=continue_on_source_error,
+                source_failures=source_failures,
+            )
     return source_keys
 
 

@@ -255,7 +255,10 @@ def _parse_datetime(value: str | None) -> datetime | None:
     try:
         parsed = parsedate_to_datetime(raw_value)
     except (TypeError, ValueError):
-        parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        try:
+            parsed = datetime.fromisoformat(raw_value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
 
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)

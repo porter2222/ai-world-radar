@@ -65,10 +65,12 @@ def test_github_search_repo_maps_to_trend_signal():
     """
     repo = parse_github_repository(load_payload()["items"][0], query="topic:llm stars:>100")
     source = build_github_repo_trends_source()
+    detected_at = datetime(2026, 6, 24, 8, 0, tzinfo=UTC)
     signal = github_repo_trend_to_signal(
         repo,
         snapshot_bucket="2026062311",
         previous_stargazers_count=1000,
+        detected_at=detected_at,
     )
 
     assert source.source_key == "github_repo_trends"
@@ -81,7 +83,7 @@ def test_github_search_repo_maps_to_trend_signal():
     assert signal.original_title == "example/fast-llm is gaining attention on GitHub"
     assert signal.original_url == "https://github.com/example/fast-llm?utm_source=radar#readme"
     assert signal.canonical_url == "https://github.com/example/fast-llm"
-    assert signal.published_at == datetime(2026, 6, 23, 9, 45, tzinfo=UTC)
+    assert signal.published_at == detected_at
     assert signal.raw_summary == (
         "A fast local LLM serving runtime for AI agents. "
         "GitHub repo with 1250 stars, 120 forks, language Python, topics: llm, agents, inference."
@@ -98,6 +100,8 @@ def test_github_search_repo_maps_to_trend_signal():
     assert signal.metadata["repo_id"] == "98765001"
     assert signal.metadata["query"] == "topic:llm stars:>100"
     assert signal.metadata["snapshot_bucket"] == "2026062311"
+    assert signal.metadata["detected_at"] == "2026-06-24T08:00:00+00:00"
+    assert signal.metadata["pushed_at"] == "2026-06-23T09:45:00+00:00"
 
 
 def test_github_search_repo_without_previous_snapshot_has_null_delta():

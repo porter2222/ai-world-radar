@@ -116,14 +116,20 @@ def dedupe_stories(stories: list[HNStory]) -> list[HNStory]:
     return deduped
 
 
-def fetch_hn_stories(days: int = 7, limit: int = 100, queries: list[str] | None = None) -> list[HNStory]:
+def fetch_hn_stories(
+    hours: int = 8,
+    limit: int = 100,
+    queries: list[str] | None = None,
+    now: datetime | None = None,
+) -> list[HNStory]:
     """请求 HN Algolia API 并返回 P1 候选 story。
 
-    输入：时间窗口天数、最大数量、可选 query profile。
+    输入：时间窗口小时数、最大数量、可选 query profile 和可选当前时间。
     输出：最近窗口内按热度排序、已去重的 HN story 列表。
     """
     queries = queries or DEFAULT_QUERY_PROFILE
-    window_start = int((datetime.now(UTC) - timedelta(days=days)).timestamp())
+    current = now or datetime.now(UTC)
+    window_start = int((current - timedelta(hours=hours)).timestamp())
     all_stories: list[HNStory] = []
 
     with httpx.Client(timeout=20.0, follow_redirects=True) as client:

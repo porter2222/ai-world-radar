@@ -32,7 +32,7 @@ def official_news_entry_to_signal(entry: OfficialNewsEntry) -> SourceSignalCreat
     profile = entry.profile
     return SourceSignalCreate(
         source_key=profile.source_key,
-        source_item_id=entry.entry_id,
+        source_item_id=_source_item_id(profile, entry.entry_id),
         original_title=entry.title,
         original_url=entry.url,
         canonical_url=normalize_url(entry.url),
@@ -49,6 +49,16 @@ def official_news_entry_to_signal(entry: OfficialNewsEntry) -> SourceSignalCreat
             "entry_id": entry.entry_id,
         },
     )
+
+
+def _source_item_id(profile: OfficialSourceProfile, entry_id: str) -> str:
+    """生成符合 SourceSignal 长度限制的官方源 item id。
+    输入：官方源 profile 和 collector 提供的原始 entry id。
+    输出：短 entry id 原样返回；超长 entry id 返回带 profile key 的稳定短 hash。
+    """
+    if len(entry_id) <= 128:
+        return entry_id
+    return f"official:{profile.source_key}:{_stable_entry_hash(entry_id)}"
 
 
 def _stable_entry_hash(value: str) -> str:

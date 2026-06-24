@@ -92,3 +92,63 @@ def test_html_news_page_entry_maps_to_source_signal():
     assert signal.canonical_url == "https://openai.com/news/new-agent-platform"
     assert signal.metadata["source"] == "official_news"
     assert signal.metadata["profile_name"] == "OpenAI News"
+
+
+def test_official_news_signal_uses_short_source_item_id_for_long_entry_id():
+    """验证超长官方源 entry id 不会突破 SourceSignal 的 source_item_id 长度限制。
+    输入：一个以长 URL 作为 entry_id 的官方源条目。
+    输出：source_item_id 使用稳定短 id，metadata 仍保留完整 entry_id 便于追溯。
+    """
+    profile = OfficialSourceProfile(
+        source_key="nvidia_news",
+        name="NVIDIA News",
+        mode="rss",
+        entry_url="https://nvidianews.nvidia.com/rss.xml",
+    )
+    long_entry_id = (
+        "https://nvidianews.nvidia.com/news/"
+        "nvidia-ai-platform-announcement-with-a-very-long-title-and-many-path-segments-"
+        "for-real-rss-feeds-that-exceed-the-source-item-id-limit"
+    )
+    entry = collect_from_feed_xml(
+        f"""
+        <rss><channel><item>
+          <title>NVIDIA long URL item</title>
+          <link>{long_entry_id}</link>
+          <guid>{long_entry_id}</guid>
+        </item></channel></rss>
+        """,
+        profile=profile,
+        limit=1,
+    )[0]
+
+    signal = official_news_entry_to_signal(entry)
+
+    assert len(signal.source_item_id or "") <= 128
+    assert signal.source_item_id.startswith("official:nvidia_news:")
+    assert signal.metadata["entry_id"] == long_entry_id
+
+
+def test_html_news_page_ignores_month_only_datetime():
+    """验证月份级日期不会导致官方 HTML 源采集失败。
+    输入：time datetime 为 `May 2026` 的轻量 HTML 新闻卡片。
+    输出：条目仍被解析，published_at 置空，后续采集流程可继续写入信号。
+    """
+    profile = OfficialSourceProfile(
+        source_key="anthropic_news",
+        name="Anthropic News",
+        mode="html",
+        entry_url="https://www.anthropic.com/news",
+    )
+    html = """
+    <article>
+      <a href="/news/example-update"><h2>Anthropic example update</h2></a>
+      <time datetime="May 2026">May 2026</time>
+      <p>Example summary.</p>
+    </article>
+    """
+
+    entry = collect_from_news_html(html, profile=profile, limit=1)[0]
+
+    assert entry.title == "Anthropic example update"
+    assert entry.published_at is None
