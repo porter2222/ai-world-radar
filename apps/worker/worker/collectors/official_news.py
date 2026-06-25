@@ -42,6 +42,7 @@ class OfficialNewsEntry:
     url: str
     published_at: datetime | None
     summary: str | None
+    image_url: str | None = None
 
 
 def collect_from_feed_xml(xml: str, *, profile: OfficialSourceProfile, limit: int) -> list[OfficialNewsEntry]:
@@ -76,6 +77,7 @@ def collect_from_news_html(html: str, *, profile: OfficialSourceProfile, limit: 
         absolute_url = urljoin(profile.entry_url, str(link["href"]))
         time_node = article.find("time")
         summary_node = article.find("p")
+        image_url = _find_html_image_url(article, base_url=profile.entry_url)
         entries.append(
             OfficialNewsEntry(
                 profile=profile,
@@ -84,6 +86,7 @@ def collect_from_news_html(html: str, *, profile: OfficialSourceProfile, limit: 
                 url=absolute_url,
                 published_at=_parse_datetime(time_node.get("datetime") if time_node else None),
                 summary=_clean_optional_text(summary_node.get_text(" ", strip=True) if summary_node else None),
+                image_url=image_url,
             )
         )
         if len(entries) >= limit:
@@ -140,6 +143,7 @@ def _collect_from_rss_root(
                 url=url,
                 published_at=_parse_datetime(_find_text(item, "pubDate")),
                 summary=_find_text(item, "description"),
+                image_url=_find_xml_image_url(item, base_url=url),
             )
         )
         if len(entries) >= limit:
@@ -176,6 +180,7 @@ def _collect_from_atom_root(
                     or _find_child_text_by_local_name(entry, "published")
                 ),
                 summary=_find_child_text_by_local_name(entry, "summary"),
+                image_url=_find_xml_image_url(entry, base_url=url),
             )
         )
         if len(entries) >= limit:
@@ -232,6 +237,63 @@ def _find_atom_link(entry: ElementTree.Element) -> str | None:
         if child.attrib.get("rel", "alternate") == "alternate":
             return href
     return fallback
+
+
+def _find_xml_image_url(parent: ElementTree.Element, *, base_url: str | None) -> str | None:
+    """从 RSS/Atom 条目中提取图片 URL。
+
+    输入：RSS item 或 Atom entry 节点，以及用于补全相对路径的条目 URL。
+    输出：media thumbnail/content、image enclosure 或 itunes image 的图片 URL；未找到时返回 None。
+    """
+    for node in parent.iter():
+        if node is parent:
+            continue
+        local_name = _strip_namespace(node.tag)
+        if local_name in {"thumbnail", "content"}:
+            image_url = _absolute_image_url(node.attrib.get("url") or node.attrib.get("href"), base_url=base_url)
+            media_type = node.attrib.get("type", "")
+            medium = node.attrib.get("medium", "")
+            if image_url and (local_name == "thumbnail" or medium == "image" or media_type.startswith("image/")):
+                return image_url
+        if local_name == "enclosure" and node.attrib.get("type", "").startswith("image/"):
+            image_url = _absolute_image_url(node.attrib.get("url"), base_url=base_url)
+            if image_url:
+                return image_url
+        if local_name == "image":
+            image_url = _absolute_image_url(node.attrib.get("href") or node.attrib.get("url"), base_url=base_url)
+            if image_url:
+                return image_url
+    return None
+
+
+def _find_html_image_url(article: object, *, base_url: str) -> str | None:
+    """从官方 HTML 列表 article 中提取图片 URL。
+
+    输入：BeautifulSoup article 节点和列表页入口 URL。
+    输出：首个 img 的 src 或 data-src 绝对地址；没有可用图片时返回 None。
+    """
+    image_node = article.find("img", src=True) or article.find("img", attrs={"data-src": True})
+    if image_node is None:
+        return None
+    return _absolute_image_url(image_node.get("src") or image_node.get("data-src"), base_url=base_url)
+
+
+def _absolute_image_url(value: str | None, *, base_url: str | None) -> str | None:
+    """清洗并补全图片 URL。
+
+    输入：可能为空、可能为相对路径的图片 URL，以及可选基准 URL。
+    输出：可展示的 http(s) 图片 URL；data URL、空值或无法补全时返回 None。
+    """
+    if not value:
+        return None
+    raw_value = value.strip()
+    if not raw_value or raw_value.startswith("data:"):
+        return None
+    if base_url:
+        raw_value = urljoin(base_url, raw_value)
+    if raw_value.startswith("https://") or raw_value.startswith("http://"):
+        return raw_value
+    return None
 
 
 def _strip_namespace(tag: str) -> str:

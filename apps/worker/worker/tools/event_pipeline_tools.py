@@ -16,6 +16,7 @@ from worker.models import EventCandidate, EventDossier, PipelineRun, PublishedEv
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand
 from worker.schemas.run import AgentRunRecord, PipelineRunCreate
 from worker.services.event_service import EventService
+from worker.services.cover_image_service import resolve_cover_image_url
 from worker.services.run_log_service import RunLogService
 
 
@@ -138,6 +139,8 @@ class EventPipelineTools:
             method_name="draft",
             args=(self._candidate_to_draft(candidate), signals, revision_instructions),
         )
+        if not draft.cover_image_url:
+            draft = draft.model_copy(update={"cover_image_url": resolve_cover_image_url(signals)})
         dossier = self.event_service.save_dossier(candidate.id, draft)
         if self.current_run_id is not None:
             dossier.generated_by_run_id = self.current_run_id

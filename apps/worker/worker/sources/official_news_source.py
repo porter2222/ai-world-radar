@@ -30,6 +30,17 @@ def official_news_entry_to_signal(entry: OfficialNewsEntry) -> SourceSignalCreat
     输出：可交给 SignalService.upsert_signal 的 SourceSignalCreate。
     """
     profile = entry.profile
+    metadata = {
+        "source": "official_news",
+        "profile_key": profile.source_key,
+        "profile_name": profile.name,
+        "mode": profile.mode,
+        "entry_id": entry.entry_id,
+    }
+    if entry.image_url:
+        metadata["image_url"] = entry.image_url
+        metadata["image_source"] = "official_feed"
+
     return SourceSignalCreate(
         source_key=profile.source_key,
         source_item_id=_source_item_id(profile, entry.entry_id),
@@ -41,13 +52,7 @@ def official_news_entry_to_signal(entry: OfficialNewsEntry) -> SourceSignalCreat
         raw_summary=entry.summary,
         source_hash=f"official_news:{profile.source_key}:{_stable_entry_hash(entry.entry_id)}",
         heat_metrics={"official_source": True},
-        metadata={
-            "source": "official_news",
-            "profile_key": profile.source_key,
-            "profile_name": profile.name,
-            "mode": profile.mode,
-            "entry_id": entry.entry_id,
-        },
+        metadata=metadata,
     )
 
 

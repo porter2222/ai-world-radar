@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hugging Face">
+  <rect width="1200" height="675" fill="#ffcc4d"/>
+  <circle cx="600" cy="280" r="118" fill="#ffffff"/>
+  <circle cx="555" cy="260" r="16" fill="#2f2f2f"/>
+  <circle cx="645" cy="260" r="16" fill="#2f2f2f"/>
+  <path d="M540 320 Q600 365 660 320" fill="none" stroke="#2f2f2f" stroke-width="16" stroke-linecap="round"/>
+  <text x="600" y="525" fill="#2f2f2f" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="700" text-anchor="middle">Hugging Face</text>
+</svg>

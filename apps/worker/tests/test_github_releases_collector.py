@@ -77,3 +77,5 @@ def test_github_release_maps_to_source_signal_create():
     assert signal.metadata["owner"] == "openai"
     assert signal.metadata["repo"] == "openai-python"
     assert signal.metadata["tag_name"] == "v1.2.0"
+    assert signal.metadata["image_url"] == "https://opengraph.githubassets.com/ai-world-radar/openai/openai-python"
+    assert signal.metadata["image_source"] == "github_opengraph"

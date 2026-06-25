@@ -164,3 +164,37 @@ def test_tools_create_publish_flow_and_update_run_counts():
     assert finished_run.dossiers_count == 1
     assert finished_run.published_count == 1
     assert finished_run.failed_count == 0
+
+
+def test_tools_create_dossier_applies_cover_image_fallback_from_signal_metadata():
+    """验证 tool 层会在 writer 未填图时补齐封面图。
+    输入：metadata 带 image_url 的 SourceSignal 和默认 writer stub。
+    输出：EventDossier.cover_image_url 使用来源图片，发布快照也保留该图片。
+    """
+    session = make_session()
+    service = SignalService(session)
+    service.upsert_source(SourceCreate(source_key="openai_news", name="OpenAI News", source_type="official", fetch_method="rss"))
+    signal = service.upsert_signal(
+        SourceSignalCreate(
+            source_key="openai_news",
+            source_item_id="openai-image-1",
+            original_title="OpenAI announces image-aware pipeline",
+            original_url="https://openai.com/news/image-aware-pipeline",
+            raw_summary="OpenAI announced an update with a usable cover image.",
+            source_hash="openai:image:1",
+            heat_metrics={"official_source": True},
+            metadata={"image_url": "https://openai.com/news/image-aware-pipeline/cover.jpg"},
+        )
+    )
+    tools = EventPipelineTools(session, agents=stub_agent_set())
+    run = tools.start_run(run_key="manual-image-tools", source_scope={"source": "openai_news"})
+
+    signals = tools.load_signals([signal.id])
+    candidate = tools.create_candidate(signals)
+    dossier = tools.create_dossier(candidate, signals)
+    review = tools.review_dossier(dossier)
+    published = tools.publish_if_approved(candidate.id, dossier.id, review.decision)
+
+    assert dossier.cover_image_url == "https://openai.com/news/image-aware-pipeline/cover.jpg"
+    assert published is not None
+    assert published.cover_image_url == "https://openai.com/news/image-aware-pipeline/cover.jpg"

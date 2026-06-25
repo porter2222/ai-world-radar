@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="OpenAI">
+  <rect width="1200" height="675" fill="#111111"/>
+  <circle cx="600" cy="280" r="118" fill="none" stroke="#ffffff" stroke-width="18"/>
+  <path d="M600 162 L702 221 L702 339 L600 398 L498 339 L498 221 Z" fill="none" stroke="#ffffff" stroke-width="16" stroke-linejoin="round"/>
+  <text x="600" y="525" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="92" font-weight="700" text-anchor="middle">OpenAI</text>
+</svg>

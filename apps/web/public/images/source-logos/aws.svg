@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="AWS">
+  <rect width="1200" height="675" fill="#232f3e"/>
+  <text x="600" y="325" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="158" font-weight="700" text-anchor="middle">AWS</text>
+  <path d="M470 390 Q600 465 730 390" fill="none" stroke="#ff9900" stroke-width="24" stroke-linecap="round"/>
+  <text x="600" y="535" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="700" text-anchor="middle">Machine Learning</text>
+</svg>

@@ -102,6 +102,8 @@ def test_github_search_repo_maps_to_trend_signal():
     assert signal.metadata["snapshot_bucket"] == "2026062311"
     assert signal.metadata["detected_at"] == "2026-06-24T08:00:00+00:00"
     assert signal.metadata["pushed_at"] == "2026-06-23T09:45:00+00:00"
+    assert signal.metadata["image_url"] == "https://opengraph.githubassets.com/ai-world-radar/example/fast-llm"
+    assert signal.metadata["image_source"] == "github_opengraph"
 
 
 def test_github_search_repo_without_previous_snapshot_has_null_delta():
