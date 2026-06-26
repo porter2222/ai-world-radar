@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from worker.collectors.github_repo_trends import GITHUB_REPOSITORY_SEARCH_ENDPOINT, GitHubRepositoryTrend
 from worker.collectors.hn_algolia import normalize_url
 from worker.schemas.source import SourceCreate, SourceSignalCreate
+from worker.services.cover_image_service import build_github_opengraph_image_url
 
 
 def build_github_repo_trends_source() -> SourceCreate:
@@ -38,6 +39,7 @@ def github_repo_trend_to_signal(
     stars_delta = _calculate_stars_delta(repo.stargazers_count, previous_stargazers_count)
     stars_delta_rate = _calculate_stars_delta_rate(stars_delta, previous_stargazers_count)
     trend_detected_at = detected_at or datetime.now(UTC)
+    image_url = build_github_opengraph_image_url(repo.owner, repo.repo)
 
     return SourceSignalCreate(
         source_key="github_repo_trends",
@@ -65,6 +67,8 @@ def github_repo_trend_to_signal(
             "full_name": repo.full_name,
             "owner": repo.owner,
             "repo": repo.repo,
+            "image_url": image_url,
+            "image_source": "github_opengraph",
             "language": repo.language,
             "topics": repo.topics,
             "query": repo.query,

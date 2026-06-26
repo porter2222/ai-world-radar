@@ -41,11 +41,11 @@
       <section id="decision">
         <h2>策略结论</h2>
         <p class="lead">PublishedEvent 是长期事件档案库；首页事件流只展示最近发生、仍值得用户现在看的事件。</p>
-        <p><span class="tag">7 天窗口</span><span class="tag">每天 3 次采集</span><span class="tag">不改表</span></p>
+        <p><span class="tag">48 小时窗口</span><span class="tag">每天 3 次采集</span><span class="tag">不改表</span></p>
         <ul>
-          <li>采集频率：每天 08:00、13:00、20:00。</li>
-          <li>首页默认窗口：最近 7 天内发布的事件。</li>
-          <li>不做低量兜底，不根据数量动态放宽窗口。</li>
+          <li>采集频率：每天 09:00、14:00、21:00。</li>
+          <li>首页默认窗口：最近 48 小时内发布的事件。</li>
+          <li>低量兜底：48 小时内少于 8 条时，向前放宽到 7 天。</li>
           <li>老事件不删除，详情页仍可按 slug 访问。</li>
         </ul>
       </section>
@@ -74,11 +74,13 @@
 
       <section id="product">
         <h2>产品策略</h2>
-        <pre><code>default_window_days = 7
+        <pre><code>default_window_hours = 48
+min_recent_items = 8
+backfill_window_days = 7
 default_limit = 20</code></pre>
         <ol>
-          <li>优先查询 7 天内的 published events。</li>
-          <li>不做低量兜底或动态窗口放宽。</li>
+          <li>优先查询 48 小时内的 published events。</li>
+          <li>如果少于 8 条，放宽到 7 天窗口。</li>
           <li>排序规则保持现有顺序。</li>
           <li>详情页和后台接口不受窗口影响。</li>
         </ol>
@@ -87,9 +89,9 @@ default_limit = 20</code></pre>
       <section id="schedule">
         <h2>采集调度策略</h2>
         <p>P1 先不引入调度器或队列，使用现有脚本链路，后续部署时再挂 Windows Task Scheduler、cron 或云端定时任务。</p>
-        <pre><code>08:00 collect_source_signals.py --source-group daily_all
-13:00 collect_source_signals.py --source-group daily_all
-20:00 collect_source_signals.py --source-group daily_all
+        <pre><code>09:00 collect_source_signals.py --source-group daily_all
+14:00 collect_source_signals.py --source-group daily_all
+21:00 collect_source_signals.py --source-group daily_all
 
 run_event_pipeline.py --select-top-candidates 5</code></pre>
       </section>
@@ -99,8 +101,8 @@ run_event_pipeline.py --select-top-candidates 5</code></pre>
         <table>
           <thead><tr><th>Task</th><th>修改点</th><th>验收重点</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td><code>tests/test_product_query_service.py</code></td><td>补 7 天窗口过滤、老事件详情可访问测试。</td></tr>
-            <tr><td>2</td><td><code>product_query_service.py</code></td><td>实现 <code>window_days/now</code>。</td></tr>
+            <tr><td>1</td><td><code>tests/test_product_query_service.py</code></td><td>补 48 小时过滤、7 天低量兜底、老事件详情可访问测试。</td></tr>
+            <tr><td>2</td><td><code>product_query_service.py</code></td><td>实现 <code>recent_hours/min_recent_items/backfill_days/now</code>。</td></tr>
             <tr><td>3</td><td><code>tests/test_product_api.py</code></td><td>验证 <code>GET /events</code> 默认不返回过期事件，详情接口不受影响。</td></tr>
             <tr><td>4</td><td>项目文档</td><td>记录真实测试命令、输出、失败修复和未覆盖范围。</td></tr>
           </tbody>

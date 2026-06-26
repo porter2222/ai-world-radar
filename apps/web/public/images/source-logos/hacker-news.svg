@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="Hacker News" data-logo-source="simple-icons" data-logo-package="simple-icons@latest" data-logo-slug="ycombinator">
+  <desc>Hacker News fallback cover using the Simple Icons brand SVG path. Source: https://simpleicons.org/icons/ycombinator.svg</desc>
+  <rect width="1200" height="675" fill="#ffffff"/>
+  <g transform="translate(480 217.5) scale(10)" fill="#FF6600">
+    <path d="M0 24V0h24v24H0zM6.951 5.896l4.112 7.708v5.064h1.583v-4.972l4.148-7.799h-1.749l-2.457 4.875c-.372.745-.688 1.434-.688 1.434s-.297-.708-.651-1.434L8.831 5.896h-1.88z"/>
+  </g>
+</svg>

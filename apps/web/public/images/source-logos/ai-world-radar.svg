@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-label="AI World Radar" data-logo-source="app-header-brand-mark">
+  <desc>AI World Radar default fallback cover, based on the black and white AppHeader brand mark.</desc>
+  <rect width="1200" height="675" fill="#ffffff"/>
+  <g transform="translate(600 337.5)" fill="none" stroke="#111111" stroke-linecap="round" stroke-linejoin="round">
+    <circle r="132" stroke-width="18"/>
+    <circle r="72" stroke-width="14"/>
+    <circle cx="52" cy="52" r="22" fill="#111111" stroke="none"/>
+  </g>
+</svg>

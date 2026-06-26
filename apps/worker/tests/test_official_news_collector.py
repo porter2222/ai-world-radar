@@ -47,6 +47,40 @@ def test_rss_feed_entry_maps_to_source_signal():
     assert signal.metadata["mode"] == "rss"
 
 
+def test_rss_feed_entry_extracts_media_image_to_signal_metadata():
+    """验证 RSS item 的媒体图片会进入来源信号 metadata。
+    输入：带 media:thumbnail 的 RSS item。
+    输出：OfficialNewsEntry.image_url 与 SourceSignalCreate.metadata["image_url"] 保持同一个可信图片 URL。
+    """
+    profile = OfficialSourceProfile(
+        source_key="nvidia_news",
+        name="NVIDIA News",
+        mode="rss",
+        entry_url="https://nvidianews.nvidia.com/rss.xml",
+    )
+    entry = collect_from_feed_xml(
+        """
+        <rss xmlns:media="http://search.yahoo.com/mrss/">
+          <channel>
+            <item>
+              <title>NVIDIA image item</title>
+              <link>https://nvidianews.nvidia.com/news/image-item</link>
+              <guid>nvidia-image-item</guid>
+              <media:thumbnail url="https://nvidianews.nvidia.com/image/news-cover.jpg" />
+            </item>
+          </channel>
+        </rss>
+        """,
+        profile=profile,
+        limit=1,
+    )[0]
+    signal = official_news_entry_to_signal(entry)
+
+    assert entry.image_url == "https://nvidianews.nvidia.com/image/news-cover.jpg"
+    assert signal.metadata["image_url"] == "https://nvidianews.nvidia.com/image/news-cover.jpg"
+    assert signal.metadata["image_source"] == "official_feed"
+
+
 def test_atom_feed_entry_maps_to_official_news_entry():
     """验证 Atom entry 可以解析为官方来源条目。
     输入：GitHub Changelog Atom fixture 与 atom profile。
@@ -67,6 +101,33 @@ def test_atom_feed_entry_maps_to_official_news_entry():
     assert entries[0].url == "https://github.blog/changelog/2026-06-23-copilot-workspace-update/?utm_source=atom"
     assert entries[0].published_at == datetime(2026, 6, 23, 11, 15, tzinfo=UTC)
     assert entries[0].summary == "GitHub updated Copilot workspace planning for larger AI coding tasks."
+
+
+def test_html_news_page_entry_extracts_article_image():
+    """验证 HTML 列表页 article 图片会规范化为绝对地址。
+    输入：带相对路径 img 的官方新闻列表 article。
+    输出：OfficialNewsEntry.image_url 使用 profile.entry_url 补全为绝对 URL。
+    """
+    profile = OfficialSourceProfile(
+        source_key="openai_news",
+        name="OpenAI News",
+        mode="html",
+        entry_url="https://openai.com/news/",
+    )
+    entry = collect_from_news_html(
+        """
+        <article>
+          <a href="/news/image-item"><h2>OpenAI image item</h2></a>
+          <img src="/news/image-item/cover.png" alt="cover" />
+          <time datetime="2026-06-23T12:00:00Z">Jun 23, 2026</time>
+          <p>OpenAI image summary.</p>
+        </article>
+        """,
+        profile=profile,
+        limit=1,
+    )[0]
+
+    assert entry.image_url == "https://openai.com/news/image-item/cover.png"
 
 
 def test_html_news_page_entry_maps_to_source_signal():

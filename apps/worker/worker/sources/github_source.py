@@ -3,6 +3,7 @@ from __future__ import annotations
 from worker.collectors.github_releases import GITHUB_API_ENDPOINT, GitHubRelease
 from worker.collectors.hn_algolia import normalize_url
 from worker.schemas.source import SourceCreate, SourceSignalCreate
+from worker.services.cover_image_service import build_github_opengraph_image_url
 
 
 def build_github_releases_source() -> SourceCreate:
@@ -28,6 +29,7 @@ def github_release_to_signal(release: GitHubRelease) -> SourceSignalCreate:
     输出：可交给 SignalService.upsert_signal 的 SourceSignalCreate。
     """
     title_value = release.name or release.tag_name
+    image_url = build_github_opengraph_image_url(release.owner, release.repo)
     return SourceSignalCreate(
         source_key="github_releases",
         source_item_id=f"{release.owner}/{release.repo}#{release.release_id}",
@@ -47,6 +49,8 @@ def github_release_to_signal(release: GitHubRelease) -> SourceSignalCreate:
             "source": "github_releases",
             "owner": release.owner,
             "repo": release.repo,
+            "image_url": image_url,
+            "image_source": "github_opengraph",
             "tag_name": release.tag_name,
             "release_id": release.release_id,
         },
