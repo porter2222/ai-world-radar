@@ -1,7 +1,15 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from worker.collectors.official_news import OfficialSourceProfile, collect_from_feed_xml, collect_from_news_html
+import httpx
+
+from worker.collectors import official_news as official_news_module
+from worker.collectors.official_news import (
+    OfficialSourceProfile,
+    collect_from_feed_xml,
+    collect_from_news_html,
+    fetch_official_news,
+)
 from worker.sources.official_news_source import build_official_news_source, official_news_entry_to_signal
 
 
@@ -45,6 +53,76 @@ def test_rss_feed_entry_maps_to_source_signal():
     assert signal.heat_metrics["official_source"] is True
     assert signal.metadata["profile_key"] == "nvidia_news"
     assert signal.metadata["mode"] == "rss"
+
+
+def test_fetch_official_news_falls_back_to_urllib_after_httpx_403(monkeypatch):
+    """验证 PyTorch RSS 在 httpx 403 后可通过标准库 fallback 继续采集。
+    输入：httpx 主请求返回 403，urllib fallback 返回真实 RSS 形态 XML。
+    输出：fetch_official_news 返回条目，并在 entry.fetch_metadata 中记录 fallback 发生过。
+    """
+    profile = OfficialSourceProfile(
+        source_key="pytorch_blog",
+        name="PyTorch Blog",
+        mode="rss",
+        entry_url="https://pytorch.org/blog/feed.xml",
+    )
+
+    class FakeHttpxClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return None
+
+        def get(self, url):
+            return httpx.Response(
+                403,
+                text="Forbidden",
+                request=httpx.Request("GET", url),
+            )
+
+    class FakeUrllibResponse:
+        status = 200
+        headers = {"content-type": "application/rss+xml; charset=UTF-8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            return None
+
+        def read(self):
+            return b"""
+            <rss><channel><item>
+              <title>PyTorch fallback item</title>
+              <link>https://pytorch.org/blog/fallback-item/</link>
+              <guid>pytorch-fallback-item</guid>
+              <pubDate>Fri, 26 Jun 2026 05:00:00 GMT</pubDate>
+              <description>Fallback summary.</description>
+            </item></channel></rss>
+            """
+
+    def fake_urlopen(request, timeout):
+        assert request.full_url == profile.entry_url
+        assert request.headers["User-agent"] == "ai-world-radar-worker"
+        assert timeout == 20.0
+        return FakeUrllibResponse()
+
+    monkeypatch.setattr(official_news_module.httpx, "Client", FakeHttpxClient)
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+
+    entries = fetch_official_news(profile, limit=1)
+    signal = official_news_entry_to_signal(entries[0])
+
+    assert len(entries) == 1
+    assert entries[0].title == "PyTorch fallback item"
+    assert entries[0].fetch_metadata["fallback_used"] is True
+    assert entries[0].fetch_metadata["fetch_client"] == "urllib"
+    assert "403" in entries[0].fetch_metadata["fallback_reason"]
+    assert signal.metadata["fetch_metadata"]["fallback_used"] is True
 
 
 def test_rss_feed_entry_extracts_media_image_to_signal_metadata():

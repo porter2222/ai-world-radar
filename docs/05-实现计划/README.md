@@ -27,6 +27,12 @@
 - `P1-10 首页时效窗口与采集调度实施计划.md`
 - `P1-11 采集层8小时时效窗口设计.md`
 - `P1-11 采集层8小时时效窗口实施计划.md`
+- `P1-12 手动日常全流程CLI设计.md`
+- `P1-12 手动日常全流程CLI实施计划.md`
+- `P1-13 运行日志与观测基座实施计划.md`
+- `P1-13 运行日志与观测基座实施计划.html`
+- `P1-14 PyTorch源采集失败治理计划.md`
+- `P1-14 PyTorch源采集失败治理计划.html`
 - `P1-前端公共事件页面实施计划.md`
 
 `后端P1实现计划与功能切片拆解` 定义旧版后端 P1 第一条纵向功能切片：HN AI 事件生产闭环。该文档保留为历史参考。
@@ -54,5 +60,11 @@ P1-5 发布质量与工程准备第一轮已完成：已补齐 `revise/manual_re
 `P1-11 采集层8小时时效窗口设计` 是 P1-10 后针对 source_signals 混入旧信号的设计文档，定义普通来源默认只写入最近 8 小时信号，GitHub repo trends 使用本轮 detected time。P1-11 已于 2026-06-24 完成。
 
 `P1-11 采集层8小时时效窗口实施计划` 是 P1-11 的测试先行执行清单，定义采集窗口过滤、GitHub trends 时间语义、summary 统计、真实 PostgreSQL smoke 和验收文档更新步骤。最终验收：采集脚本回归 `15 passed in 21.91s`、官方源/GitHub trends 回归 `9 passed in 0.53s`、pipeline 脚本回归 `8 passed in 13.56s`、worker 全量回归 `149 passed, 1 skipped in 63.57s`；真实 PostgreSQL smoke 中普通源窗口外写入为 0。
+
+`P1-12 手动日常全流程CLI设计` 与 `P1-12 手动日常全流程CLI实施计划` 是手动生产链路入口文档，定义 `DailyPipelineService`、`scripts/run_daily_pipeline.py`、项目根 `.env` 读取、真实采集、真实 LLM selector 和发布路径。P1-12 已完成。
+
+`P1-13 运行日志与观测基座实施计划` 是运行观察基座文档，定义中文终端日志、文本日志、JSONL 事件流、Agent / LLM / tool 日志、心跳、本地时间转换和真实运行验收。P1-13 已完成。
+
+`P1-14 PyTorch源采集失败治理计划` 是 PyTorch 官方源单点失败治理文档，定义 `pytorch_blog` 在 `httpx` 403 时使用 `urllib` fallback，并把 `fallback_used`、`fetch_client`、`fallback_status_code` 等审计信息写入 `SourceSignal.metadata.fetch_metadata`。P1-14 已完成真实 PyTorch 单源验收。
 
 `P1-前端公共事件页面实施计划` 是 `apps/web` 公共首页事件流和事件详情页的实施计划，已迁入本目录作为项目正式实现计划文档。

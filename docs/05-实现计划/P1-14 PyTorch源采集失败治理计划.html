@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-14 PyTorch源采集失败治理计划</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d8dde6;
+      --accent: #0f766e;
+      --code: #111827;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      line-height: 1.72;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+      background: #111827;
+      color: #e5e7eb;
+      border-right: 1px solid #0b1220;
+    }
+    nav h1 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      line-height: 1.35;
+      color: #ffffff;
+    }
+    nav p {
+      margin: 0 0 18px;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+    nav a {
+      display: block;
+      padding: 7px 0;
+      color: #d1d5db;
+      text-decoration: none;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    nav a:hover { color: #5eead4; }
+    main {
+      max-width: 1040px;
+      padding: 42px 52px 80px;
+    }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 38px 44px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    h2 {
+      margin-top: 38px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: #0f172a;
+      font-size: 24px;
+    }
+    h3 {
+      margin-top: 28px;
+      color: #111827;
+      font-size: 18px;
+    }
+    .meta { color: var(--muted); margin-top: -6px; }
+    .summary {
+      border-left: 4px solid var(--accent);
+      background: #f0fdfa;
+      padding: 14px 16px;
+      margin: 20px 0;
+    }
+    code {
+      background: #eef2f7;
+      color: var(--code);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .94em;
+    }
+    pre {
+      overflow: auto;
+      background: #0b1220;
+      color: #e5e7eb;
+      padding: 16px 18px;
+      border-radius: 8px;
+      line-height: 1.55;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px 11px;
+      vertical-align: top;
+    }
+    th { background: #f3f4f6; text-align: left; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { position: relative; height: auto; }
+      main { padding: 24px 16px 48px; }
+      article { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-14 PyTorch源采集失败治理计划</h1>
+      <p>AI World Radar / 实现计划</p>
+      <a href="#goal">1. 目标</a>
+      <a href="#symptom">2. 当前现象</a>
+      <a href="#root-cause">3. 根因调查</a>
+      <a href="#decision">4. 方案取舍</a>
+      <a href="#scope">5. 影响范围</a>
+      <a href="#tdd">6. TDD 执行计划</a>
+      <a href="#acceptance">7. 验收记录要求</a>
+      <a href="#non-goals">8. 非目标</a>
+      <a href="#commits">9. 提交计划</a>
+      <a href="#result">10. 当前执行结果</a>
+    </nav>
+    <main>
+      <article>
+        <h1 id="goal">P1-14 PyTorch源采集失败治理计划</h1>
+        <p class="meta">更新时间：2026-06-26</p>
+        <div class="summary">
+          P1-14 单独治理 <code>pytorch_blog</code> 在真实生产采集路径中的 HTTP <code>403 Forbidden</code> 问题，让 PyTorch Blog RSS 能继续作为 <code>official_feeds</code> 的有效来源进入 <code>source_signals</code>。本阶段不扩大为全源爬虫系统重构。
+        </div>
+
+        <h2 id="symptom">2. 当前现象</h2>
+        <p>历史验收记录中，P1-11、P1-12、P1-13 多次记录 <code>pytorch_blog</code> 在 <code>daily_all</code> 真实采集中失败。</p>
+        <pre><code>source_key=pytorch_blog
+url=https://pytorch.org/blog/feed.xml
+error=403 Forbidden</code></pre>
+        <p>本轮在独立分支 <code>codex/pytorch-source-fix</code> 复现到同样问题。</p>
+        <pre><code>.\.venv\Scripts\python.exe scripts\collect_source_signals.py `
+  --database-url "sqlite+pysqlite:///scratch/pytorch_source_fix_before.sqlite" `
+  --create-schema-for-smoke `
+  --source official_feeds `
+  --official-profile pytorch_blog `
+  --official-limit 3 `
+  --lookback-hours 10000 `
+  --continue-on-source-error</code></pre>
+        <pre><code>{
+  "status": "succeeded",
+  "source_keys": [],
+  "sources_count": 0,
+  "signals_count": 0,
+  "failed_sources_count": 1,
+  "failed_sources": [
+    {
+      "source_key": "pytorch_blog",
+      "error": "Client error '403 Forbidden' for url 'https://pytorch.org/blog/feed.xml'"
+    }
+  ]
+}</code></pre>
+        <p>脚本总状态是 <code>succeeded</code>，是因为开启了 <code>--continue-on-source-error</code>，但 PyTorch 单源实际没有采集成功。</p>
+
+        <h2 id="root-cause">3. 根因调查</h2>
+        <table>
+          <thead>
+            <tr><th>客户端路径</th><th>结果</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>当前 <code>official_news.fetch_official_news()</code></td><td><code>HTTPStatusError 403</code></td><td>当前生产 collector 失败</td></tr>
+            <tr><td><code>httpx.get(..., follow_redirects=True)</code></td><td><code>403 text/html</code></td><td>直接复现当前 collector 的失败</td></tr>
+            <tr><td><code>urllib.request.urlopen()</code></td><td><code>200 application/rss+xml</code></td><td>Python 标准库可成功获取 RSS</td></tr>
+            <tr><td><code>curl.exe -L -I</code></td><td><code>301 -> 200 application/rss+xml</code></td><td>URL 本身有效，最终跳转到 <code>/blog/feed/</code></td></tr>
+            <tr><td><code>httpx</code> 直接访问 <code>/blog/feed/</code></td><td><code>403 text/html</code></td><td>不是单纯重定向 URL 配置错误</td></tr>
+          </tbody>
+        </table>
+        <p>当前判断：PyTorch feed URL 本身可访问，问题不在 profile 地址；失败集中发生在当前 <code>httpx</code> 请求路径上，更像 PyTorch/Pantheon/CDN 对 <code>httpx</code> 请求栈的拦截。更换为 <code>/blog/feed/</code> 不能解决，因为 <code>httpx</code> 直接访问最终地址仍然返回 403。</p>
+
+        <h2 id="decision">4. 方案取舍</h2>
+        <h3>4.1 选择方案</h3>
+        <ol>
+          <li>默认仍使用现有 <code>httpx</code> collector，不改变其他官方源主路径。</li>
+          <li>仅当官方源 HTTP 请求出现 <code>403 Forbidden</code> 时，使用 Python 标准库 <code>urllib.request</code> 重试一次。</li>
+          <li>fallback 成功后仍复用现有 RSS/Atom/HTML 解析函数，不新增解析链路。</li>
+          <li>在 <code>OfficialNewsEntry</code> 中增加可选 <code>fetch_metadata</code>，记录 <code>fetch_client</code>、<code>fallback_used</code>、<code>fallback_reason</code> 等信息。</li>
+          <li>source adapter 将该 metadata 写入 <code>SourceSignal.metadata</code>，后续验收和后台排查可看到 fallback 是否发生。</li>
+        </ol>
+        <h3>4.2 不选择的方案</h3>
+        <ul>
+          <li>不禁用 <code>pytorch_blog</code>。</li>
+          <li>不从 <code>daily_all</code> 移除 <code>pytorch_blog</code>。</li>
+          <li>不把 PyTorch 改成 fixture 或 mock 通过。</li>
+          <li>不引入 Playwright、代理池、完整爬虫框架。</li>
+          <li>不把所有 official source 全量切到 <code>urllib</code>，避免破坏已有稳定源。</li>
+          <li>不只修改 User-Agent 后声称修复。</li>
+        </ul>
+
+        <h2 id="scope">5. 影响范围</h2>
+        <h3>修改文件</h3>
+        <ul>
+          <li><code>apps/worker/worker/collectors/official_news.py</code></li>
+          <li><code>apps/worker/worker/sources/official_news_source.py</code></li>
+          <li><code>apps/worker/tests/test_official_news_collector.py</code></li>
+        </ul>
+        <h3>文档文件</h3>
+        <ul>
+          <li><code>docs/05-实现计划/P1-14 PyTorch源采集失败治理计划.md</code></li>
+          <li><code>docs/05-实现计划/P1-14 PyTorch源采集失败治理计划.html</code></li>
+          <li><code>docs/07-验收与运行/后端P1测试记录.md</code></li>
+          <li><code>docs/00-项目总览/项目状态.md</code></li>
+          <li><code>docs/00-项目总览/文档索引.md</code></li>
+          <li><code>docs/README.md</code></li>
+        </ul>
+
+        <h2 id="tdd">6. TDD 执行计划</h2>
+        <h3>Task 1：计划与基线</h3>
+        <ul>
+          <li>确认 worktree：<code>D:\AI World Radar-worktrees\pytorch-source-fix</code></li>
+          <li>确认分支：<code>codex/pytorch-source-fix</code></li>
+          <li>同步真实 <code>.env</code>，且不提交。</li>
+          <li>相关基线测试：<code>22 passed in 49.50s</code></li>
+          <li>已复现当前 PyTorch 单源生产路径失败。</li>
+        </ul>
+        <h3>Task 2：失败测试</h3>
+        <ul>
+          <li>在 <code>tests/test_official_news_collector.py</code> 增加测试：当 <code>httpx</code> 主请求返回 403，而 <code>urllib</code> fallback 返回 RSS XML 时，<code>fetch_official_news()</code> 应成功返回 PyTorch 条目。</li>
+          <li>测试断言返回条目包含 <code>fetch_metadata.fallback_used=True</code>。</li>
+          <li>测试断言 fallback 原因包含 <code>403</code>。</li>
+          <li>运行单测确认 RED。</li>
+        </ul>
+        <h3>Task 3：最小实现</h3>
+        <ul>
+          <li>在 <code>official_news.py</code> 中增加内部 fallback fetch 函数。</li>
+          <li>只对 HTTP <code>403</code> 触发 fallback。</li>
+          <li>fallback 使用 <code>urllib.request</code>，继续设置项目 User-Agent。</li>
+          <li>给 <code>OfficialNewsEntry</code> 增加 <code>fetch_metadata</code>。</li>
+          <li>在 <code>official_news_source.py</code> 中把 <code>fetch_metadata</code> 合并到 <code>SourceSignal.metadata</code>。</li>
+        </ul>
+        <h3>Task 4：回归测试</h3>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest tests/test_official_news_collector.py -v
+.\.venv\Scripts\python.exe -m pytest tests/test_collect_source_signals_script.py -v</code></pre>
+        <h3>Task 5：真实 PyTorch 单源验收</h3>
+        <pre><code>.\.venv\Scripts\python.exe scripts\collect_source_signals.py `
+  --database-url "sqlite+pysqlite:///scratch/pytorch_source_fix_after.sqlite" `
+  --create-schema-for-smoke `
+  --source official_feeds `
+  --official-profile pytorch_blog `
+  --official-limit 5 `
+  --lookback-hours 10000 `
+  --continue-on-source-error</code></pre>
+        <p>验收通过标准：stdout JSON 中不再出现 <code>pytorch_blog</code> 的 403 failed source；<code>source_keys</code> 包含 <code>pytorch_blog</code>；<code>signals_count &gt; 0</code>；临时 SQLite 中存在 <code>source_key=pytorch_blog</code> 的 <code>source_signals</code>；至少一条 signal metadata 中记录 fallback 发生过。</p>
+
+        <h2 id="acceptance">7. 验收记录要求</h2>
+        <p>最终必须在 <code>docs/07-验收与运行/后端P1测试记录.md</code> 记录测了什么、用什么数据测、命令是什么、真实输出是什么、是否真实网络、是否写库、是否使用临时 SQLite，以及哪些没有测。</p>
+
+        <h2 id="non-goals">8. 非目标</h2>
+        <ul>
+          <li><code>anthropic_news</code> SSL EOF。</li>
+          <li>全源失败治理体系。</li>
+          <li>source 禁用/降级后台管理。</li>
+          <li>Windows 定时任务。</li>
+          <li>Redis / 队列 / 调度守护。</li>
+          <li>DailyEdition。</li>
+          <li>前端页面。</li>
+          <li>真实 LLM pipeline。</li>
+        </ul>
+
+        <h2 id="commits">9. 提交计划</h2>
+        <ol>
+          <li><code>docs: plan pytorch source fetch recovery</code></li>
+          <li><code>fix(worker): add pytorch official feed fallback</code></li>
+          <li><code>docs: record pytorch source acceptance</code></li>
+        </ol>
+        <p>最终不合并 main，只输出验收结果并等待用户确认。</p>
+
+        <h2 id="result">10. 当前执行结果</h2>
+        <p>截至 2026-06-26，本计划已在独立分支 <code>codex/pytorch-source-fix</code> 完成测试、修复和真实 PyTorch 单源验收。</p>
+        <ul>
+          <li>RED：<code>test_fetch_official_news_falls_back_to_urllib_after_httpx_403</code> 在旧实现下失败，失败原因为 <code>httpx.HTTPStatusError: 403 Forbidden</code>。</li>
+          <li>GREEN：新增 fallback 后，<code>tests/test_official_news_collector.py</code> 结果为 <code>8 passed in 0.55s</code>。</li>
+          <li>采集脚本回归：<code>tests/test_collect_source_signals_script.py</code> 结果为 <code>15 passed in 24.22s</code>。</li>
+          <li>worker 全量回归：<code>.\.venv\Scripts\python.exe -m pytest -q</code> 结果为 <code>190 passed, 1 skipped in 103.66s (0:01:43)</code>。</li>
+          <li>真实 PyTorch 单源 smoke：<code>collect_source_signals.py --source official_feeds --official-profile pytorch_blog --official-limit 5 --lookback-hours 10000</code> 输出 <code>source_keys=["pytorch_blog"]</code>、<code>sources_count=1</code>、<code>signals_count=5</code>。</li>
+          <li>后置 SQLite 查询确认 5 条 PyTorch 信号均记录 <code>fallback_used=true</code>、<code>fetch_client=urllib</code>、<code>fallback_status_code=200</code>。</li>
+        </ul>
+        <p>本轮仍未覆盖全源、<code>daily_all</code>、完整 daily pipeline、Windows 定时任务和 <code>anthropic_news</code> SSL EOF。</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
