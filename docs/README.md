@@ -60,7 +60,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-23 已完成 P1-10 首页时效窗口与采集调度策略设计和代码落地：`GET /events` 默认展示最近 48 小时 published events，低量时向 7 天窗口兜底；`GET /events/{slug}` 仍可访问历史事件。2026-06-24 已完成 P1-11 采集层 8 小时时效窗口：`collect_source_signals.py` 默认只写入最近 8 小时普通来源信号，GitHub repo trends 使用本轮 detected time。2026-06-24 已完成 P1-12 手动日常全流程 CLI：在 `apps/worker` 下直接运行 `.\.venv\Scripts\python.exe scripts\run_daily_pipeline.py`，即可基于项目根 `.env` 执行真实采集、本轮新增信号处理、真实 LLM selector 和发布；真实 CLI smoke 发布 4 条事件，worker 全量回归为 `161 passed, 1 skipped in 113.43s`。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-26 已将 P1-10 首页展示窗口调整为：`GET /events` 默认展示最近 7 天 published events，不做低量兜底；`GET /events/{slug}` 仍可访问历史事件。2026-06-24 已完成 P1-11 采集层 8 小时时效窗口：`collect_source_signals.py` 默认只写入最近 8 小时普通来源信号，GitHub repo trends 使用本轮 detected time。2026-06-24 已完成 P1-12 手动日常全流程 CLI：在 `apps/worker` 下直接运行 `.\.venv\Scripts\python.exe scripts\run_daily_pipeline.py`，即可基于项目根 `.env` 执行真实采集、本轮新增信号处理、真实 LLM selector 和发布；真实 CLI smoke 发布 4 条事件，worker 全量回归为 `161 passed, 1 skipped in 113.43s`。
 
 后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
 
