@@ -20,6 +20,7 @@ from worker.config import Settings
 from worker.models import PipelineRun, Source, SourceSignal
 from worker.observability.run_logger import NullRunLogger, RunLogger
 from worker.services.editorial_candidate_service import EditorialCandidateGroup, EditorialCandidateService
+from worker.services.github_trend_freshness_service import GitHubTrendFreshnessService
 from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
 
@@ -165,6 +166,10 @@ class DailyPipelineService:
             counts={"candidate_groups": len(groups), "raw_new_signals": raw_new_signals_count},
             metadata={"samples": candidate_groups_summary(groups[:5])},
         )
+        groups, github_trend_freshness_summary = self._apply_github_trend_freshness_gate(
+            groups,
+            now=collection_started_at,
+        )
         if not groups:
             return {
                 **self._base_summary(
@@ -174,6 +179,7 @@ class DailyPipelineService:
                     collection_summary=collection_summary,
                     raw_new_signals_count=raw_new_signals_count,
                 ),
+                **github_trend_freshness_summary,
                 "candidate_groups_count": 0,
                 "candidate_groups": [],
             }
@@ -226,6 +232,7 @@ class DailyPipelineService:
                     collection_summary=collection_summary,
                     raw_new_signals_count=raw_new_signals_count,
                 ),
+                **github_trend_freshness_summary,
                 "candidate_groups_count": len(groups),
                 "candidate_groups": candidate_groups_summary(groups),
                 "selector_mode": outcome.selector_mode,
@@ -285,6 +292,7 @@ class DailyPipelineService:
                 collection_summary=collection_summary,
                 raw_new_signals_count=raw_new_signals_count,
             ),
+            **github_trend_freshness_summary,
             "candidate_groups_count": len(groups),
             "candidate_groups": candidate_groups_summary(groups),
             "selector_mode": outcome.selector_mode,
@@ -297,6 +305,49 @@ class DailyPipelineService:
             "run_ids": run_ids,
             "published_count": sum(run.published_count for run in runs),
         }
+
+    def _apply_github_trend_freshness_gate(
+        self,
+        groups: list[EditorialCandidateGroup],
+        *,
+        now: datetime,
+    ) -> tuple[list[EditorialCandidateGroup], dict[str, Any]]:
+        """在 selector 前过滤近期重复 GitHub repo trend group。
+
+        输入：候选 group 列表和本轮运行时间。
+        输出：允许进入 selector 的 group，以及可打印的 GitHub trend freshness 统计。
+        """
+        service = GitHubTrendFreshnessService(self.session)
+        allowed_groups: list[EditorialCandidateGroup] = []
+        summary = empty_github_trend_freshness_summary()
+
+        for group in groups:
+            source_keys = {str(source_key or "").strip().lower() for source_key in group.source_keys}
+            is_github_trend_related = GitHubTrendFreshnessService.TREND_SOURCE_KEY in source_keys
+            if is_github_trend_related:
+                summary["github_trend_groups_total"] += 1
+
+            decision = service.evaluate_group(group, now=now)
+            if decision.action == "skip":
+                skipped_signals_count = service.mark_skipped_signals(group.signal_ids, decision, skipped_at=now)
+                summary["github_trend_groups_skipped"] += 1
+                summary["skipped_duplicate_trend_signals"] += skipped_signals_count
+                summary["github_trend_freshness_examples"].append(
+                    {
+                        "candidate_group_id": group.group_id,
+                        "repo_full_name": decision.repo_full_name,
+                        "reason": decision.reason,
+                        "matched_published_event_id": decision.matched_published_event_id,
+                        "skipped_signals_count": skipped_signals_count,
+                    }
+                )
+                continue
+
+            if is_github_trend_related:
+                summary["github_trend_groups_allowed"] += 1
+            allowed_groups.append(group)
+
+        return allowed_groups, summary
 
     def _collect(self, config: DailyPipelineConfig, *, collection_started_at: datetime) -> dict[str, Any]:
         """运行本轮来源采集。
@@ -450,6 +501,7 @@ class DailyPipelineService:
             "pipeline_runs_count": 0,
             "run_ids": [],
             "published_count": 0,
+            **empty_github_trend_freshness_summary(),
         }
 
 
@@ -531,6 +583,21 @@ def candidate_groups_summary(groups: list[EditorialCandidateGroup]) -> list[dict
         }
         for group in groups
     ]
+
+
+def empty_github_trend_freshness_summary() -> dict[str, Any]:
+    """构造 GitHub trend freshness summary 零值。
+
+    输入：无。
+    输出：所有日常 pipeline 返回状态共享的 GitHub trend freshness 统计字段。
+    """
+    return {
+        "github_trend_groups_total": 0,
+        "github_trend_groups_skipped": 0,
+        "github_trend_groups_allowed": 0,
+        "skipped_duplicate_trend_signals": 0,
+        "github_trend_freshness_examples": [],
+    }
 
 
 def _normalize_datetime(value: datetime) -> datetime:

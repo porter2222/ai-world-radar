@@ -39,7 +39,7 @@ EventDossierStatus = Literal[
 ]
 ReviewDecision = Literal["publish", "revise", "manual_review", "reject"]
 RiskLevel = Literal["low", "medium", "high"]
-PublishedEventStatus = Literal["published", "hidden", "archived"]
+PublishedEventStatus = Literal["published", "hidden", "hidden_duplicate", "archived"]
 PipelineRunStatus = Literal["running", "succeeded", "partial_failed", "failed", "cancelled"]
 AgentRunStatus = Literal["running", "succeeded", "failed"]
 

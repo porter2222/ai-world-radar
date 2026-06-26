@@ -112,6 +112,31 @@ def test_editorial_candidate_service_filters_invalid_and_processed_signals():
     assert groups[0].signal_ids == [valid_signal.id]
 
 
+def test_editorial_candidate_service_filters_skipped_duplicate_trend_signals():
+    """验证被 GitHub trend freshness gate 跳过的信号不会再次进入 selector。
+
+    输入：一条 status=skipped_duplicate_trend 的 GitHub repo trend 信号。
+    输出：候选 group 为空。
+    """
+    session = make_session()
+    source = add_source(session, "github_repo_trends")
+    skipped_signal = add_signal(
+        session,
+        source,
+        title="Skipped repo trend",
+        source_hash="github_repo_trends:example/repo:2026062608",
+        original_url="https://github.com/example/repo",
+        canonical_url="https://github.com/example/repo",
+        metadata={"full_name": "example/repo"},
+    )
+    skipped_signal.status = "skipped_duplicate_trend"
+    session.flush()
+
+    groups = EditorialCandidateService(session).build_candidate_groups()
+
+    assert groups == []
+
+
 def test_editorial_candidate_service_filters_signals_outside_lookback_window():
     """验证超过 lookback 窗口的旧信号不会进入 selector。
 

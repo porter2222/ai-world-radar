@@ -2,10 +2,21 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import select
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from worker.models import Base, PipelineRun, Source, SourceSignal
+from worker.models import (
+    Base,
+    EventCandidate,
+    EventCandidateSignal,
+    EventDossier,
+    PipelineRun,
+    PublishedEvent,
+    ReviewResult,
+    Source,
+    SourceSignal,
+)
 from worker.schemas.editorial_selection import (
     EditorialManualReviewItem,
     EditorialRejectedItem,
@@ -33,6 +44,10 @@ def add_source(session, source_key: str = "hn_algolia") -> Source:
     输入：SQLAlchemy Session 和 source_key。
     输出：已 flush 且可关联 SourceSignal 的 Source。
     """
+    existing = session.scalar(select(Source).where(Source.source_key == source_key))
+    if existing is not None:
+        return existing
+
     source = Source(source_key=source_key, name=source_key, source_type="test", fetch_method="fixture", fetch_config={})
     session.add(source)
     session.flush()
@@ -49,6 +64,9 @@ def add_signal(
     original_url: str | None = None,
     canonical_url: str | None = None,
     pipeline_run_id: str | None = None,
+    source_item_id: str | None = None,
+    published_at: datetime | None = None,
+    metadata: dict | None = None,
 ) -> SourceSignal:
     """写入测试 SourceSignal。
 
@@ -58,18 +76,110 @@ def add_signal(
     signal = SourceSignal(
         source_id=source.id,
         pipeline_run_id=pipeline_run_id,
-        source_item_id=source_hash,
+        source_item_id=source_item_id or source_hash,
         original_title=title,
         original_url=original_url,
         canonical_url=canonical_url,
         source_hash=source_hash,
         collected_at=collected_at,
+        published_at=published_at,
         heat_metrics={},
-        metadata_json={},
+        metadata_json=metadata or {},
     )
     session.add(signal)
     session.flush()
     return signal
+
+
+def add_published_trend_event_for_repo(session, *, repo_full_name: str, published_at: datetime) -> PublishedEvent:
+    """写入一条测试用纯 GitHub trend PublishedEvent。
+
+    输入：Session、repo 全名和发布时间。
+    输出：带 SourceSignal -> EventCandidate -> PublishedEvent 链路的发布事件。
+    """
+    source = add_source(session, "github_repo_trends")
+    signal = add_signal(
+        session,
+        source,
+        title=f"{repo_full_name} gains attention",
+        source_hash=f"github_repo_trends:{repo_full_name.lower()}:{published_at.strftime('%Y%m%d%H%M%S')}",
+        collected_at=published_at,
+        published_at=published_at,
+        original_url=f"https://github.com/{repo_full_name}",
+        canonical_url=f"https://github.com/{repo_full_name}",
+        source_item_id=repo_full_name,
+        metadata={"full_name": repo_full_name},
+    )
+    candidate = EventCandidate(
+        candidate_key=f"repo:{repo_full_name.lower()}:{published_at.strftime('%Y%m%d%H%M%S')}",
+        title=f"{repo_full_name} gains attention",
+        category="开源项目",
+        heat_score=80,
+        importance_score=60,
+        audience_value_score=70,
+        ranking_score=75,
+        status="published",
+        first_seen_at=published_at,
+        last_seen_at=published_at,
+    )
+    session.add(candidate)
+    session.flush()
+    session.add(
+        EventCandidateSignal(
+            candidate_id=candidate.id,
+            signal_id=signal.id,
+            relation_type="primary",
+            merge_confidence=1.0,
+            merge_reason="test fixture",
+        )
+    )
+    dossier = EventDossier(
+        candidate_id=candidate.id,
+        version=1,
+        status="published_snapshot",
+        card_title=f"{repo_full_name} gains attention",
+        card_summary="测试用卡片摘要。",
+        category="开源项目",
+        signal_label="GitHub 热度",
+        detail_title=f"{repo_full_name} gains attention",
+        detail_summary="测试用详情摘要。",
+        detail_body="测试正文第一段。\n\n测试正文第二段。",
+        why_it_matters="测试用影响说明。",
+        follow_up_points=[],
+        source_refs=[{"title": repo_full_name, "url": f"https://github.com/{repo_full_name}", "source_key": "github_repo_trends"}],
+    )
+    session.add(dossier)
+    session.flush()
+    session.add(
+        ReviewResult(
+            dossier_id=dossier.id,
+            candidate_id=candidate.id,
+            decision="publish",
+            risk_level="low",
+            issues=[],
+            revision_instructions="",
+            checked_items={"source_supported": True},
+        )
+    )
+    published = PublishedEvent(
+        candidate_id=candidate.id,
+        dossier_id=dossier.id,
+        slug=candidate.candidate_key.replace(":", "-"),
+        published_title=dossier.detail_title,
+        published_card_summary=dossier.card_summary,
+        published_detail_summary=dossier.detail_summary,
+        published_detail_body=dossier.detail_body,
+        category=dossier.category,
+        signal_label=dossier.signal_label,
+        source_refs=dossier.source_refs,
+        ranking_score=candidate.ranking_score,
+        status="published",
+        published_at=published_at,
+        created_at=published_at,
+    )
+    session.add(published)
+    session.flush()
+    return published
 
 
 class StaticSelectorAgent:
@@ -408,11 +518,7 @@ def test_daily_pipeline_service_reports_selector_rejected_and_manual_review_coun
 
 
 def test_daily_pipeline_service_emits_key_stage_logs():
-    """验证 DailyPipelineService 会输出日常流水线关键阶段日志。
-
-    输入：一条本轮新信号、fake selector、fake pipeline runner 和内存日志 sink。
-    输出：日志事件中包含运行启动、采集、新信号读取、候选构造、编辑筛选、事件生产和最终总结。
-    """
+    """Verify DailyPipelineService emits key stage logs."""
     session = make_session()
     source = add_source(session)
     now = datetime(2026, 6, 24, 4, 0, tzinfo=UTC)
@@ -463,3 +569,63 @@ def test_daily_pipeline_service_emits_key_stage_logs():
     assert ("editorial_selector", "succeeded") in stage_events
     assert ("candidate_pipeline", "succeeded") in stage_events
     assert ("daily_pipeline", "succeeded") in stage_events
+
+
+def test_daily_pipeline_service_skips_recent_duplicate_github_repo_trend_before_selector():
+    """验证重复 GitHub repo trend 会在 selector 前被工程闸门跳过。
+
+    输入：3 天前已发布同 repo 纯 trend 事件，本轮采集再次写入同 repo `github_repo_trends` 信号。
+    输出：不调用 selector / pipeline，SourceSignal 标记为 skipped_duplicate_trend，并在 summary 返回跳过统计。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 26, 8, 0, tzinfo=UTC)
+    add_published_trend_event_for_repo(
+        session,
+        repo_full_name="NousResearch/hermes-agent",
+        published_at=now - timedelta(days=3),
+    )
+    created_signal: dict[str, SourceSignal] = {}
+
+    def collect_duplicate_trend_signal(context):
+        source = add_source(session, "github_repo_trends")
+        signal = add_signal(
+            session,
+            source,
+            title="NousResearch/hermes-agent is trending again",
+            source_hash="github_repo_trends:nousresearch/hermes-agent:2026062608",
+            collected_at=now + timedelta(seconds=1),
+            published_at=now + timedelta(seconds=1),
+            original_url="https://github.com/NousResearch/hermes-agent",
+            canonical_url="https://github.com/NousResearch/hermes-agent",
+            source_item_id="NousResearch/hermes-agent",
+            metadata={"full_name": "NousResearch/hermes-agent"},
+        )
+        created_signal["value"] = signal
+        return {"status": "succeeded", "source_keys": ["github_repo_trends"], "signals_count": 1}
+
+    selector = StaticSelectorAgent()
+    runner = RecordingPipelineRunner(session)
+    service = DailyPipelineService(
+        session,
+        collector=collect_duplicate_trend_signal,
+        selector_agent=selector,
+        pipeline_runner=runner,
+        now_provider=lambda: now,
+    )
+
+    summary = service.run_once(DailyPipelineConfig(max_selected=None, agent_mode="llm"))
+    skipped_signal = session.get(SourceSignal, created_signal["value"].id)
+    freshness = skipped_signal.metadata_json["github_trend_freshness"]
+
+    assert summary["status"] == "no_candidate_groups"
+    assert summary["raw_new_signals_count"] == 1
+    assert summary["github_trend_groups_total"] == 1
+    assert summary["github_trend_groups_skipped"] == 1
+    assert summary["github_trend_groups_allowed"] == 0
+    assert summary["skipped_duplicate_trend_signals"] == 1
+    assert summary["github_trend_freshness_examples"][0]["repo_full_name"] == "nousresearch/hermes-agent"
+    assert selector.calls == []
+    assert runner.calls == []
+    assert skipped_signal.status == "skipped_duplicate_trend"
+    assert freshness["decision"] == "skip"
+    assert freshness["reason"] == "recently_published_repo_trend"

@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitHub趋势信号去重与新鲜度策略设计</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+    }
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    main { padding: 42px 56px 72px; }
+    .content {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+    }
+    .hero {
+      margin-bottom: 26px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.12;
+    }
+    h2 {
+      margin: 34px 0 12px;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+      line-height: 1.35;
+    }
+    p, li {
+      color: #2f3337;
+      font-size: 15.5px;
+    }
+    .lead {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 17px;
+    }
+    .meta {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 24px 28px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    blockquote {
+      margin: 18px 0;
+      padding: 14px 18px;
+      color: #24433f;
+      background: var(--accent-soft);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+    }
+    code {
+      padding: 2px 5px;
+      background: var(--code);
+      border-radius: 5px;
+      font-family: Consolas, "SFMono-Regular", monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      background: #202124;
+      color: #f4f7f6;
+      border-radius: 8px;
+      line-height: 1.55;
+    }
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 14.5px;
+    }
+    th, td {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      text-align: left;
+      background: #f2f3ee;
+    }
+    .callout {
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #fff8e1;
+      border: 1px solid #ead68a;
+      color: #4b3b00;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 28px 18px 48px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1 class="brand-title">AI World Radar</h1>
+        <p class="brand-subtitle">信息源策略 / GitHub 趋势信号治理</p>
+      </div>
+      <p class="nav-title">目录</p>
+      <ol class="nav">
+        <li><a href="#conclusion">设计结论</a></li>
+        <li><a href="#problem">问题复盘</a></li>
+        <li><a href="#concepts">概念边界</a></li>
+        <li><a href="#goals">目标与非目标</a></li>
+        <li><a href="#strategy">推荐方案</a></li>
+        <li><a href="#engineering">工程设计</a></li>
+        <li><a href="#observability">日志与可观测性</a></li>
+        <li><a href="#flow">数据流</a></li>
+        <li><a href="#tests">测试策略</a></li>
+        <li><a href="#acceptance">验收标准</a></li>
+        <li><a href="#tradeoffs">方案对比</a></li>
+        <li><a href="#future">后续升级</a></li>
+      </ol>
+    </aside>
+
+    <main>
+      <div class="content">
+        <section class="hero">
+          <h1>GitHub趋势信号去重与新鲜度策略设计</h1>
+          <p class="lead">把 GitHub repo trends 从“可反复发布的事件源”校正为“需要冷却期和新鲜度判断的趋势信号源”，解决 Hermes-agent 这类同仓库重复上首页的问题。</p>
+          <div class="meta"><span>更新时间：2026-06-26</span><span>状态：待评审</span></div>
+        </section>
+
+        <section class="section" id="conclusion">
+          <h2>1. 设计结论</h2>
+          <blockquote><p><code>github_repo_trends</code> 是热度雷达信号，不是天然新闻事件。它可以帮助系统发现值得关注的仓库，但不能因为每次被抓到就反复生成首页事件。</p></blockquote>
+          <p>P1 修复采用“趋势源冷却期 + 强新鲜度证据豁免 + 已有重复数据治理”的策略。</p>
+          <ul>
+            <li>同一个 GitHub 仓库在最近 7 天内已经发布过首页事件时，新的纯 repo trend 快照默认不再生成新事件。</li>
+            <li>如果同一仓库的新信号来自 GitHub Release、官方公告、HN 高热讨论等更强的新鲜度来源，则不受趋势冷却期限制。</li>
+            <li>纯 GitHub repo trend 信号被跳过时，要记录跳过原因，而不是静默丢弃。</li>
+            <li>当前数据库中已经存在的重复趋势事件，需要通过一次性治理把旧重复事件从首页隐藏。</li>
+          </ul>
+        </section>
+
+        <section class="section" id="problem">
+          <h2>2. 当前问题复盘</h2>
+          <p>以 <code>NousResearch/hermes-agent</code> 为例，当前数据库中已经出现多条已发布事件，它们都指向同一个 GitHub 仓库，但因为每次采集的 <code>snapshot_bucket</code> 不同，系统把它们当成了不同信号。</p>
+          <pre><code>github_repo_trends
+-> source_hash = github_repo_trends:{owner/repo}:{snapshot_bucket}
+-> published_at = detected_at
+-> candidate_key 由 LLM 或 selector 生成，可能每轮不同
+-> PublishedEvent 只按 candidate_id 幂等</code></pre>
+          <p>因此，当前系统能防住“同一个 candidate 重复发布”，但防不住“同一个仓库换一个 candidate_key 再发布一次”。</p>
+        </section>
+
+        <section class="section" id="concepts">
+          <h2>3. 概念边界</h2>
+          <h3>真实事件信号</h3>
+          <p>官方公告、GitHub Release、HN 帖子、论文、博客和产品发布页都属于真实事件信号。这类信号的发布时间可以近似理解为事件时间。</p>
+          <h3>趋势检测信号</h3>
+          <p>GitHub 仓库搜索结果仍排名靠前、star 数继续增长、仓库最近被 push 或 updated，这些只能说明“此刻被检测到仍有热度”，不能直接等价于“此刻发生了一条新新闻”。</p>
+          <p><code>github_repo_trends</code> 属于趋势检测信号。</p>
+        </section>
+
+        <section class="section" id="goals">
+          <h2>4. 目标与非目标</h2>
+          <h3>目标</h3>
+          <ul>
+            <li>阻止同一个 GitHub 仓库在短时间内被反复发布到首页。</li>
+            <li>保留 GitHub repo trends 的发现价值。</li>
+            <li>不让 LLM 自由决定是否重复发布，去重规则必须由工程代码兜底。</li>
+            <li>不新增数据库表，优先复用现有 <code>SourceSignal.status</code>、<code>metadata_json</code>、<code>PublishedEvent.status</code>。</li>
+            <li>修复当前首页已有重复卡片的可见性问题。</li>
+          </ul>
+          <h3>非目标</h3>
+          <ul>
+            <li>不删除 <code>github_repo_trends</code> 来源。</li>
+            <li>不在 P1 做完整的语义向量去重。</li>
+            <li>不在 P1 引入 Redis、队列、对象存储或新的调度系统。</li>
+            <li>不让前端用标题相似度临时隐藏重复卡片。</li>
+            <li>不把 star 增长本身立即定义为可重复发布的新事件。</li>
+          </ul>
+        </section>
+
+        <section class="section" id="strategy">
+          <h2>5. 推荐方案</h2>
+          <pre><code>第一层：候选构造前后识别趋势信号身份
+第二层：进入 LLM selector 前做 GitHub 仓库冷却期过滤
+第三层：对历史已发布重复事件做一次性首页隐藏</code></pre>
+          <h3>冷却期规则</h3>
+          <p>默认 <code>github_repo_trend_cooldown_days = 7</code>。如果一个 group 全部来自 <code>github_repo_trends</code>，能解析出同一 <code>owner/repo</code>，且该 repo 最近 7 天内已有 <code>status = published</code> 的 PublishedEvent，则跳过。</p>
+          <h3>强新鲜度证据豁免</h3>
+          <p>如果 group 包含 GitHub Release、HN、官方公告或开发者平台公开源，则允许进入 selector。是否发布仍由排序、selector 和审稿链路决定。</p>
+          <h3>Star 增长</h3>
+          <p>P1 不把 star 增长自动作为绕过冷却期的理由。star 增长先只作为排序和热度说明使用。</p>
+        </section>
+
+        <section class="section" id="engineering">
+          <h2>6. 工程设计</h2>
+          <h3>趋势新鲜度服务</h3>
+          <pre><code>apps/worker/worker/services/github_trend_freshness_service.py</code></pre>
+          <p>该服务负责判断一个 <code>EditorialCandidateGroup</code> 是否是纯 GitHub repo trend，解析 <code>repo_full_name</code>，查询最近 7 天是否已有同 repo PublishedEvent，并返回 allow / skip 决策。</p>
+          <h3>DailyPipelineService 接入点</h3>
+          <pre><code>DailyPipelineService._run_once_impl()
+  -> build_candidate_groups_from_signal_rows()
+  -> apply GitHub trend freshness gate
+  -> select_candidate_groups()</code></pre>
+          <h3>SourceSignal 状态处理</h3>
+          <pre><code>SourceSignal.status = "skipped_duplicate_trend"
+SourceSignal.metadata_json.github_trend_freshness = {
+  "decision": "skip",
+  "reason": "recently_published_repo_trend",
+  "repo_full_name": "nousresearch/hermes-agent",
+  "matched_published_event_id": "pub_xxx",
+  "cooldown_days": 7,
+  "skipped_at": "2026-06-26T..."
+}</code></pre>
+          <h3>历史 PublishedEvent 匹配方式</h3>
+          <pre><code>PublishedEvent
+-> EventCandidate
+-> EventCandidateSignal
+-> SourceSignal
+-> metadata.full_name / source_item_id / canonical_url</code></pre>
+        </section>
+
+        <section class="section" id="observability">
+          <h2>7. 日志与可观测性</h2>
+          <p>第一版至少需要在 summary 或日志中体现：</p>
+          <ul>
+            <li><code>github_trend_groups_total</code></li>
+            <li><code>github_trend_groups_skipped</code></li>
+            <li><code>github_trend_groups_allowed</code></li>
+            <li><code>skipped_duplicate_trend_signals</code></li>
+            <li>被跳过 repo 的样例和匹配到的历史 <code>published_event_id</code></li>
+          </ul>
+          <p class="callout">如果当前运行日志基座已经合入，则使用 RunLogger 输出中文日志；如果日志基座还未稳定，则先把这些字段放入 daily pipeline summary。</p>
+        </section>
+
+        <section class="section" id="flow">
+          <h2>8. 数据流</h2>
+          <pre><code>collect_source_signals.py
+  -> 写入 SourceSignal
+  -> github_repo_trends 仍记录 detected_at、snapshot_bucket、star metrics
+
+DailyPipelineService
+  -> 读取本轮新 SourceSignal
+  -> 构造 EditorialCandidateGroup
+  -> GitHubTrendFreshnessService 过滤纯趋势重复 group
+  -> 标记 skipped_duplicate_trend
+  -> 其余 group 进入 LLM Editorial Selector
+  -> run_event_pipeline
+  -> PublishedEvent</code></pre>
+        </section>
+
+        <section class="section" id="tests">
+          <h2>9. 测试策略</h2>
+          <ul>
+            <li>新增 <code>test_github_trend_freshness_service.py</code>，覆盖首次出现、7 天内重复、超过 7 天、强新鲜度来源豁免、大小写归一。</li>
+            <li>修改 <code>test_daily_pipeline_service.py</code>，覆盖重复 repo trend 不进入 selector、summary 统计和 signal 状态标记。</li>
+            <li>修改 <code>test_editorial_candidate_service.py</code>，覆盖 <code>skipped_duplicate_trend</code> 不进入候选池。</li>
+            <li>新增 <code>test_cleanup_duplicate_github_trend_events.py</code>，覆盖 dry-run、apply、非 trend 不误伤、不同 repo 不互相影响。</li>
+          </ul>
+        </section>
+
+        <section class="section" id="acceptance">
+          <h2>10. 验收标准</h2>
+          <ul>
+            <li>同一个 GitHub repo 在 7 天内只有一条纯 trend PublishedEvent 能展示在首页。</li>
+            <li><code>hermes-agent</code> 再次被采集时，不再生成新 PublishedEvent。</li>
+            <li>如果同 repo 后续出现 GitHub Release 或官方公告，仍可进入候选和 selector。</li>
+            <li>首页不再展示当前数据库中的多条 Hermes-agent 重复卡片。</li>
+            <li>不修改前端排序逻辑，不提交无关生成文件或观测系统改动。</li>
+          </ul>
+        </section>
+
+        <section class="section" id="tradeoffs">
+          <h2>11. 方案对比</h2>
+          <table>
+            <thead>
+              <tr><th>方案</th><th>优点</th><th>缺点</th><th>结论</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>只在前端隐藏重复卡片</td><td>最快</td><td>后端继续生产重复事件，数据库继续变脏</td><td>不采用</td></tr>
+              <tr><td>工程冷却期过滤 + 一次性数据治理</td><td>稳定、可测试、成本低，同时修未来和当前</td><td>规则相对保守</td><td>采用</td></tr>
+              <tr><td>语义向量去重 + Agent 判断</td><td>长期更智能</td><td>成本高，不确定性强</td><td>后续升级</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="section" id="future">
+          <h2>12. 后续升级</h2>
+          <ul>
+            <li>给 <code>PublishedEvent</code> 增加稳定的 <code>event_identity_key</code>。</li>
+            <li>给 repo trend 增加专门的 <code>trend_kind</code> 和 <code>event_time_kind</code> 字段。</li>
+            <li>设计“异常增长事件”规则，而不是简单按 star delta 放行。</li>
+            <li>引入 embedding 做跨来源语义去重。</li>
+            <li>后台管理页支持手动合并重复事件、隐藏事件、解除隐藏。</li>
+            <li>将趋势信号以“观察池”形式展示，而不是全部进入首页事件流。</li>
+          </ul>
+          <blockquote><p>GitHub repo trends 负责发现“哪些仓库正在被关注”，但首页 PublishedEvent 负责展示“哪些事情值得现在发给用户看”。同一仓库短期反复出现在热榜，不等于每天都发生了一件新事。</p></blockquote>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
