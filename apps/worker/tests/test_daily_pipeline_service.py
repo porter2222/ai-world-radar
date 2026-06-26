@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from worker.config import (
+    DailyPipelineSettings,
+    LLMSettings,
+    ProductSettings,
+    RuntimeSettings,
+    SchedulerSettings,
+    Settings,
+)
 from worker.models import (
     Base,
     EventCandidate,
@@ -36,6 +45,52 @@ def make_session():
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)()
+
+
+def test_daily_pipeline_config_builds_from_settings():
+    """验证 DailyPipelineConfig 从统一 Settings 读取流水线策略。
+
+    输入：带自定义 daily_pipeline 配置的 Settings。
+    输出：DailyPipelineConfig 字段全部来自 settings.daily_pipeline 和 settings.agent_mode。
+    """
+    settings = Settings(
+        runtime=RuntimeSettings(
+            project_root=Path("D:/tmp/project"),
+            worker_dir=Path("D:/tmp/project/apps/worker"),
+            runtime_dir=Path("D:/tmp/project/runtime"),
+            database_url="sqlite+pysqlite:///:memory:",
+        ),
+        llm=LLMSettings(provider="openai", model="gpt-4o-mini", request_timeout_seconds=180),
+        product=ProductSettings(
+            homepage_recent_hours=48,
+            homepage_default_limit=20,
+            homepage_max_limit=100,
+            homepage_min_recent_items=8,
+            homepage_backfill_days=7,
+        ),
+        daily_pipeline=DailyPipelineSettings(
+            source_group="daily_test",
+            lookback_hours=6,
+            candidate_lookback_hours=24,
+            selector_batch_size=12,
+            max_selected=None,
+            continue_on_source_error=False,
+            disable_agent_fallback=True,
+        ),
+        scheduler=SchedulerSettings(timezone="Asia/Shanghai", daily_pipeline_times=("08:00",)),
+        agent_mode="llm",
+    )
+
+    config = DailyPipelineConfig.from_settings(settings)
+
+    assert config.source_group == "daily_test"
+    assert config.lookback_hours == 6
+    assert config.candidate_lookback_hours == 24
+    assert config.selector_batch_size == 12
+    assert config.max_selected is None
+    assert config.continue_on_source_error is False
+    assert config.disable_agent_fallback is True
+    assert config.agent_mode == "llm"
 
 
 def add_source(session, source_key: str = "hn_algolia") -> Source:

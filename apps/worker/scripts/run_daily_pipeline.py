@@ -45,7 +45,7 @@ def main(argv: list[str] | None = None) -> int:
         load_dotenv(Path(args.env_file).resolve(), override=True)
 
     settings = load_settings()
-    config = DailyPipelineConfig.from_env(settings)
+    config = DailyPipelineConfig.from_settings(settings)
     runtime_dir = Path(args.runtime_dir).resolve() if args.runtime_dir else PROJECT_ROOT / "runtime"
     logger = create_daily_pipeline_logger(runtime_dir=runtime_dir, console=True)
     logger.info(

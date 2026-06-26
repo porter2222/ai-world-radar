@@ -43,24 +43,22 @@ class DailyPipelineConfig:
     candidate_lookback_hours: int = 48
 
     @classmethod
-    def from_env(cls, settings: Settings) -> "DailyPipelineConfig":
-        """从环境变量和 Settings 构造手动日常 pipeline 配置。
+    def from_settings(cls, settings: Settings) -> "DailyPipelineConfig":
+        """从统一 Settings 构造手动日常 pipeline 配置。
 
-        输入：`load_settings()` 返回的 Settings；函数内部读取当前进程环境变量。
-        输出：DailyPipelineConfig；空的 max selected 表示不限制。
+        输入：`load_settings()` 返回的 Settings。
+        输出：DailyPipelineConfig；`max_selected=None` 表示不限制。
         """
-        import os
-
-        raw_max_selected = os.getenv("DAILY_PIPELINE_MAX_SELECTED", "5").strip()
-        max_selected = None if raw_max_selected in {"", "0"} else int(raw_max_selected)
+        daily = settings.daily_pipeline
         return cls(
-            source_group=os.getenv("DAILY_PIPELINE_SOURCE_GROUP", "daily_all"),
-            lookback_hours=int(os.getenv("DAILY_PIPELINE_LOOKBACK_HOURS", "8")),
-            selector_batch_size=int(os.getenv("DAILY_PIPELINE_SELECTOR_BATCH_SIZE", "30")),
-            continue_on_source_error=_env_bool("DAILY_PIPELINE_CONTINUE_ON_SOURCE_ERROR", default=True),
-            disable_agent_fallback=_env_bool("DAILY_PIPELINE_DISABLE_AGENT_FALLBACK", default=True),
-            max_selected=max_selected,
+            source_group=daily.source_group,
+            lookback_hours=daily.lookback_hours,
+            selector_batch_size=daily.selector_batch_size,
+            continue_on_source_error=daily.continue_on_source_error,
+            disable_agent_fallback=daily.disable_agent_fallback,
+            max_selected=daily.max_selected,
             agent_mode=settings.agent_mode,
+            candidate_lookback_hours=daily.candidate_lookback_hours,
         )
 
 
@@ -609,22 +607,3 @@ def _normalize_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
-
-
-def _env_bool(name: str, *, default: bool) -> bool:
-    """读取布尔环境变量。
-
-    输入：环境变量名和默认值。
-    输出：`1/true/yes/on` 为 True，`0/false/no/off` 为 False，其他空值返回默认值。
-    """
-    import os
-
-    raw_value = os.getenv(name)
-    if raw_value is None or raw_value.strip() == "":
-        return default
-    normalized = raw_value.strip().lower()
-    if normalized in {"1", "true", "yes", "on"}:
-        return True
-    if normalized in {"0", "false", "no", "off"}:
-        return False
-    return default
