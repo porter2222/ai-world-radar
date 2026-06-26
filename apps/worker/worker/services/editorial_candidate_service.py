@@ -168,6 +168,8 @@ class EditorialCandidateService:
             return False
         if not (signal.canonical_url or signal.original_url):
             return False
+        if signal.status != "new":
+            return False
         if exclude_processed and signal.pipeline_run_id:
             return False
         if signal.source_hash in seen_source_hashes:
