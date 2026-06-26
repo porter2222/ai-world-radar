@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI World Radar 运行日志与观测基座设计</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #ffffff;
+      --text: #202124;
+      --muted: #5f6368;
+      --line: #deded8;
+      --accent: #0f766e;
+      --accent-soft: #e4f4f1;
+      --code: #f0f1ec;
+      --shadow: 0 20px 50px rgba(30, 35, 40, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      line-height: 1.72;
+    }
+    a { color: inherit; text-decoration: none; }
+    .layout {
+      display: grid;
+      grid-template-columns: 292px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+    }
+    .brand {
+      margin-bottom: 26px;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-title {
+      margin: 0 0 6px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+    .brand-subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .nav-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .nav {
+      display: grid;
+      gap: 4px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav a {
+      display: block;
+      padding: 8px 10px;
+      color: #3c4043;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .nav a:hover {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+    main {
+      padding: 42px 56px 72px;
+    }
+    .content {
+      width: min(1080px, 100%);
+      margin: 0 auto;
+    }
+    .hero {
+      margin-bottom: 26px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 34px 0 12px;
+      font-size: 26px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 24px 0 10px;
+      font-size: 18px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+    p, li {
+      color: #2f3337;
+      font-size: 15.5px;
+    }
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .panel {
+      margin: 18px 0;
+      padding: 20px 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    code {
+      padding: 2px 5px;
+      background: var(--code);
+      border-radius: 5px;
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      overflow-x: auto;
+      padding: 16px;
+      background: #202124;
+      color: #f7f7f4;
+      border-radius: 8px;
+      line-height: 1.55;
+    }
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0 20px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+    th {
+      color: #263238;
+      background: #f1f3ef;
+      font-weight: 700;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 3px 9px;
+      margin: 0 6px 6px 0;
+      color: #075d56;
+      background: var(--accent-soft);
+      border: 1px solid #b8ddd7;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      main { padding: 30px 20px 56px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="brand-title">运行日志与观测基座</p>
+        <p class="brand-subtitle">AI World Radar 系统设计 · 2026-06-26</p>
+      </div>
+      <p class="nav-title">导航</p>
+      <ol class="nav">
+        <li><a href="#background">背景与目标</a></li>
+        <li><a href="#scope">第一版边界</a></li>
+        <li><a href="#principles">设计原则</a></li>
+        <li><a href="#architecture">总体架构</a></li>
+        <li><a href="#schema">日志事件协议</a></li>
+        <li><a href="#files">输出文件</a></li>
+        <li><a href="#stages">阶段日志清单</a></li>
+        <li><a href="#agent">Agent 级监控</a></li>
+        <li><a href="#heartbeat">心跳机制</a></li>
+        <li><a href="#redaction">错误与脱敏</a></li>
+        <li><a href="#future">后续扩展</a></li>
+        <li><a href="#implementation">最小实施顺序</a></li>
+        <li><a href="#acceptance">验收标准</a></li>
+      </ol>
+    </aside>
+    <main>
+      <article class="content">
+        <section class="hero">
+          <h1>运行日志与观测基座设计</h1>
+          <p class="muted">面向终端观察、定时任务追溯、Agent 运行监控和未来后台观测的统一日志方案。</p>
+        </section>
+
+        <section id="background">
+          <h2>1. 背景与目标</h2>
+          <p>当前主分支已经具备真实的日常生产链路：<code>run_daily_pipeline.py</code> 启动，<code>DailyPipelineService</code> 编排采集、新信号读取、候选构造、LLM 编辑筛选和事件生产，<code>collect_source_signals.py</code> 写入 <code>source_signals</code>，<code>run_event_pipeline.py</code> 与 LangGraph 工作流推进到 <code>PublishedEvent</code>。</p>
+          <p>这个阶段的主要问题是运行过程像黑盒。用户在终端盯着时，不知道卡在采集、网络、数据库、selector、writer、reviewer 还是发布；定时任务后台运行时，也缺少一份可以回放的完整运行轨迹。</p>
+          <div class="panel">
+            <span class="tag">中文终端日志</span>
+            <span class="tag">结构化 JSONL</span>
+            <span class="tag">Agent 一等公民</span>
+            <span class="tag">30 秒心跳</span>
+            <span class="tag">敏感信息脱敏</span>
+          </div>
+        </section>
+
+        <section id="scope">
+          <h2>2. 第一版边界</h2>
+          <div class="grid">
+            <div class="panel">
+              <h3>第一版要做</h3>
+              <ul>
+                <li>中文终端日志、文本文件日志和 JSONL 结构化日志。</li>
+                <li>日常 pipeline、source 采集、Agent、LLM、工具调用和发布阶段日志。</li>
+                <li>失败、重试、fallback、token usage、耗时和心跳记录。</li>
+                <li>敏感信息脱敏，日志失败不拖垮主流程。</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>第一版不做</h3>
+              <ul>
+                <li>后台管理页面、Redis、消息队列和 OpenTelemetry 全量接入。</li>
+                <li>日志检索服务和完整 prompt / response 默认归档。</li>
+                <li>source 网络超时治理、LLM provider 限流和退避策略。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="principles">
+          <h2>3. 设计原则</h2>
+          <h3>中文优先</h3>
+          <pre><code>[10:42:03] [采集开始] source=hn_algolia limit=5
+[10:42:07] [采集成功] source=hn_algolia 写入=3 跳过=12 耗时=4.2s</code></pre>
+          <h3>结构化优先</h3>
+          <p>终端日志只是展示层。底层必须是统一的结构化事件对象，同一条事件可以同时输出到终端、文本文件、JSONL 文件，未来也可以输出到数据库、Redis 或消息队列。</p>
+          <h3>默认详细，但不泄露敏感信息</h3>
+          <p>默认打印阶段、数量、耗时、错误类型、错误摘要、模型名、重试次数、关键 ID 和 token usage；默认不打印 API key、数据库密码、Cookie、完整 HTML 正文、完整 LLM prompt、完整 LLM 原始响应或图片 base64。</p>
+          <h3>可定位卡点</h3>
+          <p>每个长步骤都要至少有 <code>started</code>、<code>heartbeat</code>、<code>succeeded</code>、<code>failed</code>。如果某一步超过 30 秒未结束，持续打印心跳。</p>
+        </section>
+
+        <section id="architecture">
+          <h2>4. 总体架构</h2>
+          <pre><code>业务代码
+  -> RunLogger.emit(event)
+      -> ConsoleSink      中文终端实时日志
+      -> TextFileSink     runtime/daily-pipeline-latest.log
+      -> JsonlFileSink    runtime/daily-pipeline-latest.jsonl
+      -> DbSink           后续扩展
+      -> RedisSink        后续扩展
+      -> QueueSink        后续扩展</code></pre>
+          <p><code>RunLogger</code> 是业务链路唯一直接调用的日志入口，负责生成 <code>run_id</code>、维护追踪字段、补齐时间戳、分发事件、提供阶段上下文和统一脱敏。</p>
+          <table>
+            <thead><tr><th>Sink</th><th>作用</th><th>第一版是否实现</th></tr></thead>
+            <tbody>
+              <tr><td><code>ConsoleSink</code></td><td>终端中文实时输出</td><td>是</td></tr>
+              <tr><td><code>TextFileSink</code></td><td>人类可读 <code>.log</code> 文件</td><td>是</td></tr>
+              <tr><td><code>JsonlFileSink</code></td><td>结构化 <code>.jsonl</code> 文件</td><td>是</td></tr>
+              <tr><td><code>DbSink</code></td><td>写入运行记录表，供后台管理页读取</td><td>预留</td></tr>
+              <tr><td><code>RedisSink</code></td><td>写入实时运行状态，供前端订阅</td><td>预留</td></tr>
+              <tr><td><code>QueueSink</code></td><td>推送运行事件到消息队列</td><td>预留</td></tr>
+            </tbody>
+          </table>
+          <p>第一版优先接入 <code>run_daily_pipeline.py</code>、<code>DailyPipelineService</code>、<code>collect_source_signals.py</code>、<code>run_event_pipeline.py</code>、LLM Agent 和 <code>llm_client.py</code>。</p>
+        </section>
+
+        <section id="schema">
+          <h2>5. 日志事件协议</h2>
+          <table>
+            <thead><tr><th>字段</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td><code>timestamp</code></td><td>ISO 8601 时间，带时区。</td></tr>
+              <tr><td><code>level</code></td><td><code>debug/info/warning/error</code>。</td></tr>
+              <tr><td><code>run_id</code> / <code>trace_id</code></td><td>一次 daily pipeline 运行和追踪 ID。</td></tr>
+              <tr><td><code>span_id</code> / <code>parent_span_id</code></td><td>当前阶段和父阶段 ID。</td></tr>
+              <tr><td><code>component</code></td><td><code>daily_pipeline/collector/selector/workflow/agent/llm/tool/db/scheduler</code>。</td></tr>
+              <tr><td><code>stage</code> / <code>event</code> / <code>status</code></td><td>阶段名、事件类型和业务状态。</td></tr>
+              <tr><td><code>message_zh</code></td><td>中文可读消息。</td></tr>
+              <tr><td><code>duration_ms</code></td><td>阶段耗时。</td></tr>
+              <tr><td><code>source_key</code> / <code>candidate_group_id</code></td><td>来源和候选事件组标识。</td></tr>
+              <tr><td><code>pipeline_run_id</code> / <code>agent_run_id</code></td><td>数据库运行记录或本轮临时执行 ID。</td></tr>
+              <tr><td><code>agent_name</code> / <code>tool_name</code></td><td>Agent 和工具名。</td></tr>
+              <tr><td><code>provider</code> / <code>model</code></td><td>LLM provider 和 model。</td></tr>
+              <tr><td><code>retry_count</code> / <code>token_usage</code></td><td>重试次数和 token 统计。</td></tr>
+              <tr><td><code>counts</code></td><td>写入、跳过、发布等数量统计。</td></tr>
+              <tr><td><code>error_type</code> / <code>error_message</code></td><td>异常类型和脱敏后的错误摘要。</td></tr>
+              <tr><td><code>metadata</code></td><td>少量可 JSON 序列化扩展信息。</td></tr>
+            </tbody>
+          </table>
+          <pre><code>{"timestamp":"2026-06-26T10:42:03+08:00","level":"info","run_id":"daily_20260626_104201","component":"collector","stage":"collect_source","event":"started","message_zh":"开始采集来源 hn_algolia","source_key":"hn_algolia","counts":{"limit":5}}</code></pre>
+        </section>
+
+        <section id="files">
+          <h2>6. 输出文件</h2>
+          <pre><code>runtime/
+  daily-pipeline-latest.log
+  daily-pipeline-latest.jsonl
+  daily-pipeline-20260626-104201.log
+  daily-pipeline-20260626-104201.jsonl</code></pre>
+          <p>每次运行创建一组带时间戳的日志文件，<code>latest.*</code> 覆盖为最近一次运行。所有文件默认 UTF-8，<code>runtime</code> 产物不提交 Git。</p>
+        </section>
+
+        <section id="stages">
+          <h2>7. 阶段日志清单</h2>
+          <h3>启动阶段</h3>
+          <pre><code>[运行启动] run_id=daily_20260626_104201
+[运行配置] source_group=daily_all lookback_hours=8 agent_mode=llm max_selected=5
+[模型配置] provider=openai model=gpt-5.5
+[数据库] 连接成功
+[日志文件] runtime/daily-pipeline-20260626-104201.log</code></pre>
+          <h3>采集窗口与来源展开</h3>
+          <pre><code>[采集窗口] start=2026-06-26T02:42:01+08:00 end=2026-06-26T10:42:01+08:00 lookback_hours=8
+[来源展开] daily_all => hn_algolia, github_releases, github_repo_trends, openai_news</code></pre>
+          <h3>来源采集与汇总</h3>
+          <pre><code>[采集开始] source=hn_algolia limit=5
+[采集成功] source=hn_algolia fetched=15 写入=3 跳过=12 耗时=4.2s
+[采集失败] source=pytorch_blog 错误=HTTPStatusError message=403 Forbidden 耗时=11.0s continue=true
+[采集汇总] 成功来源=10 失败来源=2 本轮新写入=8
+[跳过统计] stale=37 missing_published_at=5 future=0 duplicate=12</code></pre>
+          <h3>新信号、候选构造和编辑筛选</h3>
+          <pre><code>[新信号读取] since=2026-06-26T10:42:01+08:00 count=8
+[候选构造开始] raw_signals=8
+[硬过滤] empty_title=0 no_url=0 already_processed=0 stale=0
+[候选合并] groups=6 merged_by_url=1 merged_by_title=1
+[编辑筛选开始] groups=6 provider=openai model=gpt-5.5 batch_size=30
+[编辑筛选成功] selected=4 rejected=2 manual_review=0 耗时=28.1s</code></pre>
+          <h3>单个事件生产与最终总结</h3>
+          <pre><code>[事件生产开始] 1/4 candidate=... title=...
+[资料写作开始] agent=ResearchWriterLLMAgent
+[资料写作成功] words=850 retries=0 耗时=38.2s
+[审稿发布开始] agent=ReviewPublisherLLMAgent
+[审稿通过] decision=publish slug=...
+[事件发布成功] published_event_id=... slug=...
+[运行完成] status=succeeded duration=3m19s
+[最终统计] raw_signals=8 candidate_groups=6 selected=4 published=4 failed=0</code></pre>
+        </section>
+
+        <section id="agent">
+          <h2>8. Agent 级监控</h2>
+          <p>第一版至少覆盖 <code>EditorialSelectorLLMAgent</code>、<code>ResearchWriterLLMAgent</code>、<code>ReviewPublisherLLMAgent</code>。每个 Agent 必须记录启动、输入摘要、LLM 请求、结构校验、完成或失败。</p>
+          <pre><code>[Agent开始] agent=ResearchWriterLLMAgent candidate=group_xxx model=gpt-5.5
+[Agent输入摘要] agent=ResearchWriterLLMAgent signals=2 sources=hn_algolia,github_repo_trends chars=1800
+[LLM请求开始] agent=ResearchWriterLLMAgent provider=openai model=gpt-5.5 retry=0
+[LLM请求成功] agent=ResearchWriterLLMAgent prompt_tokens=12000 completion_tokens=1800 耗时=31.2s
+[结构校验成功] agent=ResearchWriterLLMAgent schema=EventDossierDraft
+[Agent完成] agent=ResearchWriterLLMAgent status=succeeded words=850 耗时=38.2s</code></pre>
+          <pre><code>[LLM请求失败] agent=ReviewPublisherLLMAgent error=APITimeoutError retry=1 will_retry=true
+[结构校验失败] agent=ReviewPublisherLLMAgent error=JSONDecodeError retry=2
+[Agent失败] agent=ReviewPublisherLLMAgent status=failed action=manual_review
+[工具调用开始] agent=ResearchWriterLLMAgent tool=fetch_source_snapshot source=github_repo_trends
+[工具调用成功] agent=ResearchWriterLLMAgent tool=fetch_source_snapshot bytes=18234 耗时=1.4s</code></pre>
+          <p>主日志仍是统一时间线：<code>daily-pipeline-&lt;run_id&gt;.log/jsonl</code>。后续如有需要，再从 JSONL 派生 Agent 独立视图。</p>
+        </section>
+
+        <section id="heartbeat">
+          <h2>9. 心跳机制</h2>
+          <p>第一版心跳间隔为 30 秒。心跳必须包含当前阶段、当前 source / agent / candidate 和已运行时长。</p>
+          <pre><code>[仍在运行] stage=collect_source source=github_repo_trends elapsed=30s
+[仍在运行] stage=collect_source source=github_repo_trends elapsed=60s</code></pre>
+        </section>
+
+        <section id="redaction">
+          <h2>10. 错误与脱敏</h2>
+          <ul>
+            <li>URL 中的密码段替换为 <code>***</code>。</li>
+            <li>API key、token、authorization、cookie 字段统一替换为 <code>[REDACTED]</code>。</li>
+            <li>错误信息中出现 <code>.env</code> 中的敏感值时必须替换。</li>
+            <li>数据库连接串只允许输出 driver、host、port、database，不允许输出用户名和密码。</li>
+            <li>Prompt、response、HTML 正文默认只输出长度、hash 或摘要，不输出全文。</li>
+          </ul>
+        </section>
+
+        <section id="future">
+          <h2>11. 后续扩展</h2>
+          <h3>数据库运行记录</h3>
+          <pre><code>run_log_events
+  id
+  run_id
+  timestamp
+  level
+  component
+  stage
+  event
+  message_zh
+  payload_json</code></pre>
+          <h3>Redis 实时状态</h3>
+          <pre><code>daily_pipeline:latest_status
+daily_pipeline:{run_id}:events
+daily_pipeline:{run_id}:current_stage</code></pre>
+          <h3>消息队列</h3>
+          <pre><code>pipeline.events
+agent.events
+collector.events</code></pre>
+          <p>问答助手未来可以读取 JSONL / DB 日志回答“今天 13 点那次为什么失败？”、“哪个 source 最近最不稳定？”、“LLM selector 为什么没选这个事件？”等问题。</p>
+        </section>
+
+        <section id="implementation">
+          <h2>12. 最小实施顺序</h2>
+          <ol>
+            <li>新增 <code>worker/observability/run_logger.py</code>，实现事件模型、脱敏和三个第一版 Sink。</li>
+            <li>为 RunLogger 写单元测试，覆盖中文终端格式、JSONL 合法性、文件写入和脱敏。</li>
+            <li><code>run_daily_pipeline.py</code> 创建 logger，并传给 <code>DailyPipelineService</code>。</li>
+            <li><code>DailyPipelineService</code> 在启动、采集、新信号读取、候选构造、selector、per-candidate、最终总结阶段打日志。</li>
+            <li><code>collect_source_signals.py</code> 和 source collector 统一返回或记录采集统计。</li>
+            <li><code>run_event_pipeline.py</code> 和 LangGraph 节点接入 workflow / Agent 阶段日志。</li>
+            <li>LLM Agent wrapper 记录 LLM 请求、响应摘要、token usage、结构校验、重试和失败。</li>
+            <li>长阶段加 30 秒 heartbeat。</li>
+            <li>更新测试记录，记录终端输出样例和 <code>runtime/*.log/jsonl</code> 样例。</li>
+          </ol>
+        </section>
+
+        <section id="acceptance">
+          <h2>13. 验收标准</h2>
+          <ul>
+            <li>手动运行 <code>python scripts/run_daily_pipeline.py</code> 时，终端实时输出中文阶段日志。</li>
+            <li><code>runtime/daily-pipeline-latest.log</code> 存在，并包含本轮完整阶段日志。</li>
+            <li><code>runtime/daily-pipeline-latest.jsonl</code> 存在，每行是合法 JSON。</li>
+            <li>每个 source、selector、selected candidate 和 Agent 都有开始、成功或失败日志。</li>
+            <li>Agent 日志包含 <code>agent_name</code>、<code>agent_run_id</code>、<code>candidate_group_id</code>、模型名、重试次数和 token usage。</li>
+            <li>失败路径记录 <code>error_type</code> 和脱敏后的 <code>error_message</code>。</li>
+            <li>长阶段每 30 秒出现 heartbeat。</li>
+            <li>日志系统异常不影响主流程。</li>
+          </ul>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>
