@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from worker.config import ProductSettings, load_settings
 from worker.models import AgentRun, EventCandidate, EventDossier, PipelineRun, PublishedEvent, ReviewResult
 from worker.schemas.product import (
     ManualReviewQueueItem,
@@ -250,23 +251,24 @@ class ProductQueryService:
     输出：供 FastAPI 或其他产品层复用的只读查询方法。
     """
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, *, product_settings: ProductSettings | None = None):
         """初始化产品查询服务。
 
-        输入：由调用方管理生命周期和事务的 SQLAlchemy Session。
+        输入：由调用方管理生命周期和事务的 SQLAlchemy Session，以及可选产品展示策略。
         输出：可执行产品只读查询的服务实例。
         """
         self.session = session
+        self.product_settings = product_settings or load_settings().product
 
     def list_published_events(
         self,
         *,
-        limit: int = 20,
+        limit: int | None = None,
         offset: int = 0,
         category: str | None = None,
-        recent_hours: int = 48,
-        min_recent_items: int = 8,
-        backfill_days: int = 7,
+        recent_hours: int | None = None,
+        min_recent_items: int | None = None,
+        backfill_days: int | None = None,
         now: datetime | None = None,
     ) -> list[ProductEventListItem]:
         """查询前台已发布事件列表。
@@ -274,16 +276,24 @@ class ProductQueryService:
         输入：分页参数、可选 category 和首页时效窗口内部参数。
         输出：近期首页事件卡片列表；低量时向 7 天兜底，不暴露内部排序分。
         """
+        settings = self.product_settings
+        effective_limit = limit if limit is not None else settings.homepage_default_limit
+        effective_recent_hours = recent_hours if recent_hours is not None else settings.homepage_recent_hours
+        effective_min_recent_items = min_recent_items if min_recent_items is not None else settings.homepage_min_recent_items
+        effective_backfill_days = backfill_days if backfill_days is not None else settings.homepage_backfill_days
+
         current_time = self._current_time(now)
-        recent_cutoff = current_time - timedelta(hours=recent_hours)
-        backfill_cutoff = current_time - timedelta(days=backfill_days)
+        recent_cutoff = current_time - timedelta(hours=effective_recent_hours)
         base_filters = self._published_base_filters(category)
-        recent_count = self.session.scalar(
-            select(func.count())
-            .select_from(PublishedEvent)
-            .where(*base_filters, PublishedEvent.published_at >= recent_cutoff)
-        ) or 0
-        cutoff = backfill_cutoff if recent_count < min_recent_items else recent_cutoff
+        cutoff = recent_cutoff
+        if effective_backfill_days is not None:
+            recent_count = self.session.scalar(
+                select(func.count())
+                .select_from(PublishedEvent)
+                .where(*base_filters, PublishedEvent.published_at >= recent_cutoff)
+            ) or 0
+            if recent_count < effective_min_recent_items:
+                cutoff = current_time - timedelta(days=effective_backfill_days)
         statement = (
             select(PublishedEvent)
             .where(*base_filters, PublishedEvent.published_at >= cutoff)
@@ -296,7 +306,7 @@ class ProductQueryService:
             )
         )
         events = _dedupe_pure_github_repo_trend_events(self.session.scalars(statement).all())
-        paginated_events = events[offset : offset + limit]
+        paginated_events = events[offset : offset + effective_limit]
         return [self._event_list_item(event) for event in paginated_events]
 
     def _current_time(self, now: datetime | None) -> datetime:

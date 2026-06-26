@@ -9,8 +9,9 @@ from sqlalchemy.orm import sessionmaker
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message="Using `httpx` with `starlette.testclient` is deprecated")
-    from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient
 
+from worker.config import ProductSettings
 from worker.api.app import create_app
 from worker.models import Base
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand, ReviewResultDraft
@@ -271,6 +272,38 @@ def test_events_api_defaults_to_recent_homepage_window():
     detail_response = client.get(f"/events/{old.slug}")
     assert detail_response.status_code == 200
     assert detail_response.json()["slug"] == old.slug
+
+
+def test_events_api_uses_product_settings_default_and_max_limit():
+    """验证 `/events` 默认 limit 和最大 limit 来自 ProductSettings。
+
+    输入：注入 default_limit=7、max_limit=9 的 ProductSettings。
+    输出：不传 limit 时响应 limit=7，传 10 时返回 422。
+    """
+    session_factory = make_session_factory()
+    with session_factory() as session:
+        create_published_event(session, "api-config-limit")
+        session.commit()
+
+    client = TestClient(
+        create_app(
+            session_factory=session_factory,
+            product_settings=ProductSettings(
+                homepage_recent_hours=48,
+                homepage_default_limit=7,
+                homepage_max_limit=9,
+                homepage_min_recent_items=1,
+                homepage_backfill_days=None,
+            ),
+        )
+    )
+
+    default_response = client.get("/events")
+    assert default_response.status_code == 200
+    assert default_response.json()["limit"] == 7
+
+    too_large_response = client.get("/events?limit=10")
+    assert too_large_response.status_code == 422
 
 
 def test_admin_read_only_api_returns_runs_agent_runs_and_review_queue():

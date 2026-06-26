@@ -3,17 +3,22 @@ from __future__ import annotations
 from fastapi import Depends, FastAPI, HTTPException, Query
 
 from worker.api.dependencies import SessionFactory, create_product_query_dependency, default_session_factory
+from worker.config import ProductSettings, load_settings
 from worker.services.product_query_service import ProductQueryService
 
 
-def create_app(session_factory: SessionFactory | None = None) -> FastAPI:
+def create_app(session_factory: SessionFactory | None = None, product_settings: ProductSettings | None = None) -> FastAPI:
     """创建 AI World Radar 产品接口 FastAPI 应用。
 
-    输入：可选 Session 工厂；测试可注入内存数据库，生产默认读取配置。
+    输入：可选 Session 工厂和产品展示策略；测试可注入内存数据库，生产默认读取配置。
     输出：只注册只读产品接口的 FastAPI 应用。
     """
     resolved_session_factory = session_factory or default_session_factory()
-    query_dependency = create_product_query_dependency(resolved_session_factory)
+    resolved_product_settings = product_settings or load_settings().product
+    query_dependency = create_product_query_dependency(
+        resolved_session_factory,
+        product_settings=resolved_product_settings,
+    )
     app = FastAPI(title="AI World Radar Product API", version="0.1.0")
 
     @app.get("/health")
@@ -28,7 +33,7 @@ def create_app(session_factory: SessionFactory | None = None) -> FastAPI:
     @app.get("/events")
     def list_events(
         service: ProductQueryService = Depends(query_dependency),
-        limit: int = Query(20, ge=1, le=100),
+        limit: int | None = Query(None, ge=1),
         offset: int = Query(0, ge=0),
         category: str | None = None,
     ) -> dict[str, object]:
@@ -37,9 +42,15 @@ def create_app(session_factory: SessionFactory | None = None) -> FastAPI:
         输入：分页参数、可选分类和 ProductQueryService。
         输出：包含 items、limit、offset 的列表响应。
         """
+        effective_limit = limit or resolved_product_settings.homepage_default_limit
+        if effective_limit > resolved_product_settings.homepage_max_limit:
+            raise HTTPException(
+                status_code=422,
+                detail=f"limit must be <= {resolved_product_settings.homepage_max_limit}",
+            )
         return {
-            "items": service.list_published_events(limit=limit, offset=offset, category=category),
-            "limit": limit,
+            "items": service.list_published_events(limit=effective_limit, offset=offset, category=category),
+            "limit": effective_limit,
             "offset": offset,
         }
 

@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterator
 
 from sqlalchemy.orm import Session
 
+from worker.config import ProductSettings
 from worker.db.session import create_session_factory
 from worker.services.product_query_service import ProductQueryService
 
@@ -19,10 +20,14 @@ def default_session_factory() -> SessionFactory:
     return create_session_factory()
 
 
-def create_product_query_dependency(session_factory: SessionFactory) -> Callable[[], Iterator[ProductQueryService]]:
+def create_product_query_dependency(
+    session_factory: SessionFactory,
+    *,
+    product_settings: ProductSettings | None = None,
+) -> Callable[[], Iterator[ProductQueryService]]:
     """创建 ProductQueryService 的 FastAPI dependency。
 
-    输入：Session 工厂。
+    输入：Session 工厂和可选产品展示策略。
     输出：每次请求创建并关闭 Session 的 dependency 函数。
     """
 
@@ -34,7 +39,7 @@ def create_product_query_dependency(session_factory: SessionFactory) -> Callable
         """
         session = session_factory()
         try:
-            yield ProductQueryService(session)
+            yield ProductQueryService(session, product_settings=product_settings)
         finally:
             session.close()
 

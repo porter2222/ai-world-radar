@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from worker.config import ProductSettings
 from worker.models import Base, EventDossier, PublishedEvent
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand, ReviewResultDraft
 from worker.schemas.run import AgentRunRecord, PipelineRunCreate
@@ -238,6 +239,50 @@ def test_list_published_events_defaults_to_recent_48_hour_window():
     slugs = [item.slug for item in items]
 
     assert all(event.slug in slugs for event in recent_events)
+    assert old.slug not in slugs
+
+
+def test_list_published_events_uses_injected_product_settings_window():
+    """验证首页窗口可由 ProductSettings 注入，而不是散落在函数默认值。
+
+    输入：一条 3 小时前事件、一条 13 小时前事件，ProductSettings 设置 12 小时窗口且不兜底。
+    输出：只返回 12 小时内事件。
+    """
+    session = make_session()
+    now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
+    recent = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="settings-recent-event",
+            title="配置近期事件",
+        ),
+    )
+    recent.published_at = now - timedelta(hours=3)
+    old = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="settings-old-event",
+            title="配置过期事件",
+        ),
+    )
+    old.published_at = now - timedelta(hours=13)
+    session.commit()
+
+    service = ProductQueryService(
+        session,
+        product_settings=ProductSettings(
+            homepage_recent_hours=12,
+            homepage_default_limit=20,
+            homepage_max_limit=100,
+            homepage_min_recent_items=1,
+            homepage_backfill_days=None,
+        ),
+    )
+    slugs = [item.slug for item in service.list_published_events(limit=20, offset=0, now=now)]
+
+    assert recent.slug in slugs
     assert old.slug not in slugs
 
 
