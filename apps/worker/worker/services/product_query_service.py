@@ -49,6 +49,8 @@ SOURCE_KEY_PLATFORM_KEYS = {
     "aws_machine_learning_blog": "aws",
 }
 
+GITHUB_REPO_TREND_SOURCE_KEY = "github_repo_trends"
+
 DOMAIN_DISPLAY_NAMES = {
     "news.ycombinator.com": "Hacker News",
     "github.com": "GitHub",
@@ -173,6 +175,74 @@ def _clean_text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _dedupe_pure_github_repo_trend_events(events: list[PublishedEvent]) -> list[PublishedEvent]:
+    """Keep only the first pure GitHub repo trend event for each repo in a sorted list."""
+    seen_repo_full_names: set[str] = set()
+    deduped: list[PublishedEvent] = []
+    for event in events:
+        repo_full_name = _pure_github_repo_trend_repo(event)
+        if repo_full_name is not None:
+            if repo_full_name in seen_repo_full_names:
+                continue
+            seen_repo_full_names.add(repo_full_name)
+        deduped.append(event)
+    return deduped
+
+
+def _pure_github_repo_trend_repo(event: PublishedEvent) -> str | None:
+    """Return repo identity only when all source refs are GitHub repo trend refs."""
+    refs = [ref for ref in list(event.source_refs or []) if isinstance(ref, dict)]
+    if not refs:
+        return None
+
+    repo_full_names: set[str] = set()
+    for ref in refs:
+        source_key = _clean_text(ref.get("source_key")).lower()
+        if source_key != GITHUB_REPO_TREND_SOURCE_KEY:
+            return None
+        repo_full_name = _repo_full_name_from_source_ref(ref)
+        if repo_full_name is None:
+            return None
+        repo_full_names.add(repo_full_name)
+
+    if len(repo_full_names) != 1:
+        return None
+    return next(iter(repo_full_names))
+
+
+def _repo_full_name_from_source_ref(ref: dict[str, Any]) -> str | None:
+    """Extract normalized owner/repo from a source ref URL or title."""
+    url = _clean_text(ref.get("url"))
+    if url:
+        parsed = urlparse(url if "://" in url else f"https://{url}")
+        hostname = (parsed.hostname or "").lower()
+        if hostname == "github.com" or hostname.endswith(".github.com"):
+            parts = [part for part in parsed.path.strip("/").split("/") if part]
+            if len(parts) >= 2:
+                return _normalize_repo_full_name(f"{parts[0]}/{parts[1]}")
+
+    title = _clean_text(ref.get("title"))
+    if title:
+        for token in title.replace("(", " ").replace(")", " ").split():
+            normalized = _normalize_repo_full_name(token)
+            if normalized is not None:
+                return normalized
+    return None
+
+
+def _normalize_repo_full_name(value: str | None) -> str | None:
+    """Normalize owner/repo strings for case-insensitive duplicate filtering."""
+    if not value:
+        return None
+    normalized = value.strip().strip(".,;:").lower()
+    if "/" not in normalized:
+        return None
+    owner, repo = normalized.split("/", maxsplit=1)
+    if not owner or not repo:
+        return None
+    return f"{owner}/{repo}"
+
+
 class ProductQueryService:
     """产品接口层只读查询服务。
 
@@ -224,10 +294,10 @@ class ProductQueryService:
                 PublishedEvent.published_at.desc(),
                 PublishedEvent.created_at.desc(),
             )
-            .limit(limit)
-            .offset(offset)
         )
-        return [self._event_list_item(event) for event in self.session.scalars(statement).all()]
+        events = _dedupe_pure_github_repo_trend_events(self.session.scalars(statement).all())
+        paginated_events = events[offset : offset + limit]
+        return [self._event_list_item(event) for event in paginated_events]
 
     def _current_time(self, now: datetime | None) -> datetime:
         """返回首页窗口计算使用的当前时间。

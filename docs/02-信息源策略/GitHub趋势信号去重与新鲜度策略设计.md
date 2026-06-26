@@ -89,15 +89,16 @@ github_repo_trends
 
 ### 5.1 总体策略
 
-推荐采用三层防线：
+推荐采用四层防线：
 
 ```text
 第一层：候选构造前后识别趋势信号身份
 第二层：进入 LLM selector 前做 GitHub 仓库冷却期过滤
 第三层：对历史已发布重复事件做一次性首页隐藏
+第四层：产品列表查询层对纯 GitHub repo trend 做非破坏性兜底去重
 ```
 
-前两层防止未来继续重复发布，第三层修复当前用户已经能看到的重复结果。
+前两层防止未来继续重复发布，第三层用于在用户明确授权后治理真实历史数据，第四层用于在尚未执行 `--apply` 前确保 `GET /events` 不继续把同 repo 纯趋势卡片重复展示给用户。
 
 ### 5.2 冷却期规则
 
@@ -287,6 +288,18 @@ PublishedEvent.status = "hidden_duplicate"
 ```
 
 不物理删除，详情页是否仍可访问后续再讨论。P1 至少保证首页 `GET /events` 不再展示这些旧重复卡片，因为当前列表只返回 `status = published`。
+
+### 6.6 产品列表查询兜底
+
+在未获得用户授权执行 `--apply` 前，真实数据库里的历史重复事件仍然会保持 `published` 状态。为了让首页立即符合“同 repo 纯 GitHub trend 不刷屏”的产品口径，`ProductQueryService.list_published_events()` 需要在返回前做一层非破坏性去重：
+
+- 只处理 `source_refs` 全部为 `source_key = github_repo_trends` 的事件。
+- 从 `source_refs.url` 或 `source_refs.title` 解析 `owner/repo`。
+- 按当前首页排序结果保留每个 repo 的第一条纯 trend 事件。
+- GitHub Release、HN、官方公告等强新鲜度事件不参与这一层隐藏。
+- 详情页 `GET /events/{slug}` 不受影响，历史事件仍可按 slug 访问。
+
+这不是替代 cleanup 脚本，而是为了让真实首页在 cleanup apply 前也不继续展示重复趋势卡片。
 
 ## 7. 日志与可观测性
 

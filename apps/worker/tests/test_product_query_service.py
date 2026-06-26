@@ -455,6 +455,68 @@ def test_list_published_events_returns_single_source_hint_and_empty_source_state
     assert dumped_by_slug[empty_source_event.slug]["source_count"] == 0
 
 
+def test_list_published_events_suppresses_duplicate_pure_github_repo_trends():
+    """Keep one pure GitHub repo trend card per repo on the public event list."""
+    session = make_session()
+    now = datetime(2026, 6, 26, 12, 0, tzinfo=UTC)
+    older_trend = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="hermes-agent-old-trend",
+            title="Hermes Agent old trend",
+        ),
+    )
+    older_trend.published_at = now - timedelta(hours=6)
+    older_trend.source_refs = [
+        {
+            "title": "NousResearch/hermes-agent",
+            "url": "https://github.com/NousResearch/hermes-agent",
+            "source_key": "github_repo_trends",
+        }
+    ]
+    newer_trend = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="hermes-agent-new-trend",
+            title="Hermes Agent new trend",
+        ),
+    )
+    newer_trend.published_at = now - timedelta(hours=1)
+    newer_trend.source_refs = [
+        {
+            "title": "nousresearch/hermes-agent",
+            "url": "https://github.com/nousresearch/hermes-agent",
+            "source_key": "github_repo_trends",
+        }
+    ]
+    release_event = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="hermes-agent-release",
+            title="Hermes Agent release",
+        ),
+    )
+    release_event.published_at = now - timedelta(minutes=30)
+    release_event.source_refs = [
+        {
+            "title": "Release",
+            "url": "https://github.com/nousresearch/hermes-agent/releases/tag/v1.0.0",
+            "source_key": "github_releases",
+        }
+    ]
+    session.commit()
+
+    service = ProductQueryService(session)
+    slugs = [item.slug for item in service.list_published_events(limit=10, offset=0, now=now)]
+
+    assert newer_trend.slug in slugs
+    assert release_event.slug in slugs
+    assert older_trend.slug not in slugs
+
+
 def test_get_event_by_slug_returns_published_snapshot_dossier_version():
     """验证详情页按 slug 读取发布快照绑定的 dossier 版本。
 
