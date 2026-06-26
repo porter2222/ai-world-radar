@@ -18,6 +18,7 @@ from scripts.collect_source_signals import (
 from scripts.run_event_pipeline import select_candidate_groups
 from worker.config import Settings
 from worker.models import PipelineRun, Source, SourceSignal
+from worker.observability.run_logger import NullRunLogger, RunLogger
 from worker.services.editorial_candidate_service import EditorialCandidateGroup, EditorialCandidateService
 from worker.services.signal_service import SignalService
 from worker.workflows.event_pipeline import run_event_pipeline
@@ -77,6 +78,7 @@ class DailyPipelineService:
         selector_agent: object | None = None,
         pipeline_runner: Callable[..., Any] | None = None,
         now_provider: Callable[[], datetime] | None = None,
+        logger: RunLogger | None = None,
     ):
         """初始化服务实例。
 
@@ -88,6 +90,7 @@ class DailyPipelineService:
         self.selector_agent = selector_agent
         self.pipeline_runner = pipeline_runner or self._run_event_pipeline
         self.now_provider = now_provider or (lambda: datetime.now(UTC))
+        self.logger = logger or NullRunLogger()
 
     def run_once(self, config: DailyPipelineConfig) -> dict[str, Any]:
         """运行一次手动日常全流程。
@@ -95,10 +98,49 @@ class DailyPipelineService:
         输入：DailyPipelineConfig。
         输出：包含采集、工程初筛、selector、pipeline 和发布计数的 summary 字典。
         """
+        with self.logger.stage(
+            component="daily_pipeline",
+            stage="daily_pipeline",
+            message_zh="日常流水线",
+            heartbeat_interval_seconds=30,
+            counts={
+                "lookback_hours": config.lookback_hours,
+                "selector_batch_size": config.selector_batch_size,
+                "max_selected": config.max_selected,
+            },
+            metadata={"source_group": config.source_group, "agent_mode": config.agent_mode},
+        ):
+            summary = self._run_once_impl(config)
+            self.logger.info(
+                component="daily_pipeline",
+                stage="daily_pipeline",
+                event="succeeded",
+                status=str(summary.get("status")),
+                message_zh="运行完成",
+                counts={
+                    "raw_new_signals": summary.get("raw_new_signals_count", 0),
+                    "candidate_groups": summary.get("candidate_groups_count", 0),
+                    "selected": summary.get("selector_selected_count", 0),
+                    "published": summary.get("published_count", 0),
+                    "pipeline_runs": summary.get("pipeline_runs_count", 0),
+                },
+            )
+            return summary
+
+    def _run_once_impl(self, config: DailyPipelineConfig) -> dict[str, Any]:
         collection_started_at = _normalize_datetime(self.now_provider())
         collection_summary = self._collect(config, collection_started_at=collection_started_at)
-        new_signal_rows = self._load_new_signal_rows(collection_started_at=collection_started_at)
+        with self.logger.stage(component="daily_pipeline", stage="load_new_signals", message_zh="新信号读取"):
+            new_signal_rows = self._load_new_signal_rows(collection_started_at=collection_started_at)
         raw_new_signals_count = len(new_signal_rows)
+        self.logger.info(
+            component="daily_pipeline",
+            stage="load_new_signals",
+            event="succeeded",
+            message_zh="新信号读取完成",
+            counts={"raw_new_signals": raw_new_signals_count},
+            metadata={"sample_titles": [row[0].original_title for row in new_signal_rows[:5]]},
+        )
         if raw_new_signals_count == 0:
             return self._base_summary(
                 status="no_new_signals",
@@ -108,11 +150,20 @@ class DailyPipelineService:
                 raw_new_signals_count=0,
             )
 
-        groups = build_candidate_groups_from_signal_rows(
-            self.session,
-            new_signal_rows,
-            lookback_hours=config.candidate_lookback_hours,
-            now=collection_started_at,
+        with self.logger.stage(component="daily_pipeline", stage="build_candidate_groups", message_zh="候选构造"):
+            groups = build_candidate_groups_from_signal_rows(
+                self.session,
+                new_signal_rows,
+                lookback_hours=config.candidate_lookback_hours,
+                now=collection_started_at,
+            )
+        self.logger.info(
+            component="daily_pipeline",
+            stage="build_candidate_groups",
+            event="succeeded",
+            message_zh="候选构造完成",
+            counts={"candidate_groups": len(groups), "raw_new_signals": raw_new_signals_count},
+            metadata={"samples": candidate_groups_summary(groups[:5])},
         )
         if not groups:
             return {
@@ -127,17 +178,45 @@ class DailyPipelineService:
                 "candidate_groups": [],
             }
 
-        outcome = select_candidate_groups(
-            groups,
-            top_n=len(groups),
-            agent_mode=config.agent_mode,
-            selector_agent=self.selector_agent,
-            allow_fallback=not config.disable_agent_fallback,
-            batch_size=config.selector_batch_size,
-        )
+        with self.logger.stage(
+            component="selector",
+            stage="editorial_selector",
+            message_zh="编辑筛选",
+            heartbeat_interval_seconds=30,
+            counts={"candidate_groups": len(groups), "batch_size": config.selector_batch_size},
+        ):
+            outcome = select_candidate_groups(
+                groups,
+                top_n=len(groups),
+                agent_mode=config.agent_mode,
+                selector_agent=self.selector_agent,
+                allow_fallback=not config.disable_agent_fallback,
+                batch_size=config.selector_batch_size,
+                logger=self.logger,
+            )
         selection = outcome.selection
         all_selected_items = list(selection.selected)
         selected_items = apply_max_selected(all_selected_items, max_selected=config.max_selected)
+        self.logger.info(
+            component="selector",
+            stage="editorial_selector",
+            event="succeeded",
+            message_zh="编辑筛选完成",
+            counts={
+                "selected": len(all_selected_items),
+                "rejected": len(selection.rejected),
+                "manual_review": len(selection.manual_review),
+                "selected_after_limit": len(selected_items),
+            },
+            metadata={
+                "selector_mode": outcome.selector_mode,
+                "batches": outcome.selector_batches_count,
+                "selected_samples": [
+                    {"candidate_group_id": item.candidate_group_id, "reason": item.reason}
+                    for item in all_selected_items[:5]
+                ],
+            },
+        )
         if not selected_items:
             return {
                 **self._base_summary(
@@ -161,19 +240,39 @@ class DailyPipelineService:
         base_run_key = f"manual-daily-{collection_started_at.strftime('%Y%m%d%H%M%S')}"
         for index, item in enumerate(selected_items, start=1):
             run_key = base_run_key if len(selected_items) == 1 else f"{base_run_key}-{index}"
-            state = self.pipeline_runner(
-                signal_ids=item.signal_ids,
-                run_key=run_key,
-                source_scope={
-                    "source": "manual_daily_pipeline",
-                    "candidate_group_id": item.candidate_group_id,
-                    "collection_started_at": collection_started_at.isoformat(),
-                },
-                agent_mode=config.agent_mode,
-                allow_fallback=not config.disable_agent_fallback,
-            )
+            with self.logger.stage(
+                component="workflow",
+                stage="candidate_pipeline",
+                message_zh=f"事件生产 {index}/{len(selected_items)}",
+                heartbeat_interval_seconds=30,
+                candidate_group_id=item.candidate_group_id,
+                counts={"signal_ids": len(item.signal_ids), "index": index, "total": len(selected_items)},
+                metadata={"event_title": item.event_title, "run_key": run_key},
+            ):
+                state = self.pipeline_runner(
+                    signal_ids=item.signal_ids,
+                    run_key=run_key,
+                    source_scope={
+                        "source": "manual_daily_pipeline",
+                        "candidate_group_id": item.candidate_group_id,
+                        "collection_started_at": collection_started_at.isoformat(),
+                    },
+                    agent_mode=config.agent_mode,
+                    allow_fallback=not config.disable_agent_fallback,
+                    logger=self.logger,
+                )
             states.append(state)
             self.session.flush()
+            self.logger.info(
+                component="workflow",
+                stage="candidate_pipeline",
+                event="succeeded",
+                status=getattr(state, "status", None),
+                message_zh="事件生产完成",
+                candidate_group_id=item.candidate_group_id,
+                pipeline_run_id=getattr(state, "run_id", None),
+                counts={"published": 1 if getattr(state, "published_event_id", None) else 0},
+            )
 
         run_ids = [state.run_id for state in states if getattr(state, "run_id", None)]
         runs = list(self.session.scalars(select(PipelineRun).where(PipelineRun.id.in_(run_ids))).all()) if run_ids else []
@@ -206,23 +305,79 @@ class DailyPipelineService:
         输出：采集脚本兼容的 summary 字典。
         """
         args = build_collection_args(config, now=collection_started_at)
-        if self.collector is not None:
-            return self.collector(args)
+        self.logger.info(
+            component="collector",
+            stage="collection_window",
+            event="started",
+            message_zh="采集窗口",
+            counts={"lookback_hours": config.lookback_hours},
+            metadata={
+                "start": args.collection_window.start.isoformat(),
+                "end": args.collection_window.end.isoformat(),
+                "source_group": config.source_group,
+                "sources": list(args.source),
+                "official_profiles": list(getattr(args, "official_profile", [])),
+            },
+        )
+        with self.logger.stage(
+            component="collector",
+            stage="collect_sources",
+            message_zh="来源采集",
+            heartbeat_interval_seconds=30,
+            counts={"source_count": len(args.source), "official_profiles": len(getattr(args, "official_profile", []))},
+        ):
+            if self.collector is not None:
+                summary = self.collector(args)
+                self._emit_collection_summary(summary)
+                return summary
 
-        service = SignalService(self.session)
-        source_keys = collect_selected_sources(session_service=service, args=args)
-        self.session.flush()
-        summary = build_summary(self.session, source_keys=source_keys)
-        summary["window"] = {
-            "lookback_hours": args.lookback_hours,
-            "start": args.collection_window.start.isoformat(),
-            "end": args.collection_window.end.isoformat(),
-        }
-        summary["skipped_signals"] = args.collection_stats.as_dict()
-        if args.source_failures:
-            summary["failed_sources_count"] = len(args.source_failures)
-            summary["failed_sources"] = args.source_failures
+            service = SignalService(self.session)
+            source_keys = collect_selected_sources(session_service=service, args=args)
+            self.session.flush()
+            summary = build_summary(self.session, source_keys=source_keys)
+            summary["window"] = {
+                "lookback_hours": args.lookback_hours,
+                "start": args.collection_window.start.isoformat(),
+                "end": args.collection_window.end.isoformat(),
+            }
+            summary["skipped_signals"] = args.collection_stats.as_dict()
+            if args.source_failures:
+                summary["failed_sources_count"] = len(args.source_failures)
+                summary["failed_sources"] = args.source_failures
+        self._emit_collection_summary(summary)
         return summary
+
+    def _emit_collection_summary(self, summary: dict[str, Any]) -> None:
+        for source_key in summary.get("source_keys", []) or []:
+            self.logger.info(
+                component="collector",
+                stage="collect_source",
+                event="succeeded",
+                message_zh="来源采集成功",
+                source_key=str(source_key),
+            )
+        for failure in summary.get("failed_sources", []) or []:
+            self.logger.error(
+                component="collector",
+                stage="collect_source",
+                event="failed",
+                message_zh="来源采集失败",
+                source_key=str(failure.get("source_key", "")),
+                error_message=str(failure.get("error", "")),
+            )
+        self.logger.info(
+            component="collector",
+            stage="collect_sources",
+            event="succeeded",
+            message_zh="采集汇总",
+            counts={
+                "sources": summary.get("sources_count", 0),
+                "signals": summary.get("signals_count", 0),
+                "failed_sources": summary.get("failed_sources_count", 0),
+                **(summary.get("skipped_signals", {}) or {}),
+            },
+            metadata={"source_keys": summary.get("source_keys", []), "window": summary.get("window", {})},
+        )
 
     def _load_new_signal_rows(self, *, collection_started_at: datetime) -> list[tuple[SourceSignal, str]]:
         """读取本轮新增且尚未被 pipeline 处理的 SourceSignal。
@@ -247,6 +402,7 @@ class DailyPipelineService:
         source_scope: dict[str, Any],
         agent_mode: str,
         allow_fallback: bool,
+        logger: RunLogger | None = None,
     ) -> Any:
         """调用现有 LangGraph 事件生产 workflow。
 
@@ -260,6 +416,7 @@ class DailyPipelineService:
             source_scope=source_scope,
             agent_mode=agent_mode,
             allow_fallback=allow_fallback,
+            logger=logger,
         )
 
     def _base_summary(

@@ -14,6 +14,7 @@ from worker.agents.llm_event_pipeline_agents import (
 )
 from worker.agents.llm_json_agent import LLMAgentOutputError
 from worker.models import AgentRun, Base, PublishedEvent
+from worker.observability.run_logger import MemorySink, RunLogger
 from worker.schemas.source import SourceCreate, SourceSignalCreate
 from worker.services.signal_service import SignalService
 from worker.tools.event_pipeline_tools import EventPipelineTools
@@ -164,6 +165,42 @@ def test_tools_create_publish_flow_and_update_run_counts():
     assert finished_run.dossiers_count == 1
     assert finished_run.published_count == 1
     assert finished_run.failed_count == 0
+
+
+def test_tools_emit_tool_agent_and_agent_run_logs():
+    """验证 EventPipelineTools 会输出 tool、Agent 和 AgentRun 入库日志。
+
+    输入：一条 SourceSignal、确定性 stub agents 和内存日志 sink。
+    输出：日志中包含工具阶段、Agent 阶段，以及带 agent_run_id 的 AgentRun 入库事件。
+    """
+    session = make_session()
+    signal = seed_signal(session)
+    memory = MemorySink()
+    logger = RunLogger(run_id="daily_test", sinks=[memory])
+    tools = EventPipelineTools(session, agents=stub_agent_set(), logger=logger)
+    run = tools.start_run(run_key="manual-log-tools", source_scope={"source": "demo"})
+
+    signals = tools.load_signals([signal.id])
+    candidate = tools.create_candidate(signals)
+    agent_run = tools.record_agent_result(
+        run.id,
+        tools.effective_agent_for_role("editor").name,
+        "editor",
+        "triage one source signal",
+        {"candidate_id": candidate.id},
+        candidate_id=candidate.id,
+        agent=tools.effective_agent_for_role("editor"),
+    )
+
+    stage_events = {(event.component, event.stage, event.event) for event in memory.events}
+    assert ("workflow", "start_run", "succeeded") in stage_events
+    assert ("tool", "load_signals", "started") in stage_events
+    assert ("tool", "create_candidate", "succeeded") in stage_events
+    assert ("agent", "editor_agent", "started") in stage_events
+    assert ("agent", "editor_agent", "succeeded") in stage_events
+    stored_events = [event for event in memory.events if event.stage == "editor_agent" and event.event == "stored"]
+    assert stored_events
+    assert stored_events[0].agent_run_id == agent_run.id
 
 
 def test_tools_create_dossier_applies_cover_image_fallback_from_signal_metadata():

@@ -29,7 +29,7 @@ class EventAgentSet:
     reviewer: Any
 
 
-def create_event_agents(mode: str = "llm", llm_client: Any | None = None) -> EventAgentSet:
+def create_event_agents(mode: str = "llm", llm_client: Any | None = None, logger: Any | None = None) -> EventAgentSet:
     """根据模式创建事件 pipeline Agent 集合。
 
     输入：agent mode，支持 llm 或显式 stub；llm 模式可传入共享 LLMClient 或 fake client。
@@ -45,8 +45,8 @@ def create_event_agents(mode: str = "llm", llm_client: Any | None = None) -> Eve
     if normalized_mode == "llm":
         shared_client = llm_client or LLMClient()
         return EventAgentSet(
-            editor=OnDutyEditorLLMAgent(shared_client),
-            writer=ResearchWriterLLMAgent(shared_client),
-            reviewer=ReviewPublisherLLMAgent(shared_client),
+            editor=OnDutyEditorLLMAgent(shared_client, logger=logger),
+            writer=ResearchWriterLLMAgent(shared_client, logger=logger),
+            reviewer=ReviewPublisherLLMAgent(shared_client, logger=logger),
         )
     raise ValueError(f"Unsupported agent mode: {mode}")

@@ -26,10 +26,11 @@
 20. `05-实现计划/P1-11 采集层8小时时效窗口实施计划.md`
 21. `05-实现计划/P1-12 手动日常全流程CLI设计.md`
 22. `05-实现计划/P1-12 手动日常全流程CLI实施计划.md`
-23. `05-实现计划/后端P1实现计划与功能切片拆解.md`
-24. `06-代理任务书/后端P1开发代理任务书.md`
-25. `07-验收与运行/后端P1测试记录.md`
-26. `07-验收与运行/前端公共页联调说明.md`
+23. `05-实现计划/P1-13 运行日志与观测基座实施计划.md`
+24. `05-实现计划/后端P1实现计划与功能切片拆解.md`
+25. `06-代理任务书/后端P1开发代理任务书.md`
+26. `07-验收与运行/后端P1测试记录.md`
+27. `07-验收与运行/前端公共页联调说明.md`
 
 ## 目录说明
 
@@ -61,7 +62,7 @@
 
 ## 当前阶段
 
-当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-23 已完成 P1-10 首页时效窗口与采集调度策略设计和代码落地：`GET /events` 默认展示最近 48 小时 published events，低量时向 7 天窗口兜底；`GET /events/{slug}` 仍可访问历史事件。2026-06-24 已完成 P1-11 采集层 8 小时时效窗口：`collect_source_signals.py` 默认只写入最近 8 小时普通来源信号，GitHub repo trends 使用本轮 detected time。2026-06-24 已完成 P1-12 手动日常全流程 CLI：在 `apps/worker` 下直接运行 `.\.venv\Scripts\python.exe scripts\run_daily_pipeline.py`，即可基于项目根 `.env` 执行真实采集、本轮新增信号处理、真实 LLM selector 和发布；真实 CLI smoke 发布 4 条事件，worker 全量回归为 `161 passed, 1 skipped in 113.43s`。2026-06-26 已新增 `运行日志与观测基座设计`，明确下一阶段以中文终端日志、文件日志、JSONL 事件流和 Agent 级监控为运行观察底座。
+当前项目已完成产品宪章、新版 PRD v2.0、首页事件卡片字段调研、信息源策略、新版 Agent 系统设计 v1.0、新版技术架构与数据模型设计 v1.0、后端 P1 第一轮工程骨架实现、P1-1 后端数据底座重构、P1-2 LangGraph 工作流与三 Agent 最小闭环、P1-3 HN / GitHub 采集接入新版链路、P1-4 真实 LLM Agent 节点替换、P1-5 发布质量与工程准备第一轮闭环、P1-6 产品接口层最小闭环、P1-7 source 扩展、P1-8 官方与开发者平台公开源扩展、P1-9 全源采集与 LLM 编辑筛选，以及 `apps/web` 公共首页事件流和独立事件详情页首版开发。2026-06-23 已完成 P1-10 首页时效窗口与采集调度策略设计和代码落地：`GET /events` 默认展示最近 48 小时 published events，低量时向 7 天窗口兜底；`GET /events/{slug}` 仍可访问历史事件。2026-06-24 已完成 P1-11 采集层 8 小时时效窗口：`collect_source_signals.py` 默认只写入最近 8 小时普通来源信号，GitHub repo trends 使用本轮 detected time。2026-06-24 已完成 P1-12 手动日常全流程 CLI：在 `apps/worker` 下直接运行 `.\.venv\Scripts\python.exe scripts\run_daily_pipeline.py`，即可基于项目根 `.env` 执行真实采集、本轮新增信号处理、真实 LLM selector 和发布；真实 CLI smoke 发布 4 条事件，worker 全量回归为 `161 passed, 1 skipped in 113.43s`。2026-06-26 已完成 P1-13 运行日志与观测基座第一版：手动运行会实时输出中文阶段日志，写入 `runtime/daily-pipeline-latest.log`、`runtime/daily-pipeline-latest.jsonl` 和本轮时间戳日志；source、selector、Agent、LLM、tool、重试、失败、AgentRun 入库和 30 秒心跳均有结构化记录。数据库字段可继续按 UTC 存储/展示，但日志顶层 timestamp、嵌套 metadata 时间字段和 CLI 最后一行 JSON summary 均已统一转为本地 `Asia/Shanghai` `+08:00`。
 
 后端 P1 发布前验收清单已新增：`docs/07-验收与运行/后端P1发布前验收清单.md`。当前结论为本地有条件通过；远程 push 当前因本机无法连接 `github.com:443` 阻塞，网络恢复后需要重试。
 
@@ -73,4 +74,4 @@
 
 当前最新执行建议：
 
-> P1-12 手动日常全流程 CLI 已完成。后端下一步建议先按 `docs/04-系统设计/运行日志与观测基座设计.md` 实现运行观测底座，让 `scripts/run_daily_pipeline.py` 手动运行和后续定时运行都能实时输出中文阶段日志、写入 `runtime/*.log` 与 `runtime/*.jsonl`，并覆盖 source、selector、writer、reviewer、LLM、工具调用、重试、失败和 30 秒心跳。前端公共首页和事件详情页可继续基于真实 FastAPI Product API 做页面级联调；论文源、X、Reddit、YouTube、强反爬源、DailyEdition、历史归档和队列系统继续后置。
+> P1-13 运行日志与观测基座已完成。后端下一步建议进入 P1-14 本地计划任务与运行守护：把每天 `08:00`、`13:00`、`20:00` 的调度服务真正启动起来，并复用 `runtime/*.log` 与 `runtime/*.jsonl`；同时继续治理 source 级失败、重试、禁用和采集 run 级统计。前端公共首页和事件详情页可继续基于真实 FastAPI Product API 做页面级联调；论文源、X、Reddit、YouTube、强反爬源、DailyEdition、历史归档和队列系统继续后置。

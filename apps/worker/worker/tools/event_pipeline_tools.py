@@ -13,6 +13,7 @@ from worker.agents.event_pipeline_agents import (
 from worker.agents.factory import EventAgentSet, create_event_agents
 from worker.agents.llm_json_agent import LLMAgentOutputError
 from worker.models import EventCandidate, EventDossier, PipelineRun, PublishedEvent, SourceSignal
+from worker.observability.run_logger import NullRunLogger, RunLogger
 from worker.schemas.event import EventCandidateDraft, EventDossierDraft, PublishEventCommand
 from worker.schemas.run import AgentRunRecord, PipelineRunCreate
 from worker.services.event_service import EventService
@@ -36,6 +37,7 @@ class EventPipelineTools:
         agents: EventAgentSet | None = None,
         fallback_agents: EventAgentSet | None = None,
         allow_fallback: bool = True,
+        logger: RunLogger | None = None,
     ):
         """初始化 tool 适配层。
 
@@ -55,6 +57,7 @@ class EventPipelineTools:
             reviewer=ReviewPublisherAgentStub(),
         )
         self.allow_fallback = allow_fallback
+        self.logger = logger or NullRunLogger()
         self.fallback_events: list[dict[str, str]] = []
         self.last_effective_agents: dict[str, Any] = {
             "editor": self.editor,
@@ -79,6 +82,15 @@ class EventPipelineTools:
             )
         )
         self.current_run_id = run.id
+        self.logger.info(
+            component="workflow",
+            stage="start_run",
+            event="succeeded",
+            message_zh="PipelineRun创建成功",
+            pipeline_run_id=run.id,
+            counts={"source_scope_keys": len(source_scope)},
+            metadata={"run_key": run_key, "source_scope": source_scope},
+        )
         return run
 
     def load_signals(self, signal_ids: list[str]) -> list[dict[str, Any]]:
@@ -87,16 +99,24 @@ class EventPipelineTools:
         输入：SourceSignal ID 列表。
         输出：供 Agent 使用的信号 dict 列表；任一 ID 不存在时抛出 ValueError。
         """
-        signals: list[dict[str, Any]] = []
-        for signal_id in signal_ids:
-            signal = self.session.get(SourceSignal, signal_id)
-            if signal is None:
-                raise ValueError(f"SourceSignal not found for id={signal_id}")
-            if self.current_run_id is not None:
-                signal.pipeline_run_id = self.current_run_id
-            signals.append(self._signal_to_dict(signal))
-        self.session.flush()
-        return signals
+        with self.logger.stage(
+            component="tool",
+            stage="load_signals",
+            message_zh="工具调用读取来源信号",
+            tool_name="load_signals",
+            pipeline_run_id=self.current_run_id,
+            counts={"signal_ids": len(signal_ids)},
+        ):
+            signals: list[dict[str, Any]] = []
+            for signal_id in signal_ids:
+                signal = self.session.get(SourceSignal, signal_id)
+                if signal is None:
+                    raise ValueError(f"SourceSignal not found for id={signal_id}")
+                if self.current_run_id is not None:
+                    signal.pipeline_run_id = self.current_run_id
+                signals.append(self._signal_to_dict(signal))
+            self.session.flush()
+            return signals
 
     def create_candidate(self, signals: list[dict[str, Any]]) -> EventCandidate:
         """通过值班编辑 Agent 和 EventService 创建候选事件。
@@ -104,22 +124,30 @@ class EventPipelineTools:
         输入：已标准化的来源信号 dict 列表。
         输出：已写入数据库并关联来源信号的 EventCandidate。
         """
-        draft = self._call_agent_with_fallback(
-            role="editor",
-            primary_agent=self.editor,
-            fallback_agent=self.fallback_agents.editor,
-            method_name="triage",
-            args=(signals,),
-        )
-        candidate = self.event_service.create_candidate_with_signals(
-            draft,
-            signal_ids=[str(signal["id"]) for signal in signals],
-            merge_reason=draft.merge_reason or "",
-        )
-        if self.current_run_id is not None:
-            candidate.created_by_run_id = self.current_run_id
-            self.session.flush()
-        return candidate
+        with self.logger.stage(
+            component="tool",
+            stage="create_candidate",
+            message_zh="工具调用创建候选事件",
+            tool_name="create_candidate_with_signals",
+            pipeline_run_id=self.current_run_id,
+            counts={"signals": len(signals)},
+        ):
+            draft = self._call_agent_with_fallback(
+                role="editor",
+                primary_agent=self.editor,
+                fallback_agent=self.fallback_agents.editor,
+                method_name="triage",
+                args=(signals,),
+            )
+            candidate = self.event_service.create_candidate_with_signals(
+                draft,
+                signal_ids=[str(signal["id"]) for signal in signals],
+                merge_reason=draft.merge_reason or "",
+            )
+            if self.current_run_id is not None:
+                candidate.created_by_run_id = self.current_run_id
+                self.session.flush()
+            return candidate
 
     def create_dossier(
         self,
@@ -132,20 +160,29 @@ class EventPipelineTools:
         输入：候选事件 ORM、来源信号 dict 列表和可选修订说明。
         输出：已写入数据库的 EventDossier。
         """
-        draft = self._call_agent_with_fallback(
-            role="writer",
-            primary_agent=self.writer,
-            fallback_agent=self.fallback_agents.writer,
-            method_name="draft",
-            args=(self._candidate_to_draft(candidate), signals, revision_instructions),
-        )
-        if not draft.cover_image_url:
-            draft = draft.model_copy(update={"cover_image_url": resolve_cover_image_url(signals)})
-        dossier = self.event_service.save_dossier(candidate.id, draft)
-        if self.current_run_id is not None:
-            dossier.generated_by_run_id = self.current_run_id
-            self.session.flush()
-        return dossier
+        with self.logger.stage(
+            component="tool",
+            stage="create_dossier",
+            message_zh="工具调用保存事件档案",
+            tool_name="save_dossier",
+            pipeline_run_id=self.current_run_id,
+            candidate_group_id=candidate.id,
+            counts={"signals": len(signals), "revision_instructions_chars": len(revision_instructions)},
+        ):
+            draft = self._call_agent_with_fallback(
+                role="writer",
+                primary_agent=self.writer,
+                fallback_agent=self.fallback_agents.writer,
+                method_name="draft",
+                args=(self._candidate_to_draft(candidate), signals, revision_instructions),
+            )
+            if not draft.cover_image_url:
+                draft = draft.model_copy(update={"cover_image_url": resolve_cover_image_url(signals)})
+            dossier = self.event_service.save_dossier(candidate.id, draft)
+            if self.current_run_id is not None:
+                dossier.generated_by_run_id = self.current_run_id
+                self.session.flush()
+            return dossier
 
     def review_dossier(self, dossier: EventDossier, revision_count: int = 0):
         """通过审稿发布 Agent 和 EventService 保存审稿结果。
@@ -153,19 +190,28 @@ class EventPipelineTools:
         输入：事件档案 ORM 和当前修订次数。
         输出：已写入数据库的 ReviewResult。
         """
-        draft = self._call_agent_with_fallback(
-            role="reviewer",
-            primary_agent=self.reviewer,
-            fallback_agent=self.fallback_agents.reviewer,
-            method_name="review",
-            args=(self._dossier_to_draft(dossier),),
-            kwargs={"revision_count": revision_count},
-        )
-        review = self.event_service.save_review_result(dossier.id, draft)
-        if self.current_run_id is not None:
-            review.pipeline_run_id = self.current_run_id
-            self.session.flush()
-        return review
+        with self.logger.stage(
+            component="tool",
+            stage="review_dossier",
+            message_zh="工具调用保存审稿结果",
+            tool_name="save_review_result",
+            pipeline_run_id=self.current_run_id,
+            candidate_group_id=dossier.candidate_id,
+            counts={"revision_count": revision_count},
+        ):
+            draft = self._call_agent_with_fallback(
+                role="reviewer",
+                primary_agent=self.reviewer,
+                fallback_agent=self.fallback_agents.reviewer,
+                method_name="review",
+                args=(self._dossier_to_draft(dossier),),
+                kwargs={"revision_count": revision_count},
+            )
+            review = self.event_service.save_review_result(dossier.id, draft)
+            if self.current_run_id is not None:
+                review.pipeline_run_id = self.current_run_id
+                self.session.flush()
+            return review
 
     def publish_if_approved(
         self,
@@ -179,10 +225,27 @@ class EventPipelineTools:
         输出：当 decision 为 publish 时返回 PublishedEvent，否则返回 None。
         """
         if decision != "publish":
+            self.logger.info(
+                component="tool",
+                stage="publish_event",
+                event="skipped",
+                message_zh="审稿未通过发布，跳过发布工具",
+                pipeline_run_id=self.current_run_id,
+                candidate_group_id=candidate_id,
+                metadata={"decision": decision},
+            )
             return None
-        return self.event_service.publish_dossier(
-            PublishEventCommand(candidate_id=candidate_id, dossier_id=dossier_id, publish_mode="auto")
-        )
+        with self.logger.stage(
+            component="tool",
+            stage="publish_event",
+            message_zh="工具调用发布事件",
+            tool_name="publish_dossier",
+            pipeline_run_id=self.current_run_id,
+            candidate_group_id=candidate_id,
+        ):
+            return self.event_service.publish_dossier(
+                PublishEventCommand(candidate_id=candidate_id, dossier_id=dossier_id, publish_mode="auto")
+            )
 
     def record_agent_result(
         self,
@@ -214,7 +277,7 @@ class EventPipelineTools:
                     "llm_retry_count": metadata["retry_count"],
                 }
             )
-        return self.run_log_service.record_agent_run(
+        agent_run = self.run_log_service.record_agent_run(
             AgentRunRecord(
                 pipeline_run_id=run_id,
                 candidate_id=candidate_id,
@@ -232,6 +295,23 @@ class EventPipelineTools:
                 retry_count=metadata["retry_count"] if metadata["retry_count"] is not None else retry_count,
             )
         )
+        self.logger.info(
+            component="agent",
+            stage=f"{agent_role}_agent",
+            event="stored",
+            message_zh="AgentRun已入库",
+            pipeline_run_id=run_id,
+            agent_run_id=agent_run.id,
+            candidate_group_id=candidate_id,
+            agent_name=agent_name,
+            provider=metadata["model_provider"],
+            model=metadata["model_name"],
+            retry_count=agent_run.retry_count,
+            token_usage=metadata["token_usage"],
+            duration_ms=agent_run.duration_ms,
+            metadata={"agent_role": agent_role, "dossier_id": dossier_id},
+        )
+        return agent_run
 
     def _call_agent_with_fallback(
         self,
@@ -250,13 +330,80 @@ class EventPipelineTools:
         """
         call_kwargs = kwargs or {}
         self.last_effective_agents[role] = primary_agent
+        agent_name = getattr(primary_agent, "name", "unknown_agent")
+        self.logger.info(
+            component="agent",
+            stage=f"{role}_agent",
+            event="started",
+            message_zh="Agent开始",
+            pipeline_run_id=self.current_run_id,
+            agent_name=agent_name,
+            provider=getattr(primary_agent, "model_provider", None),
+            model=getattr(primary_agent, "model_name", None),
+            metadata={"method": method_name, "input_summary": _summarize_agent_args(args, call_kwargs)},
+        )
         try:
-            return getattr(primary_agent, method_name)(*args, **call_kwargs)
+            result = getattr(primary_agent, method_name)(*args, **call_kwargs)
+            last_result = getattr(primary_agent, "last_result", None)
+            self.logger.info(
+                component="agent",
+                stage=f"{role}_agent",
+                event="succeeded",
+                message_zh="Agent完成",
+                pipeline_run_id=self.current_run_id,
+                agent_name=agent_name,
+                provider=getattr(primary_agent, "model_provider", None),
+                model=getattr(primary_agent, "model_name", None),
+                retry_count=getattr(last_result, "retry_count", None),
+                token_usage=getattr(last_result, "token_usage", None),
+                duration_ms=getattr(last_result, "duration_ms", None),
+                metadata={"method": method_name, "output_schema": result.__class__.__name__},
+            )
+            return result
         except Exception as exc:
             if not self.allow_fallback:
+                self.logger.error(
+                    component="agent",
+                    stage=f"{role}_agent",
+                    event="failed",
+                    message_zh="Agent失败",
+                    pipeline_run_id=self.current_run_id,
+                    agent_name=agent_name,
+                    provider=getattr(primary_agent, "model_provider", None),
+                    model=getattr(primary_agent, "model_name", None),
+                    error_type=exc.__class__.__name__,
+                    error_message=str(exc),
+                    metadata={"method": method_name, "will_fallback": False},
+                )
                 raise
             if not _is_fallback_candidate_error(exc):
+                self.logger.error(
+                    component="agent",
+                    stage=f"{role}_agent",
+                    event="failed",
+                    message_zh="Agent失败",
+                    pipeline_run_id=self.current_run_id,
+                    agent_name=agent_name,
+                    provider=getattr(primary_agent, "model_provider", None),
+                    model=getattr(primary_agent, "model_name", None),
+                    error_type=exc.__class__.__name__,
+                    error_message=str(exc),
+                    metadata={"method": method_name, "will_fallback": False},
+                )
                 raise
+            self.logger.error(
+                component="agent",
+                stage=f"{role}_agent",
+                event="failed",
+                message_zh="Agent失败，准备fallback",
+                pipeline_run_id=self.current_run_id,
+                agent_name=agent_name,
+                provider=getattr(primary_agent, "model_provider", None),
+                model=getattr(primary_agent, "model_name", None),
+                error_type=exc.__class__.__name__,
+                error_message=str(exc),
+                metadata={"method": method_name, "will_fallback": True},
+            )
             self.last_effective_agents[role] = fallback_agent
             self._record_fallback_event(
                 role=role,
@@ -264,7 +411,17 @@ class EventPipelineTools:
                 fallback_agent=fallback_agent,
                 reason=str(exc),
             )
-            return getattr(fallback_agent, method_name)(*args, **call_kwargs)
+            result = getattr(fallback_agent, method_name)(*args, **call_kwargs)
+            self.logger.warning(
+                component="agent",
+                stage=f"{role}_agent",
+                event="succeeded",
+                message_zh="Fallback Agent完成",
+                pipeline_run_id=self.current_run_id,
+                agent_name=getattr(fallback_agent, "name", "unknown_fallback_agent"),
+                metadata={"failed_agent_name": agent_name, "method": method_name},
+            )
+            return result
 
     def _record_fallback_event(self, *, role: str, primary_agent: Any, fallback_agent: Any, reason: str) -> None:
         """记录一次 Agent fallback。
@@ -319,7 +476,7 @@ class EventPipelineTools:
         retry_count = getattr(json_agent, "max_retries", 0)
         prompt_version = getattr(agent, "prompt_version", None)
         token_usage = getattr(json_agent, "last_token_usage", None)
-        return self.run_log_service.record_agent_run(
+        agent_run = self.run_log_service.record_agent_run(
             AgentRunRecord(
                 pipeline_run_id=run_id,
                 candidate_id=candidate_id,
@@ -342,6 +499,24 @@ class EventPipelineTools:
                 error_message=error_message,
             )
         )
+        self.logger.error(
+            component="agent",
+            stage=f"{agent_role}_agent",
+            event="stored",
+            message_zh="AgentRun失败已入库",
+            pipeline_run_id=run_id,
+            agent_run_id=agent_run.id,
+            candidate_group_id=candidate_id,
+            agent_name=agent_run.agent_name,
+            provider=agent_run.model_provider,
+            model=agent_run.model_name,
+            retry_count=agent_run.retry_count,
+            duration_ms=agent_run.duration_ms,
+            error_type="AgentRunFailed",
+            error_message=error_message,
+            metadata={"agent_role": agent_role, "dossier_id": dossier_id},
+        )
+        return agent_run
 
     def finish_run_with_counts(
         self,
@@ -487,3 +662,46 @@ def _is_fallback_candidate_error(exc: Exception) -> bool:
         return True
     module_name = exc.__class__.__module__.split(".", maxsplit=1)[0]
     return module_name in {"openai", "httpx", "httpcore"}
+
+
+def _summarize_agent_args(args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
+    """生成 Agent 输入摘要，避免日志记录完整正文或 prompt。
+
+    输入：Agent 位置参数和关键字参数。
+    输出：只包含数量、类型和少量样本字段的可 JSON 化摘要。
+    """
+    summary: dict[str, Any] = {
+        "args_count": len(args),
+        "kwargs_keys": sorted(kwargs.keys()),
+    }
+    if not args:
+        return summary
+
+    first_arg = args[0]
+    if isinstance(first_arg, list):
+        summary["first_arg_type"] = "list"
+        summary["items"] = len(first_arg)
+        source_keys = sorted(
+            {
+                str(item.get("source_key"))
+                for item in first_arg
+                if isinstance(item, dict) and item.get("source_key")
+            }
+        )
+        if source_keys:
+            summary["source_keys"] = source_keys
+        titles = [
+            str(item.get("original_title"))
+            for item in first_arg[:3]
+            if isinstance(item, dict) and item.get("original_title")
+        ]
+        if titles:
+            summary["sample_titles"] = titles
+        return summary
+
+    summary["first_arg_type"] = first_arg.__class__.__name__
+    if hasattr(first_arg, "id"):
+        summary["first_arg_id"] = str(getattr(first_arg, "id"))
+    if hasattr(first_arg, "candidate_key"):
+        summary["candidate_key"] = str(getattr(first_arg, "candidate_key"))
+    return summary

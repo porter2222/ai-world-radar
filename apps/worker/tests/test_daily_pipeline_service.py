@@ -12,6 +12,7 @@ from worker.schemas.editorial_selection import (
     EditorialSelectedItem,
     EditorialSelectionResult,
 )
+from worker.observability.run_logger import MemorySink, RunLogger
 from worker.services.daily_pipeline_service import DailyPipelineConfig, DailyPipelineService
 
 
@@ -202,7 +203,7 @@ class RecordingPipelineRunner:
         self.session = session
         self.calls = []
 
-    def __call__(self, *, signal_ids, run_key, source_scope, agent_mode, allow_fallback):
+    def __call__(self, *, signal_ids, run_key, source_scope, agent_mode, allow_fallback, logger=None):
         """模拟 run_event_pipeline。
 
         输入：signal_ids、run_key、source_scope、agent_mode 和 allow_fallback。
@@ -404,3 +405,61 @@ def test_daily_pipeline_service_reports_selector_rejected_and_manual_review_coun
     assert summary["selector_manual_review_count"] == 1
     assert summary["pipeline_runs_count"] == 1
     assert summary["published_count"] == 1
+
+
+def test_daily_pipeline_service_emits_key_stage_logs():
+    """验证 DailyPipelineService 会输出日常流水线关键阶段日志。
+
+    输入：一条本轮新信号、fake selector、fake pipeline runner 和内存日志 sink。
+    输出：日志事件中包含运行启动、采集、新信号读取、候选构造、编辑筛选、事件生产和最终总结。
+    """
+    session = make_session()
+    source = add_source(session)
+    now = datetime(2026, 6, 24, 4, 0, tzinfo=UTC)
+
+    def collect_one_signal(context):
+        add_signal(
+            session,
+            source,
+            title="OpenAI unveils realtime coding workspace",
+            source_hash="log-new",
+            collected_at=now + timedelta(seconds=1),
+            original_url="https://example.com/log-new",
+            canonical_url="https://example.com/log-new",
+        )
+        return {
+            "status": "succeeded",
+            "source_keys": ["hn_algolia"],
+            "signals_count": 1,
+            "window": {
+                "lookback_hours": 8,
+                "start": "2026-06-23T20:00:00+00:00",
+                "end": "2026-06-24T04:00:00+00:00",
+            },
+            "skipped_signals": {"stale": 0, "missing_published_at": 0, "future": 0},
+        }
+
+    memory = MemorySink()
+    logger = RunLogger(run_id="daily_test", sinks=[memory])
+    selector = StaticSelectorAgent()
+    runner = RecordingPipelineRunner(session)
+    service = DailyPipelineService(
+        session,
+        collector=collect_one_signal,
+        selector_agent=selector,
+        pipeline_runner=runner,
+        now_provider=lambda: now,
+        logger=logger,
+    )
+
+    summary = service.run_once(DailyPipelineConfig(max_selected=None, agent_mode="llm"))
+
+    assert summary["status"] == "succeeded"
+    stage_events = {(event.stage, event.event) for event in memory.events}
+    assert ("daily_pipeline", "started") in stage_events
+    assert ("collect_sources", "succeeded") in stage_events
+    assert ("load_new_signals", "succeeded") in stage_events
+    assert ("build_candidate_groups", "succeeded") in stage_events
+    assert ("editorial_selector", "succeeded") in stage_events
+    assert ("candidate_pipeline", "succeeded") in stage_events
+    assert ("daily_pipeline", "succeeded") in stage_events

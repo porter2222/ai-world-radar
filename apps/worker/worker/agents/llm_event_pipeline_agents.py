@@ -19,14 +19,19 @@ class OnDutyEditorLLMAgent:
     role = "editor"
     prompt_version = "p1-4-editor-v1"
 
-    def __init__(self, llm_client=None, max_retries: int = 2):
+    def __init__(self, llm_client=None, max_retries: int = 2, logger=None):
         """初始化值班编辑 LLM Agent。
 
         输入：可选 LLMClient 或测试 fake client，以及 JSON repair 最大重试次数。
         输出：可复用的 OnDutyEditorLLMAgent 实例。
         """
         self.llm_client = llm_client or LLMClient()
-        self.json_agent = LLMJsonAgent(self.llm_client, max_retries=max_retries)
+        self.json_agent = LLMJsonAgent(
+            self.llm_client,
+            max_retries=max_retries,
+            logger=logger,
+            agent_name=self.name,
+        )
         self.model_provider = getattr(self.llm_client, "provider", None)
         self.model_name = getattr(self.llm_client, "model", None)
         self.last_result: LLMJsonResult[EventCandidateDraft] | None = None
@@ -92,14 +97,19 @@ class ResearchWriterLLMAgent:
     role = "writer"
     prompt_version = "p1-4-writer-v1"
 
-    def __init__(self, llm_client=None, max_retries: int = 2):
+    def __init__(self, llm_client=None, max_retries: int = 2, logger=None):
         """初始化研究写作 LLM Agent。
 
         输入：可选 LLMClient 或测试 fake client，以及 JSON repair 最大重试次数。
         输出：可复用的 ResearchWriterLLMAgent 实例。
         """
         self.llm_client = llm_client or LLMClient()
-        self.json_agent = LLMJsonAgent(self.llm_client, max_retries=max_retries)
+        self.json_agent = LLMJsonAgent(
+            self.llm_client,
+            max_retries=max_retries,
+            logger=logger,
+            agent_name=self.name,
+        )
         self.model_provider = getattr(self.llm_client, "provider", None)
         self.model_name = getattr(self.llm_client, "model", None)
         self.last_result: LLMJsonResult[EventDossierDraft] | None = None
@@ -194,14 +204,19 @@ class ReviewPublisherLLMAgent:
     role = "reviewer"
     prompt_version = "p1-4-reviewer-v1"
 
-    def __init__(self, llm_client=None, max_retries: int = 2):
+    def __init__(self, llm_client=None, max_retries: int = 2, logger=None):
         """初始化审稿发布 LLM Agent。
 
         输入：可选 LLMClient 或测试 fake client，以及 JSON repair 最大重试次数。
         输出：可复用的 ReviewPublisherLLMAgent 实例。
         """
         self.llm_client = llm_client or LLMClient()
-        self.json_agent = LLMJsonAgent(self.llm_client, max_retries=max_retries)
+        self.json_agent = LLMJsonAgent(
+            self.llm_client,
+            max_retries=max_retries,
+            logger=logger,
+            agent_name=self.name,
+        )
         self.model_provider = getattr(self.llm_client, "provider", None)
         self.model_name = getattr(self.llm_client, "model", None)
         self.last_result: LLMJsonResult[ReviewResultDraft] | None = None

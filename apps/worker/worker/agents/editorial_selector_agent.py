@@ -19,14 +19,19 @@ class EditorialSelectorLLMAgent:
     role = "editorial_selector"
     prompt_version = "p1-9-selector-v1"
 
-    def __init__(self, llm_client=None, max_retries: int = 2):
+    def __init__(self, llm_client=None, max_retries: int = 2, logger=None):
         """初始化 LLM 编辑筛选 Agent。
 
         输入：可选 LLMClient 或测试 fake client，以及 JSON repair 最大重试次数。
         输出：可复用的 EditorialSelectorLLMAgent 实例。
         """
         self.llm_client = llm_client or LLMClient()
-        self.json_agent = LLMJsonAgent(self.llm_client, max_retries=max_retries)
+        self.json_agent = LLMJsonAgent(
+            self.llm_client,
+            max_retries=max_retries,
+            logger=logger,
+            agent_name=self.name,
+        )
         self.model_provider = getattr(self.llm_client, "provider", None)
         self.model_name = getattr(self.llm_client, "model", None)
         self.last_result: LLMJsonResult[EditorialSelectionResult] | None = None

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from worker.agents.factory import create_event_agents
 from worker.agents.llm_json_agent import LLMAgentOutputError
 from worker.models import EventCandidate, EventDossier
+from worker.observability.run_logger import RunLogger
 from worker.schemas.workflow import EventPipelineState
 from worker.tools.event_pipeline_tools import EventPipelineTools
 
@@ -22,6 +23,7 @@ def run_event_pipeline(
     llm_client: Any | None = None,
     tools: EventPipelineTools | None = None,
     allow_fallback: bool = True,
+    logger: RunLogger | None = None,
 ) -> EventPipelineState:
     """运行 P1-2 事件档案生产工作流。
 
@@ -33,6 +35,7 @@ def run_event_pipeline(
         agent_mode=agent_mode,
         llm_client=llm_client,
         allow_fallback=allow_fallback,
+        logger=logger,
     )
     graph = _build_event_pipeline_graph(pipeline_tools)
     initial_state = EventPipelineState(
@@ -108,6 +111,7 @@ def _build_event_pipeline_tools(
     agent_mode: str,
     llm_client: Any | None,
     allow_fallback: bool,
+    logger: RunLogger | None,
 ) -> EventPipelineTools:
     """创建 workflow 使用的工具层，并在允许时处理 LLM Agent 初始化失败。
 
@@ -117,13 +121,14 @@ def _build_event_pipeline_tools(
     try:
         return EventPipelineTools(
             session,
-            agents=create_event_agents(mode=agent_mode, llm_client=llm_client),
+            agents=create_event_agents(mode=agent_mode, llm_client=llm_client, logger=logger),
             allow_fallback=allow_fallback,
+            logger=logger,
         )
     except Exception as exc:
         if agent_mode != "llm" or not allow_fallback:
             raise
-        tools = EventPipelineTools(session, agents=create_event_agents(mode="stub"), allow_fallback=allow_fallback)
+        tools = EventPipelineTools(session, agents=create_event_agents(mode="stub"), allow_fallback=allow_fallback, logger=logger)
         for role, failed_name, fallback_agent in [
             ("editor", "on_duty_editor_llm", tools.editor),
             ("writer", "research_writer_llm", tools.writer),

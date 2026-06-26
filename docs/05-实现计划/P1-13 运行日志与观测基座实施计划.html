@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P1-13 运行日志与观测基座实施计划</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d8dde6;
+      --accent: #0f766e;
+      --code: #111827;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      line-height: 1.72;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 22px;
+      background: #111827;
+      color: #e5e7eb;
+      border-right: 1px solid #0b1220;
+    }
+    nav h1 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      line-height: 1.35;
+      color: #ffffff;
+    }
+    nav p {
+      margin: 0 0 18px;
+      color: #9ca3af;
+      font-size: 13px;
+    }
+    nav a {
+      display: block;
+      padding: 7px 0;
+      color: #d1d5db;
+      text-decoration: none;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    nav a:hover { color: #5eead4; }
+    main {
+      max-width: 1040px;
+      padding: 42px 52px 80px;
+    }
+    article {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 38px 44px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    h2 {
+      margin-top: 38px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: #0f172a;
+      font-size: 24px;
+    }
+    h3 {
+      margin-top: 28px;
+      color: #111827;
+      font-size: 18px;
+    }
+    .meta {
+      color: var(--muted);
+      margin-top: -6px;
+    }
+    .summary {
+      border-left: 4px solid var(--accent);
+      background: #f0fdfa;
+      padding: 14px 16px;
+      margin: 20px 0;
+    }
+    code {
+      background: #eef2f7;
+      color: var(--code);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: .94em;
+    }
+    pre {
+      overflow: auto;
+      background: #0b1220;
+      color: #e5e7eb;
+      padding: 16px 18px;
+      border-radius: 8px;
+      line-height: 1.55;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f3f4f6; }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+      nav { position: relative; height: auto; }
+      main { padding: 20px; }
+      article { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <nav>
+      <h1>P1-13 运行日志与观测基座实施计划</h1>
+      <p>更新时间：2026-06-26</p>
+      <a href="#goal">1. 目标</a>
+      <a href="#scope">2. 实现范围</a>
+      <a href="#design">3. 核心设计</a>
+      <a href="#tdd">4. TDD 执行记录</a>
+      <a href="#verification">5. 验证命令与结果</a>
+      <a href="#smoke">6. 真实运行验收</a>
+      <a href="#conclusion">7. 当前结论</a>
+      <a href="#next">8. 后续建议</a>
+    </nav>
+    <main>
+      <article>
+        <h1 id="goal">P1-13 运行日志与观测基座实施计划</h1>
+        <p class="meta">更新时间：2026-06-26</p>
+        <div class="summary">
+          P1-13 已把 <code>run_daily_pipeline.py</code> 升级为实时可观察的运行链路：终端中文日志、runtime 文本日志、JSONL 结构化事件、Agent/LLM/tool 日志、30 秒心跳和本地时间 <code>+08:00</code> 均已完成并通过真实运行验收。
+        </div>
+
+        <h2 id="scope">2. 实现范围</h2>
+        <p>新增 <code>worker/observability/run_logger.py</code>，并接入 CLI、DailyPipelineService、selector、LangGraph workflow、EventPipelineTools、LLMJsonAgent、三类 LLM Agent 和相关测试。</p>
+        <p>第一版不做后台管理页、Redis、消息队列、OpenTelemetry、日志检索服务，也不默认保存完整 prompt / response。</p>
+
+        <h2 id="design">3. 核心设计</h2>
+        <h3>RunLogger + Sink</h3>
+        <pre><code>业务代码
+  -> RunLogger.emit(event)
+      -> ConsoleSink
+      -> TextFileSink
+      -> JsonlFileSink</code></pre>
+        <p>每条事件包含 <code>run_id</code>、<code>trace_id</code>、<code>span_id</code>、<code>component</code>、<code>stage</code>、<code>event</code>、<code>message_zh</code>、<code>duration_ms</code>、<code>agent_name</code>、<code>tool_name</code>、<code>retry_count</code>、<code>token_usage</code>、<code>counts</code>、<code>error_type</code> 和 <code>metadata</code> 等字段。</p>
+        <h3>本地时间</h3>
+        <p>日志统一使用 <code>ZoneInfo("Asia/Shanghai")</code>。JSONL 验收结果为 <code>bad_timezone=0</code>，说明全部 timestamp 均以 <code>+08:00</code> 结尾。</p>
+
+        <h2 id="tdd">4. TDD 执行记录</h2>
+        <table>
+          <thead><tr><th>任务</th><th>RED</th><th>GREEN</th></tr></thead>
+          <tbody>
+            <tr><td>RunLogger 基座</td><td><code>ModuleNotFoundError: No module named 'worker.observability'</code></td><td><code>tests/test_run_logger.py</code> 通过</td></tr>
+            <tr><td>本地时间</td><td>UTC 时间未转 <code>+08:00</code></td><td><code>test_run_logger_timestamps_use_local_shanghai_timezone</code> 通过</td></tr>
+            <tr><td>DailyPipelineService 日志</td><td><code>select_candidate_groups()</code> 不接收 logger</td><td>关键阶段日志测试通过</td></tr>
+            <tr><td>CLI runtime 文件</td><td>缺少 <code>--runtime-dir</code></td><td>latest 与 timestamp 日志文件测试通过</td></tr>
+            <tr><td>LLM 日志</td><td><code>LLMJsonAgent</code> 不接收 logger</td><td>请求、校验、重试、token usage 日志测试通过</td></tr>
+            <tr><td>Tool / AgentRun 日志</td><td>缺少 <code>_summarize_agent_args</code></td><td>tool、agent、AgentRun 入库日志测试通过</td></tr>
+            <tr><td>heartbeat metadata</td><td>metadata 重复传参导致线程异常</td><td>metadata 合并回归测试通过</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="verification">5. 验证命令与结果</h2>
+        <pre><code>cd "D:\AI World Radar\apps\worker"
+.\.venv\Scripts\python.exe -m pytest tests/test_run_logger.py tests/test_daily_pipeline_service.py::test_daily_pipeline_service_emits_key_stage_logs tests/test_run_daily_pipeline_script.py::test_run_daily_pipeline_script_creates_runtime_log_files tests/test_llm_json_agent.py::test_llm_json_agent_emits_request_validation_and_retry_logs tests/test_event_pipeline_tools.py::test_tools_emit_tool_agent_and_agent_run_logs -v</code></pre>
+        <p>结果：<code>12 passed in 1.34s</code></p>
+        <pre><code>.\.venv\Scripts\python.exe -m pytest -v</code></pre>
+        <p>最终 worker 全量结果：<code>186 passed, 1 skipped</code></p>
+
+        <h2 id="smoke">6. 真实运行验收</h2>
+        <p>真实运行命令：</p>
+        <pre><code>.\.venv\Scripts\python.exe scripts\run_daily_pipeline.py</code></pre>
+        <p>第一次真实运行完成真实采集、LLM selector、writer、reviewer 和发布，输出 <code>pipeline_runs_count=2</code>、<code>published_count=2</code>。同时发现 heartbeat metadata 线程异常，随后补回归测试并修复。</p>
+        <p>第二次真实运行输出 <code>status=no_new_signals</code>，终端正常出现 <code>[仍在运行：collect_sources]</code> 和 <code>[仍在运行：daily_pipeline]</code>，未再出现线程异常。</p>
+        <p>runtime 文件：</p>
+        <pre><code>runtime/daily-pipeline-latest.log
+runtime/daily-pipeline-latest.jsonl
+runtime/daily-pipeline-20260626-115946.log
+runtime/daily-pipeline-20260626-115946.jsonl</code></pre>
+        <p>JSONL 时间验收：</p>
+        <pre><code>count=19
+bad_timezone=0
+timestamp=2026-06-26T11:59:46.468972+08:00</code></pre>
+
+        <h2 id="conclusion">7. 当前结论</h2>
+        <p>P1-13 运行日志与观测基座第一版已完成。以后用户手动跑或定时跑日常 pipeline 时，可以在终端实时看到中文阶段日志，也可以回看 <code>runtime</code> 下的文本日志和 JSONL 结构化事件。</p>
+
+        <h2 id="next">8. 后续建议</h2>
+        <p>下一阶段建议进入 P1-14：本地计划任务与运行守护。优先把每天 <code>08:00</code>、<code>13:00</code>、<code>20:00</code> 的调度服务纳入同一套日志体系，并继续治理 source 级失败、重试、禁用和统计口径。</p>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

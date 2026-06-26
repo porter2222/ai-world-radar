@@ -8,6 +8,8 @@ from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from worker.observability.run_logger import NullRunLogger, RunLogger
+
 
 SchemaT = TypeVar("SchemaT", bound=BaseModel)
 
@@ -43,7 +45,13 @@ class LLMJsonAgent:
     输出：把模型文本解析并校验为目标 Pydantic schema 的能力。
     """
 
-    def __init__(self, llm_client, max_retries: int = 2):
+    def __init__(
+        self,
+        llm_client,
+        max_retries: int = 2,
+        logger: RunLogger | None = None,
+        agent_name: str | None = None,
+    ):
         """初始化 JSON Agent 基座。
 
         输入：LLMClient 或测试 fake client，以及最大 repair 重试次数。
@@ -51,6 +59,8 @@ class LLMJsonAgent:
         """
         self.llm_client = llm_client
         self.max_retries = max_retries
+        self.logger = logger or NullRunLogger()
+        self.agent_name = agent_name
         self.last_duration_ms: int | None = None
         self.last_token_usage: dict[str, int] | None = None
 
@@ -73,13 +83,73 @@ class LLMJsonAgent:
         started_at = time.perf_counter()
         token_usage: dict[str, int] | None = None
         for attempt in range(self.max_retries + 1):
-            raw_text = self.llm_client.chat(message, system_prompt=system_prompt)
+            attempt_started_at = time.perf_counter()
+            self.logger.info(
+                component="llm",
+                stage="llm_request",
+                event="started",
+                message_zh="LLM请求开始",
+                agent_name=self.agent_name,
+                provider=getattr(self.llm_client, "provider", None),
+                model=getattr(self.llm_client, "model", None),
+                retry_count=attempt,
+                counts={
+                    "system_prompt_chars": len(system_prompt),
+                    "user_prompt_chars": len(message),
+                },
+                metadata={"schema": schema_type.__name__, "prompt_version": prompt_version},
+            )
+            try:
+                raw_text = self.llm_client.chat(message, system_prompt=system_prompt)
+            except Exception as exc:
+                self.logger.error(
+                    component="llm",
+                    stage="llm_request",
+                    event="failed",
+                    message_zh="LLM请求失败",
+                    agent_name=self.agent_name,
+                    provider=getattr(self.llm_client, "provider", None),
+                    model=getattr(self.llm_client, "model", None),
+                    retry_count=attempt,
+                    duration_ms=_elapsed_ms(attempt_started_at),
+                    error_type=exc.__class__.__name__,
+                    error_message=str(exc),
+                    metadata={"schema": schema_type.__name__, "prompt_version": prompt_version},
+                )
+                raise
             token_usage = _merge_token_usage(token_usage, _normalize_token_usage(getattr(self.llm_client, "last_usage", None)))
+            self.logger.info(
+                component="llm",
+                stage="llm_request",
+                event="succeeded",
+                message_zh="LLM请求成功",
+                agent_name=self.agent_name,
+                provider=getattr(self.llm_client, "provider", None),
+                model=getattr(self.llm_client, "model", None),
+                retry_count=attempt,
+                token_usage=token_usage,
+                duration_ms=_elapsed_ms(attempt_started_at),
+                counts={"raw_text_chars": len(raw_text)},
+                metadata={"schema": schema_type.__name__, "prompt_version": prompt_version},
+            )
             try:
                 payload = self._validate_payload(schema_type, raw_text)
                 duration_ms = _elapsed_ms(started_at)
                 self.last_duration_ms = duration_ms
                 self.last_token_usage = token_usage
+                self.logger.info(
+                    component="llm",
+                    stage="schema_validation",
+                    event="succeeded",
+                    message_zh="结构校验成功",
+                    agent_name=self.agent_name,
+                    provider=getattr(self.llm_client, "provider", None),
+                    model=getattr(self.llm_client, "model", None),
+                    retry_count=attempt,
+                    token_usage=token_usage,
+                    duration_ms=duration_ms,
+                    metadata={"schema": schema_type.__name__, "prompt_version": prompt_version},
+                )
                 return LLMJsonResult(
                     payload=payload,
                     raw_text=raw_text,
@@ -90,6 +160,27 @@ class LLMJsonAgent:
                 )
             except (json.JSONDecodeError, ValidationError, ValueError) as exc:
                 last_error = str(exc)
+                will_retry = attempt < self.max_retries
+                self.logger.warning(
+                    component="llm",
+                    stage="schema_validation",
+                    event="failed",
+                    message_zh="结构校验失败，准备重试" if will_retry else "结构校验失败",
+                    agent_name=self.agent_name,
+                    provider=getattr(self.llm_client, "provider", None),
+                    model=getattr(self.llm_client, "model", None),
+                    retry_count=attempt,
+                    token_usage=token_usage,
+                    duration_ms=_elapsed_ms(started_at),
+                    counts={"raw_text_chars": len(raw_text)},
+                    error_type=exc.__class__.__name__,
+                    error_message=last_error,
+                    metadata={
+                        "schema": schema_type.__name__,
+                        "prompt_version": prompt_version,
+                        "will_retry": will_retry,
+                    },
+                )
                 if attempt >= self.max_retries:
                     break
                 message = self._build_repair_prompt(
@@ -101,6 +192,21 @@ class LLMJsonAgent:
 
         self.last_duration_ms = _elapsed_ms(started_at)
         self.last_token_usage = token_usage
+        self.logger.error(
+            component="llm",
+            stage="schema_validation",
+            event="failed",
+            message_zh="LLM结构化输出失败",
+            agent_name=self.agent_name,
+            provider=getattr(self.llm_client, "provider", None),
+            model=getattr(self.llm_client, "model", None),
+            retry_count=self.max_retries,
+            token_usage=token_usage,
+            duration_ms=self.last_duration_ms,
+            error_type="LLMAgentOutputError",
+            error_message=last_error,
+            metadata={"schema": schema_type.__name__, "prompt_version": prompt_version},
+        )
         raise LLMAgentOutputError(f"无法解析 LLM 输出为 {schema_type.__name__}: {last_error}")
 
     def _validate_payload(self, schema_type: type[SchemaT], raw_text: str) -> SchemaT:

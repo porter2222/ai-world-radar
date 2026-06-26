@@ -1,6 +1,7 @@
 import pytest
 
 from worker.agents.llm_json_agent import LLMAgentOutputError, LLMJsonAgent
+from worker.observability.run_logger import MemorySink, RunLogger
 from worker.schemas.event import EventCandidateDraft
 
 
@@ -141,3 +142,38 @@ def test_llm_json_agent_raises_after_max_retries():
 
     assert "无法解析" in str(exc_info.value)
     assert len(fake_client.calls) == 3
+
+
+def test_llm_json_agent_emits_request_validation_and_retry_logs():
+    """验证结构化 LLM 调用会输出请求、校验失败、重试和校验成功日志。
+
+    输入：第一次返回非法 JSON、第二次返回合法 JSON 的 fake client 和内存日志 sink。
+    输出：日志中能看到 LLM 请求、结构校验失败、修复重试和最终结构校验成功。
+    """
+    fake_client = FakeLLMClient(
+        ["not json", candidate_json()],
+        usages=[
+            {"prompt_tokens": 5, "completion_tokens": 2, "total_tokens": 7},
+            {"prompt_tokens": 8, "completion_tokens": 12, "total_tokens": 20},
+        ],
+    )
+    memory = MemorySink()
+    logger = RunLogger(run_id="daily_test", sinks=[memory])
+    agent = LLMJsonAgent(fake_client, max_retries=2, logger=logger, agent_name="test_editor")
+
+    result = agent.run_json(
+        EventCandidateDraft,
+        system_prompt="你是 AI 情报编辑。",
+        user_prompt="请输出候选事件 JSON。",
+        prompt_version="test-prompt-v1",
+    )
+
+    assert result.retry_count == 1
+    event_keys = [(event.stage, event.event, event.retry_count) for event in memory.events]
+    assert ("llm_request", "started", 0) in event_keys
+    assert ("llm_request", "succeeded", 0) in event_keys
+    assert ("schema_validation", "failed", 0) in event_keys
+    assert ("llm_request", "started", 1) in event_keys
+    assert ("schema_validation", "succeeded", 1) in event_keys
+    assert memory.events[-1].token_usage == {"prompt_tokens": 13, "completion_tokens": 14, "total_tokens": 27}
+    assert all("not json" not in event.message_zh for event in memory.events)

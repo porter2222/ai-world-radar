@@ -14,6 +14,7 @@ from worker.config import load_settings
 from worker.db.session import create_worker_engine
 from worker.models import Base, PipelineRun, Source, SourceSignal
 from worker.agents.editorial_selector_agent import EditorialSelectorLLMAgent
+from worker.observability.run_logger import NullRunLogger, RunLogger
 from worker.schemas.editorial_selection import (
     EditorialRejectedItem,
     EditorialSelectedItem,
@@ -462,16 +463,23 @@ def select_candidate_groups(
     selector_agent: object | None = None,
     allow_fallback: bool = True,
     batch_size: int | None = None,
+    logger: RunLogger | None = None,
 ) -> SelectorSelectionOutcome:
     """运行 selector 或 stub selector。
 
     输入：候选分组、Top N、agent_mode、可选 selector agent 和是否允许 stub fallback。
     输出：SelectorSelectionOutcome；stub 模式不调用真实 LLM，llm 模式调用 LLM selector，异常时按 allow_fallback 决定是否兜底。
     """
+    run_logger = logger or NullRunLogger()
     if agent_mode == "llm":
-        agent = selector_agent or EditorialSelectorLLMAgent()
+        agent = selector_agent or EditorialSelectorLLMAgent(logger=run_logger)
         try:
-            selection, batches_count = run_llm_selector_in_batches(agent, groups, batch_size=batch_size)
+            selection, batches_count = run_llm_selector_in_batches(
+                agent,
+                groups,
+                batch_size=batch_size,
+                logger=run_logger,
+            )
             return SelectorSelectionOutcome(
                 selection=selection,
                 selector_mode="llm",
@@ -480,11 +488,28 @@ def select_candidate_groups(
         except Exception as exc:
             if not allow_fallback:
                 raise
+            run_logger.warning(
+                component="selector",
+                stage="editorial_selector",
+                event="fallback",
+                message_zh="编辑筛选失败，使用确定性兜底",
+                agent_name=getattr(agent, "name", "editorial_selector"),
+                error_type=exc.__class__.__name__,
+                error_message=str(exc),
+                counts={"candidate_groups": len(groups), "top_n": top_n},
+            )
             return SelectorSelectionOutcome(
                 selection=build_stub_selection(groups, top_n=top_n),
                 selector_mode="stub_fallback",
                 fallback_reason=str(exc),
             )
+    run_logger.info(
+        component="selector",
+        stage="editorial_selector",
+        event="succeeded",
+        message_zh="编辑筛选使用stub模式",
+        counts={"candidate_groups": len(groups), "top_n": top_n},
+    )
     return SelectorSelectionOutcome(selection=build_stub_selection(groups, top_n=top_n), selector_mode="stub")
 
 
@@ -493,6 +518,7 @@ def run_llm_selector_in_batches(
     groups: list[EditorialCandidateGroup],
     *,
     batch_size: int | None,
+    logger: RunLogger | None = None,
 ) -> tuple[EditorialSelectionResult, int]:
     """分批调用 LLM selector 并合并结构化结果。
     输入：selector agent、候选分组全集和可选 batch_size。
@@ -505,9 +531,18 @@ def run_llm_selector_in_batches(
     rejected = []
     manual_review = []
     batches_count = 0
+    run_logger = logger or NullRunLogger()
     for start in range(0, len(groups), batch_size):
         batch = groups[start : start + batch_size]
-        batch_selection = agent.select([candidate_group_to_selector_input(group) for group in batch])
+        batch_index = batches_count + 1
+        with run_logger.stage(
+            component="selector",
+            stage="editorial_selector_batch",
+            message_zh="编辑筛选批次",
+            agent_name=getattr(agent, "name", "editorial_selector"),
+            counts={"batch_index": batch_index, "batch_size": len(batch), "candidate_groups": len(groups)},
+        ):
+            batch_selection = agent.select([candidate_group_to_selector_input(group) for group in batch])
         selected.extend(batch_selection.selected)
         rejected.extend(batch_selection.rejected)
         manual_review.extend(batch_selection.manual_review)
