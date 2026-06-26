@@ -86,11 +86,11 @@ def test_load_settings_exposes_typed_config_groups(monkeypatch, tmp_path):
     assert settings.llm.model == "gpt-4o-mini"
     assert settings.llm.request_timeout_seconds == 180
     assert settings.agent_mode == "llm"
-    assert settings.product.homepage_recent_hours == 48
+    assert settings.product.homepage_recent_hours == 12
     assert settings.product.homepage_default_limit == 20
     assert settings.product.homepage_max_limit == 100
     assert settings.product.homepage_min_recent_items == 8
-    assert settings.product.homepage_backfill_days == 7
+    assert settings.product.homepage_backfill_days is None
     assert settings.daily_pipeline.source_group == "daily_all"
     assert settings.daily_pipeline.lookback_hours == 8
     assert settings.daily_pipeline.candidate_lookback_hours == 48
@@ -280,11 +280,11 @@ Use defaults from the spec:
 
 ```python
 ProductSettings(
-    homepage_recent_hours=_env_positive_int("PRODUCT_HOMEPAGE_RECENT_HOURS", 48),
+    homepage_recent_hours=_env_positive_int("PRODUCT_HOMEPAGE_RECENT_HOURS", 12),
     homepage_default_limit=_env_positive_int("PRODUCT_HOMEPAGE_DEFAULT_LIMIT", 20),
     homepage_max_limit=_env_positive_int("PRODUCT_HOMEPAGE_MAX_LIMIT", 100),
     homepage_min_recent_items=_env_positive_int("PRODUCT_HOMEPAGE_MIN_RECENT_ITEMS", 8),
-    homepage_backfill_days=_env_optional_positive_int("PRODUCT_HOMEPAGE_BACKFILL_DAYS", 7),
+    homepage_backfill_days=_env_optional_positive_int("PRODUCT_HOMEPAGE_BACKFILL_DAYS", None),
 )
 ```
 
@@ -345,11 +345,11 @@ def test_daily_pipeline_config_builds_from_settings():
         ),
         llm=LLMSettings(provider="openai", model="gpt-4o-mini", request_timeout_seconds=180),
         product=ProductSettings(
-            homepage_recent_hours=48,
+            homepage_recent_hours=12,
             homepage_default_limit=20,
             homepage_max_limit=100,
             homepage_min_recent_items=8,
-            homepage_backfill_days=7,
+            homepage_backfill_days=None,
         ),
         daily_pipeline=DailyPipelineSettings(
             source_group="daily_test",

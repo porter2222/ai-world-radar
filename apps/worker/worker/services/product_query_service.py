@@ -274,7 +274,7 @@ class ProductQueryService:
         """查询前台已发布事件列表。
 
         输入：分页参数、可选 category 和首页时效窗口内部参数。
-        输出：近期首页事件卡片列表；低量时向 7 天兜底，不暴露内部排序分。
+        输出：最近 12 小时内首页事件卡片列表，不暴露内部排序分。
         """
         settings = self.product_settings
         effective_limit = limit if limit is not None else settings.homepage_default_limit

@@ -185,15 +185,16 @@ def test_list_published_events_returns_public_cards_sorted_and_filtered():
             title="隐藏事件不应出现在前台",
         ),
     )
+    now = datetime(2026, 6, 21, 12, 0, tzinfo=UTC)
     first.homepage_rank = 2
-    first.published_at = datetime(2026, 6, 20, tzinfo=UTC)
+    first.published_at = now - timedelta(hours=3)
     second.homepage_rank = 1
-    second.published_at = datetime(2026, 6, 21, tzinfo=UTC)
+    second.published_at = now - timedelta(hours=2)
     hidden.status = "hidden"
     session.flush()
 
     service = ProductQueryService(session)
-    items = service.list_published_events(limit=10, offset=0)
+    items = service.list_published_events(limit=10, offset=0, now=now)
     dumped = [item.model_dump() for item in items]
 
     assert [item.slug for item in items] == [second.slug, first.slug]
@@ -203,43 +204,42 @@ def test_list_published_events_returns_public_cards_sorted_and_filtered():
     assert hidden.slug not in [item.slug for item in items]
 
 
-def test_list_published_events_defaults_to_recent_48_hour_window():
-    """验证首页列表默认优先使用最近 48 小时时效窗口。
+def test_list_published_events_defaults_to_recent_12_hour_window():
+    """验证首页列表默认只使用最近 12 小时时效窗口。
 
-    输入：8 条 48 小时内事件和 1 条 72 小时前事件。
-    输出：窗口内事件出现在列表，超过 48 小时的事件不出现在默认首页列表。
+    输入：1 条 2 小时前事件和 1 条 13 小时前高分事件。
+    输出：只返回 12 小时窗口内事件，窗口外事件即使排序分更高也不出现在默认首页列表。
     """
     session = make_session()
     now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
-    recent_events = []
-    for index in range(8):
-        published = publish_reviewed_dossier(
-            session,
-            create_reviewed_dossier(
-                session,
-                candidate_key=f"recent-ai-event-{index}",
-                title=f"最近 AI 事件 {index}",
-            ),
-        )
-        published.published_at = now - timedelta(hours=2 + index)
-        recent_events.append(published)
-    old = publish_reviewed_dossier(
+    recent = publish_reviewed_dossier(
         session,
         create_reviewed_dossier(
             session,
-            candidate_key="old-ai-event",
-            title="过期 AI 事件",
+            candidate_key="recent-ai-event",
+            title="最近 AI 事件",
         ),
     )
-    old.published_at = now - timedelta(hours=72)
+    recent.published_at = now - timedelta(hours=2)
+    recent.ranking_score = 10
+    stale_high_score = publish_reviewed_dossier(
+        session,
+        create_reviewed_dossier(
+            session,
+            candidate_key="stale-high-score-ai-event",
+            title="窗口外高分 AI 事件",
+        ),
+    )
+    stale_high_score.published_at = now - timedelta(hours=13)
+    stale_high_score.ranking_score = 99
     session.commit()
 
     service = ProductQueryService(session)
     items = service.list_published_events(limit=20, offset=0, now=now)
     slugs = [item.slug for item in items]
 
-    assert all(event.slug in slugs for event in recent_events)
-    assert old.slug not in slugs
+    assert recent.slug in slugs
+    assert stale_high_score.slug not in slugs
 
 
 def test_list_published_events_uses_injected_product_settings_window():
@@ -286,11 +286,11 @@ def test_list_published_events_uses_injected_product_settings_window():
     assert old.slug not in slugs
 
 
-def test_list_published_events_backfills_to_7_days_when_recent_count_is_low():
-    """验证 48 小时内事件不足时首页会向 7 天窗口兜底。
+def test_list_published_events_does_not_backfill_outside_12_hour_window_when_volume_is_low():
+    """验证首页低量时也不向 12 小时外兜底。
 
-    输入：1 条 48 小时内事件、1 条 3 天前事件和 1 条 9 天前事件。
-    输出：3 天前事件进入兜底列表，9 天前事件仍不进入首页列表。
+    输入：1 条 3 小时前事件、1 条 3 天前事件和 1 条 9 天前事件。
+    输出：只返回 12 小时内事件，3 天前和 9 天前事件都不进入首页列表。
     """
     session = make_session()
     now = datetime(2026, 6, 23, 12, 0, tzinfo=UTC)
@@ -328,7 +328,7 @@ def test_list_published_events_backfills_to_7_days_when_recent_count_is_low():
     slugs = [item.slug for item in items]
 
     assert recent.slug in slugs
-    assert backfill.slug in slugs
+    assert backfill.slug not in slugs
     assert too_old.slug not in slugs
 
 
@@ -361,7 +361,7 @@ def test_get_event_by_slug_still_returns_old_published_event():
 def test_list_published_events_applies_category_filter_with_recent_window():
     """验证分类过滤和首页时效窗口同时生效。
 
-    输入：同一 48 小时窗口内的模型类事件和开源类事件，以及 3 天前的模型类事件。
+    输入：同一 12 小时窗口内的模型类事件和开源类事件，以及 3 天前的模型类事件。
     输出：按模型分类查询时只返回窗口内模型类事件，不返回其他分类或过期模型类事件。
     """
     session = make_session()

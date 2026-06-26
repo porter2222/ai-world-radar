@@ -67,11 +67,11 @@ def test_load_settings_exposes_typed_config_groups(monkeypatch, tmp_path):
     assert settings.llm.model == "gpt-4o-mini"
     assert settings.llm.request_timeout_seconds == 180
     assert settings.agent_mode == "llm"
-    assert settings.product.homepage_recent_hours == 48
+    assert settings.product.homepage_recent_hours == 12
     assert settings.product.homepage_default_limit == 20
     assert settings.product.homepage_max_limit == 100
     assert settings.product.homepage_min_recent_items == 8
-    assert settings.product.homepage_backfill_days == 7
+    assert settings.product.homepage_backfill_days is None
     assert settings.daily_pipeline.source_group == "daily_all"
     assert settings.daily_pipeline.lookback_hours == 8
     assert settings.daily_pipeline.candidate_lookback_hours == 48

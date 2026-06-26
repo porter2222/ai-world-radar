@@ -142,11 +142,11 @@ def load_settings() -> Settings:
         request_timeout_seconds=_env_positive_int("LLM_REQUEST_TIMEOUT_SECONDS", 180),
     )
     product = ProductSettings(
-        homepage_recent_hours=_env_positive_int("PRODUCT_HOMEPAGE_RECENT_HOURS", 48),
+        homepage_recent_hours=_env_positive_int("PRODUCT_HOMEPAGE_RECENT_HOURS", 12),
         homepage_default_limit=_env_positive_int("PRODUCT_HOMEPAGE_DEFAULT_LIMIT", 20),
         homepage_max_limit=_env_positive_int("PRODUCT_HOMEPAGE_MAX_LIMIT", 100),
         homepage_min_recent_items=_env_positive_int("PRODUCT_HOMEPAGE_MIN_RECENT_ITEMS", 8),
-        homepage_backfill_days=_env_optional_positive_int("PRODUCT_HOMEPAGE_BACKFILL_DAYS", 7),
+        homepage_backfill_days=_env_optional_positive_int("PRODUCT_HOMEPAGE_BACKFILL_DAYS", None),
     )
     daily_pipeline = DailyPipelineSettings(
         source_group=os.getenv("DAILY_PIPELINE_SOURCE_GROUP", "daily_all"),
