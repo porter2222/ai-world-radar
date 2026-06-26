@@ -425,7 +425,7 @@ def _format_text_event(event: LogEvent) -> str:
     if event.retry_count is not None:
         parts.append(f"retry={event.retry_count}")
     if event.duration_ms is not None:
-        parts.append(f"耗时={event.duration_ms}ms")
+        parts.append(f"耗时={_format_duration_seconds(event.duration_ms)}")
     if event.counts:
         parts.append("counts=" + json.dumps(event.counts, ensure_ascii=False, sort_keys=True))
     if event.error_type:
@@ -451,6 +451,10 @@ def _default_status(event: str) -> str | None:
 
 def _elapsed_ms(started_at: float) -> int:
     return max(0, int((time.perf_counter() - started_at) * 1000))
+
+
+def _format_duration_seconds(duration_ms: int) -> str:
+    return f"{duration_ms / 1000:.2f}秒"
 
 
 def _file_suffix_from_run_id(run_id: str) -> str:

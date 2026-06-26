@@ -29,6 +29,23 @@ def test_console_sink_outputs_chinese_message():
     assert "component=daily_pipeline" in output
 
 
+def test_text_log_formats_duration_as_seconds_for_humans():
+    stream = io.StringIO()
+    logger = RunLogger(run_id="daily_test", sinks=[ConsoleSink(stream=stream)])
+
+    logger.info(
+        component="collector",
+        stage="collect_sources",
+        event="succeeded",
+        message_zh="来源采集成功",
+        duration_ms=27748,
+    )
+
+    output = stream.getvalue()
+    assert "耗时=27.75秒" in output
+    assert "27748ms" not in output
+
+
 def test_text_file_and_jsonl_sinks_write_runtime_files(tmp_path):
     text_path = tmp_path / "daily-pipeline-latest.log"
     jsonl_path = tmp_path / "daily-pipeline-latest.jsonl"
