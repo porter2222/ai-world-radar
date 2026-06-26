@@ -61,13 +61,16 @@ export class ProductApiError extends Error {
 
 export async function getEvents(query: EventsQuery = {}): Promise<ProductEventListResponse> {
   const params = new URLSearchParams();
-  params.set("limit", String(query.limit ?? 20));
+  if (query.limit !== undefined) {
+    params.set("limit", String(query.limit));
+  }
   params.set("offset", String(query.offset ?? 0));
   if (query.category) {
     params.set("category", query.category);
   }
 
-  return fetchJson<ProductEventListResponse>(`/events?${params.toString()}`);
+  const queryString = params.toString();
+  return fetchJson<ProductEventListResponse>(queryString ? `/events?${queryString}` : "/events");
 }
 
 export async function getEventDetail(slug: string): Promise<ProductEventDetail> {

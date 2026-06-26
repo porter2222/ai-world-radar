@@ -2,7 +2,7 @@ import { EventCard } from "../components/EventCard";
 import { getEvents } from "../lib/product-api";
 
 export default async function HomePage() {
-  const events = await getEvents({ limit: 20, offset: 0 });
+  const events = await getEvents();
 
   return (
     <main className="shell" id="appMain">

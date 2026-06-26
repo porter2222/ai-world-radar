@@ -43,9 +43,9 @@ describe("Product API client", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await getEvents({ limit: 20, offset: 0 });
+    const result = await getEvents();
 
-    expect(fetchMock).toHaveBeenCalledWith("http://api.test/events?limit=20&offset=0", { cache: "no-store" });
+    expect(fetchMock).toHaveBeenCalledWith("http://api.test/events?offset=0", { cache: "no-store" });
     expect(result.items[0]).toMatchObject({
       slug: "hn-openai-coding-agents",
       source_hint: "Hacker News 等 2 源",
@@ -53,6 +53,16 @@ describe("Product API client", () => {
       cover_image_url: null
     });
     expect("source_refs" in result.items[0]).toBe(false);
+  });
+
+  it("passes an explicit event limit only when the caller asks for one", async () => {
+    vi.stubEnv("AI_WORLD_RADAR_API_BASE_URL", "http://api.test");
+    const fetchMock = vi.fn(async () => jsonResponse({ items: [], limit: 12, offset: 0 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getEvents({ limit: 12, offset: 0 });
+
+    expect(fetchMock).toHaveBeenCalledWith("http://api.test/events?limit=12&offset=0", { cache: "no-store" });
   });
 
   it("loads event detail with full source_refs", async () => {
