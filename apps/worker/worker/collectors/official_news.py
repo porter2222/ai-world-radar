@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Literal
 from urllib.parse import urljoin
+import urllib.request
 from xml.etree import ElementTree
 
 import httpx
@@ -12,6 +13,7 @@ from bs4 import BeautifulSoup
 
 
 OfficialSourceMode = Literal["rss", "atom", "html"]
+OFFICIAL_NEWS_USER_AGENT = "ai-world-radar-worker"
 
 
 @dataclass(frozen=True)
@@ -43,6 +45,7 @@ class OfficialNewsEntry:
     published_at: datetime | None
     summary: str | None
     image_url: str | None = None
+    fetch_metadata: dict[str, object] = field(default_factory=dict)
 
 
 def collect_from_feed_xml(xml: str, *, profile: OfficialSourceProfile, limit: int) -> list[OfficialNewsEntry]:
@@ -101,16 +104,79 @@ def fetch_official_news(profile: OfficialSourceProfile, limit: int = 5) -> list[
     输入：官方来源 profile 和最大条目数。
     输出：按 profile.mode 解析后的 OfficialNewsEntry 列表；网络错误由 httpx 抛出。
     """
-    with httpx.Client(timeout=20.0, follow_redirects=True, headers={"User-Agent": "ai-world-radar-worker"}) as client:
-        response = client.get(profile.entry_url)
-        response.raise_for_status()
-        text = response.text
+    text, fetch_metadata = _fetch_official_source_text(profile)
 
     if profile.mode in {"rss", "atom"}:
-        return collect_from_feed_xml(text, profile=profile, limit=limit)
+        return _attach_fetch_metadata(collect_from_feed_xml(text, profile=profile, limit=limit), fetch_metadata)
     if profile.mode == "html":
-        return collect_from_news_html(text, profile=profile, limit=limit)
+        return _attach_fetch_metadata(collect_from_news_html(text, profile=profile, limit=limit), fetch_metadata)
     raise ValueError(f"Unsupported official source mode: {profile.mode}")
+
+
+def _fetch_official_source_text(profile: OfficialSourceProfile) -> tuple[str, dict[str, object]]:
+    """请求官方源文本，并在 httpx 被 403 拦截时使用标准库兜底。
+
+    输入：官方源 profile。
+    输出：响应文本和可选抓取元数据；非 403 错误保持原有异常行为。
+    """
+    with httpx.Client(
+        timeout=20.0,
+        follow_redirects=True,
+        headers={"User-Agent": OFFICIAL_NEWS_USER_AGENT},
+    ) as client:
+        response = client.get(profile.entry_url)
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 403:
+                raise
+            text, fallback_metadata = _fetch_official_source_text_with_urllib(
+                profile,
+                fallback_reason=str(exc),
+            )
+            return text, fallback_metadata
+        return response.text, {}
+
+
+def _fetch_official_source_text_with_urllib(
+    profile: OfficialSourceProfile,
+    *,
+    fallback_reason: str,
+) -> tuple[str, dict[str, object]]:
+    """使用 urllib 兜底拉取官方源文本。
+
+    输入：官方源 profile 和触发兜底的主请求失败原因。
+    输出：响应文本和 fallback 审计元数据。
+    """
+    request = urllib.request.Request(profile.entry_url, headers={"User-Agent": OFFICIAL_NEWS_USER_AGENT})
+    with urllib.request.urlopen(request, timeout=20.0) as response:
+        raw_body = response.read()
+        headers = getattr(response, "headers", {})
+        charset = headers.get_content_charset() if hasattr(headers, "get_content_charset") else None
+        content_type = headers.get("content-type") if hasattr(headers, "get") else None
+        text = raw_body.decode(charset or "utf-8", errors="replace")
+        return text, {
+            "fallback_used": True,
+            "primary_fetch_client": "httpx",
+            "fetch_client": "urllib",
+            "fallback_reason": fallback_reason,
+            "fallback_status_code": getattr(response, "status", None),
+            "fallback_content_type": content_type,
+        }
+
+
+def _attach_fetch_metadata(
+    entries: list[OfficialNewsEntry],
+    fetch_metadata: dict[str, object],
+) -> list[OfficialNewsEntry]:
+    """把抓取层元数据附加到解析出的官方条目。
+
+    输入：官方条目列表和抓取元数据。
+    输出：需要记录 fallback 时返回带 metadata 的新条目，否则保持原列表。
+    """
+    if not fetch_metadata:
+        return entries
+    return [replace(entry, fetch_metadata=dict(fetch_metadata)) for entry in entries]
 
 
 def _collect_from_rss_root(

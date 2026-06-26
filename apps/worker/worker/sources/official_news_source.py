@@ -40,6 +40,8 @@ def official_news_entry_to_signal(entry: OfficialNewsEntry) -> SourceSignalCreat
     if entry.image_url:
         metadata["image_url"] = entry.image_url
         metadata["image_source"] = "official_feed"
+    if entry.fetch_metadata:
+        metadata["fetch_metadata"] = dict(entry.fetch_metadata)
 
     return SourceSignalCreate(
         source_key=profile.source_key,
