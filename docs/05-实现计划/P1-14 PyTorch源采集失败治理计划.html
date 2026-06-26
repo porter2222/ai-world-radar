@@ -142,6 +142,7 @@
       <a href="#acceptance">7. 验收记录要求</a>
       <a href="#non-goals">8. 非目标</a>
       <a href="#commits">9. 提交计划</a>
+      <a href="#result">10. 当前执行结果</a>
     </nav>
     <main>
       <article>
@@ -291,6 +292,18 @@ error=403 Forbidden</code></pre>
           <li><code>docs: record pytorch source acceptance</code></li>
         </ol>
         <p>最终不合并 main，只输出验收结果并等待用户确认。</p>
+
+        <h2 id="result">10. 当前执行结果</h2>
+        <p>截至 2026-06-26，本计划已在独立分支 <code>codex/pytorch-source-fix</code> 完成测试、修复和真实 PyTorch 单源验收。</p>
+        <ul>
+          <li>RED：<code>test_fetch_official_news_falls_back_to_urllib_after_httpx_403</code> 在旧实现下失败，失败原因为 <code>httpx.HTTPStatusError: 403 Forbidden</code>。</li>
+          <li>GREEN：新增 fallback 后，<code>tests/test_official_news_collector.py</code> 结果为 <code>8 passed in 0.55s</code>。</li>
+          <li>采集脚本回归：<code>tests/test_collect_source_signals_script.py</code> 结果为 <code>15 passed in 24.22s</code>。</li>
+          <li>worker 全量回归：<code>.\.venv\Scripts\python.exe -m pytest -q</code> 结果为 <code>190 passed, 1 skipped in 103.66s (0:01:43)</code>。</li>
+          <li>真实 PyTorch 单源 smoke：<code>collect_source_signals.py --source official_feeds --official-profile pytorch_blog --official-limit 5 --lookback-hours 10000</code> 输出 <code>source_keys=["pytorch_blog"]</code>、<code>sources_count=1</code>、<code>signals_count=5</code>。</li>
+          <li>后置 SQLite 查询确认 5 条 PyTorch 信号均记录 <code>fallback_used=true</code>、<code>fetch_client=urllib</code>、<code>fallback_status_code=200</code>。</li>
+        </ul>
+        <p>本轮仍未覆盖全源、<code>daily_all</code>、完整 daily pipeline、Windows 定时任务和 <code>anthropic_news</code> SSL EOF。</p>
       </article>
     </main>
   </div>

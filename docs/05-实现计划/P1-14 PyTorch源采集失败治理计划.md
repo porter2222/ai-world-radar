@@ -213,3 +213,16 @@ error=403 Forbidden
 3. `docs: record pytorch source acceptance`
 
 最终不合并 main，只输出验收结果并等待用户确认。
+
+## 10. 当前执行结果
+
+截至 2026-06-26，本计划已在独立分支 `codex/pytorch-source-fix` 完成测试、修复和真实 PyTorch 单源验收：
+
+- RED：`test_fetch_official_news_falls_back_to_urllib_after_httpx_403` 在旧实现下失败，失败原因为 `httpx.HTTPStatusError: 403 Forbidden`。
+- GREEN：新增 fallback 后，`tests/test_official_news_collector.py` 结果为 `8 passed in 0.55s`。
+- 采集脚本回归：`tests/test_collect_source_signals_script.py` 结果为 `15 passed in 24.22s`。
+- worker 全量回归：`.\.venv\Scripts\python.exe -m pytest -q` 结果为 `190 passed, 1 skipped in 103.66s (0:01:43)`。
+- 真实 PyTorch 单源 smoke：`collect_source_signals.py --source official_feeds --official-profile pytorch_blog --official-limit 5 --lookback-hours 10000` 输出 `source_keys=["pytorch_blog"]`、`sources_count=1`、`signals_count=5`。
+- 后置 SQLite 查询确认 5 条 PyTorch 信号均记录 `fallback_used=true`、`fetch_client=urllib`、`fallback_status_code=200`。
+
+本轮仍未覆盖全源、`daily_all`、完整 daily pipeline、Windows 定时任务和 `anthropic_news` SSL EOF。
